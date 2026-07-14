@@ -101,7 +101,7 @@ function SectionCard({
         </h2>
         <Link
           href={href}
-          className="group inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-indigo-600 transition-colors hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300"
+          className="group inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-cyan-600 transition-colors hover:text-cyan-500 dark:text-cyan-400 dark:hover:text-cyan-300"
         >
           すべて見る
           <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
@@ -154,7 +154,7 @@ export default function DashboardPage() {
   const dateLabel = `${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日（${weekday}）`;
 
   const colorOf = (name: string) =>
-    profiles.items.find((p) => p.name === name)?.color ?? "indigo";
+    profiles.items.find((p) => p.name === name)?.color ?? "cyan";
 
   // 今日の予定（終日→時刻順）
   const todayEvents = events.items
@@ -270,11 +270,11 @@ export default function DashboardPage() {
       />
 
       {/* ---------- 挨拶ヒーロー ---------- */}
-      <div className="relative mb-6 overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-600 via-violet-600 to-fuchsia-600 p-6 text-white shadow-lg shadow-indigo-500/25 sm:p-8">
+      <div className="relative mb-6 overflow-hidden rounded-3xl bg-gradient-to-br from-cyan-600 via-sky-600 to-sky-600 p-6 text-white shadow-lg shadow-cyan-500/25 sm:p-8">
         <div className="pointer-events-none absolute -top-20 -right-16 h-56 w-56 rounded-full bg-white/10 blur-2xl" />
-        <div className="pointer-events-none absolute -bottom-24 left-1/3 h-48 w-48 rounded-full bg-fuchsia-400/20 blur-2xl" />
+        <div className="pointer-events-none absolute -bottom-24 left-1/3 h-48 w-48 rounded-full bg-sky-400/20 blur-2xl" />
         <div className="relative">
-          <p className="text-sm font-medium text-indigo-100">{dateLabel}</p>
+          <p className="text-sm font-medium text-cyan-100">{dateLabel}</p>
           <h2 className="mt-1.5 text-2xl leading-snug font-bold sm:text-3xl">
             {greeting}、{user.name}さん
           </h2>
@@ -304,7 +304,7 @@ export default function DashboardPage() {
           value={`${activeDeals.length}件`}
           sub={`総額 ${formatYenShort(activeAmount)}`}
           icon={<Briefcase className="h-5 w-5" />}
-          accent="indigo"
+          accent="cyan"
         />
         <StatCard
           label="今日の予定"
@@ -488,7 +488,7 @@ export default function DashboardPage() {
         {/* パイプライン */}
         <SectionCard
           icon={<TrendingUp className="h-4 w-4" />}
-          iconClass="bg-indigo-50 text-indigo-600 dark:bg-indigo-500/15 dark:text-indigo-400"
+          iconClass="bg-cyan-50 text-cyan-600 dark:bg-cyan-500/15 dark:text-cyan-400"
           title="パイプライン"
           href="/deals"
         >
@@ -540,7 +540,7 @@ export default function DashboardPage() {
         {/* 最近の活動 */}
         <SectionCard
           icon={<Activity className="h-4 w-4" />}
-          iconClass="bg-violet-50 text-violet-600 dark:bg-violet-500/15 dark:text-violet-400"
+          iconClass="bg-sky-50 text-sky-600 dark:bg-sky-500/15 dark:text-sky-400"
           title="最近の活動"
           href="/deals"
         >
@@ -576,7 +576,7 @@ export default function DashboardPage() {
                         </span>
                       </div>
                       {dealName && (
-                        <p className="mt-0.5 truncate text-xs font-medium text-indigo-600 dark:text-indigo-400">
+                        <p className="mt-0.5 truncate text-xs font-medium text-cyan-600 dark:text-cyan-400">
                           {dealName}
                         </p>
                       )}

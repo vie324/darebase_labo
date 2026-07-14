@@ -53,7 +53,7 @@ export default function KnowledgePage() {
   // ---------- 派生データ ----------
   const authorColor = useMemo(() => {
     const map = new Map(profiles.map((p) => [p.name, p.color]));
-    return (name: string) => map.get(name) ?? "indigo";
+    return (name: string) => map.get(name) ?? "cyan";
   }, [profiles]);
 
   const counts = useMemo(() => {
@@ -194,7 +194,7 @@ export default function KnowledgePage() {
           value={items.length}
           sub="チームの知見ストック"
           icon={<BookOpen className="h-5 w-5" />}
-          accent="indigo"
+          accent="cyan"
         />
         <StatCard
           label="今月の投稿"
@@ -299,7 +299,7 @@ export default function KnowledgePage() {
         <aside className="space-y-4 self-start lg:sticky lg:top-20">
           <Card className="p-5">
             <h2 className="mb-3 flex items-center gap-2 text-sm font-bold">
-              <TrendingUp className="h-4 w-4 text-indigo-500" />
+              <TrendingUp className="h-4 w-4 text-cyan-500" />
               よく読まれている記事
             </h2>
             {topViewed.length === 0 ? (
@@ -341,7 +341,7 @@ export default function KnowledgePage() {
           {popularTags.length > 0 && (
             <Card className="p-5">
               <h2 className="mb-3 flex items-center gap-2 text-sm font-bold">
-                <Tag className="h-4 w-4 text-indigo-500" />
+                <Tag className="h-4 w-4 text-cyan-500" />
                 人気のタグ
               </h2>
               <div className="flex flex-wrap gap-1.5">
@@ -352,8 +352,8 @@ export default function KnowledgePage() {
                     className={cn(
                       "cursor-pointer rounded-full border px-2.5 py-1 text-xs font-medium transition-colors",
                       q === t
-                        ? "border-indigo-300 bg-indigo-50 text-indigo-700 dark:border-indigo-500/40 dark:bg-indigo-500/15 dark:text-indigo-300"
-                        : "border-slate-200 bg-white text-slate-500 hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400 dark:hover:border-indigo-500/30 dark:hover:bg-indigo-500/10 dark:hover:text-indigo-300"
+                        ? "border-cyan-300 bg-cyan-50 text-cyan-700 dark:border-cyan-500/40 dark:bg-cyan-500/15 dark:text-cyan-300"
+                        : "border-slate-200 bg-white text-slate-500 hover:border-cyan-200 hover:bg-cyan-50 hover:text-cyan-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400 dark:hover:border-cyan-500/30 dark:hover:bg-cyan-500/10 dark:hover:text-cyan-300"
                     )}
                   >
                     #{t}
@@ -370,7 +370,7 @@ export default function KnowledgePage() {
       <DetailModal
         article={detail}
         liked={detail ? likedIds.has(detail.id) : false}
-        authorColor={detail ? authorColor(detail.author_name) : "indigo"}
+        authorColor={detail ? authorColor(detail.author_name) : "cyan"}
         onClose={() => setDetailId(null)}
         onToggleLike={() => detail && toggleLike(detail)}
         onTogglePin={() => detail && togglePin(detail)}

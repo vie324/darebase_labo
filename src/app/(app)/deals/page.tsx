@@ -50,7 +50,7 @@ export default function DealsPage() {
   // ---------- 派生データ（loading 後のみ計算するのでハイドレーション安全） ----------
   const today = todayStr();
   const colorOf = (name: string) =>
-    profiles.items.find((p) => p.name === name)?.color ?? "indigo";
+    profiles.items.find((p) => p.name === name)?.color ?? "cyan";
 
   const owners = Array.from(
     new Set([...profiles.items.map((p) => p.name), ...deals.items.map((d) => d.owner_name)])
@@ -160,14 +160,14 @@ export default function DealsPage() {
           value={formatYenShort(pipelineTotal)}
           sub={`進行中 ${openDeals.length}件`}
           icon={<TrendingUp className="h-5 w-5" />}
-          accent="indigo"
+          accent="cyan"
         />
         <StatCard
           label="加重パイプライン"
           value={formatYenShort(weighted)}
           sub="金額 × 確度で算出"
           icon={<Target className="h-5 w-5" />}
-          accent="violet"
+          accent="sky"
         />
         <StatCard
           label="受注額"

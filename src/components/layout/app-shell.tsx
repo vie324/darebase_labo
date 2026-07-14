@@ -20,7 +20,6 @@ import {
   Moon,
   Newspaper,
   Settings,
-  Sparkles,
   Sun,
   X,
 } from "lucide-react";
@@ -29,6 +28,8 @@ import { isSupabaseConfigured } from "@/lib/supabase";
 import { UserProvider, useUser } from "@/lib/use-user";
 import { DEMO_TEAM } from "@/lib/demo/team";
 import { Avatar } from "@/components/ui";
+import { Logo } from "@/components/brand/logo";
+import { SplashScreen } from "@/components/brand/splash-screen";
 
 const NAV_SECTIONS: {
   heading: string;
@@ -94,13 +95,8 @@ function Sidebar({
       >
         {/* ロゴ */}
         <div className="flex h-16 items-center justify-between gap-2 border-b border-slate-200/80 px-5 dark:border-slate-800">
-          <Link href="/dashboard" className="flex items-center gap-2.5" onClick={onClose}>
-            <div className="bg-brand-gradient flex h-8 w-8 items-center justify-center rounded-xl shadow-lg shadow-indigo-500/30">
-              <Sparkles className="h-4.5 w-4.5 text-white" />
-            </div>
-            <span className="text-lg font-extrabold tracking-tight">
-              Dare<span className="text-gradient">Base</span>
-            </span>
+          <Link href="/dashboard" onClick={onClose}>
+            <Logo variant="inline" />
           </Link>
           <button
             onClick={onClose}
@@ -130,7 +126,7 @@ function Sidebar({
                         className={cn(
                           "group flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-all duration-150",
                           active
-                            ? "bg-gradient-to-r from-indigo-50 to-violet-50 text-indigo-700 dark:from-indigo-500/15 dark:to-violet-500/15 dark:text-indigo-300"
+                            ? "bg-gradient-to-r from-cyan-50 to-sky-50 text-cyan-700 dark:from-cyan-500/15 dark:to-sky-500/15 dark:text-cyan-300"
                             : "text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800/60 dark:hover:text-slate-200"
                         )}
                       >
@@ -146,7 +142,7 @@ function Sidebar({
                         </span>
                         {item.label}
                         {active && (
-                          <span className="ml-auto h-1.5 w-1.5 rounded-full bg-indigo-500" />
+                          <span className="ml-auto h-1.5 w-1.5 rounded-full bg-cyan-500" />
                         )}
                       </Link>
                     </li>
@@ -165,7 +161,7 @@ function Sidebar({
             className={cn(
               "flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-colors",
               pathname.startsWith("/settings")
-                ? "bg-indigo-50 text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-300"
+                ? "bg-cyan-50 text-cyan-700 dark:bg-cyan-500/15 dark:text-cyan-300"
                 : "text-slate-600 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-800/60"
             )}
           >
@@ -308,6 +304,7 @@ function ShellInner({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-screen">
+      <SplashScreen />
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="lg:pl-64">
         <Topbar onMenuOpen={() => setSidebarOpen(true)} />

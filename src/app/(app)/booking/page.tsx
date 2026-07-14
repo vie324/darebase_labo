@@ -58,7 +58,7 @@ export default function BookingPage() {
 
   // ---------- 派生データ ----------
   const colorOf = (name: string) =>
-    profiles.items.find((p) => p.name === name)?.color ?? "indigo";
+    profiles.items.find((p) => p.name === name)?.color ?? "cyan";
 
   const sorted = [...polls.items].sort((a, b) =>
     b.created_at.localeCompare(a.created_at)
@@ -181,7 +181,7 @@ export default function BookingPage() {
           value={monthCount}
           sub={`${now.getMonth() + 1}月に作成`}
           icon={<Sparkles className="h-5 w-5" />}
-          accent="indigo"
+          accent="cyan"
         />
       </div>
 
@@ -300,7 +300,7 @@ function PollCard({
           </span>
         </div>
       ) : leading ? (
-        <div className="rounded-xl bg-indigo-50/70 px-3 py-2 text-xs font-medium text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-300">
+        <div className="rounded-xl bg-cyan-50/70 px-3 py-2 text-xs font-medium text-cyan-600 dark:bg-cyan-500/10 dark:text-cyan-300">
           <span className="flex items-center gap-1">
             <Sparkles className="h-3.5 w-3.5" />
             最有力 {formatDateTime(leading.start)}（{candidateScore(poll, best)}

@@ -63,7 +63,7 @@ export function ContactCard({
           {contact.tags.map((t) => (
             <Badge
               key={t}
-              className="bg-indigo-50 text-indigo-600 dark:bg-indigo-500/15 dark:text-indigo-300"
+              className="bg-cyan-50 text-cyan-600 dark:bg-cyan-500/15 dark:text-cyan-300"
             >
               #{t}
             </Badge>

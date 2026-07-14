@@ -161,7 +161,7 @@ export function DocFormModal({
             ) : (
               <label
                 className={cn(
-                  "flex cursor-pointer flex-col items-center justify-center gap-1.5 rounded-xl border-2 border-dashed border-slate-200 py-8 text-slate-400 transition-colors hover:border-indigo-300 hover:text-indigo-500 dark:border-slate-700 dark:text-slate-500 dark:hover:border-indigo-500/50 dark:hover:text-indigo-400",
+                  "flex cursor-pointer flex-col items-center justify-center gap-1.5 rounded-xl border-2 border-dashed border-slate-200 py-8 text-slate-400 transition-colors hover:border-cyan-300 hover:text-cyan-500 dark:border-slate-700 dark:text-slate-500 dark:hover:border-cyan-500/50 dark:hover:text-cyan-400",
                   uploading && "pointer-events-none opacity-60"
                 )}
               >
@@ -228,7 +228,7 @@ export function DocFormModal({
               {previewTags.map((t) => (
                 <Badge
                   key={t}
-                  className="bg-indigo-50 text-indigo-600 dark:bg-indigo-500/15 dark:text-indigo-300"
+                  className="bg-cyan-50 text-cyan-600 dark:bg-cyan-500/15 dark:text-cyan-300"
                 >
                   #{t}
                 </Badge>
@@ -277,7 +277,7 @@ export function DocDetailModal({
     <Modal open onClose={onClose} title="資料の詳細">
       <div className="space-y-5">
         {/* ヘッダー */}
-        <div className="flex items-start gap-4 rounded-2xl bg-gradient-to-r from-indigo-50 to-violet-50 p-5 dark:from-indigo-500/10 dark:to-violet-500/10">
+        <div className="flex items-start gap-4 rounded-2xl bg-gradient-to-r from-cyan-50 to-sky-50 p-5 dark:from-cyan-500/10 dark:to-sky-500/10">
           <div className={cn("flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl", style.tile)}>
             <Icon className="h-7 w-7" />
           </div>
@@ -306,7 +306,7 @@ export function DocDetailModal({
             {doc.tags.map((t) => (
               <Badge
                 key={t}
-                className="bg-indigo-50 text-indigo-600 dark:bg-indigo-500/15 dark:text-indigo-300"
+                className="bg-cyan-50 text-cyan-600 dark:bg-cyan-500/15 dark:text-cyan-300"
               >
                 #{t}
               </Badge>

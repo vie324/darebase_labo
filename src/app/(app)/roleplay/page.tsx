@@ -32,7 +32,7 @@ export default function RoleplayPage() {
 
   const colorOf = useMemo(() => {
     const map = new Map(profiles.items.map((p) => [p.name, p.color]));
-    return (name: string) => map.get(name) ?? "indigo";
+    return (name: string) => map.get(name) ?? "cyan";
   }, [profiles.items]);
 
   if (!user || scripts.loading || sessions.loading || profiles.loading) {
@@ -77,7 +77,7 @@ export default function RoleplayPage() {
           value={total}
           sub="チーム全体の練習数"
           icon={<Target className="h-5 w-5" />}
-          accent="indigo"
+          accent="cyan"
         />
         <StatCard
           label="今週の練習"
@@ -98,7 +98,7 @@ export default function RoleplayPage() {
           value={formatDuration(totalSec)}
           sub="積み上げた練習量"
           icon={<Clock className="h-5 w-5" />}
-          accent="violet"
+          accent="sky"
         />
       </div>
 

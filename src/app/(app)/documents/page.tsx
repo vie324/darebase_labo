@@ -69,7 +69,7 @@ export default function DocumentsPage() {
 
   // ---------- 派生データ（loading 後のみ計算するのでハイドレーション安全） ----------
   const colorOf = (name: string) =>
-    profiles.items.find((p) => p.name === name)?.color ?? "indigo";
+    profiles.items.find((p) => p.name === name)?.color ?? "cyan";
 
   // 統計
   const total = docs.items.length;
@@ -167,14 +167,14 @@ export default function DocumentsPage() {
           value={`${total}件`}
           sub={`表示中 ${sorted.length}件`}
           icon={<Files className="h-5 w-5" />}
-          accent="indigo"
+          accent="cyan"
         />
         <StatCard
           label="総容量"
           value={formatSize(totalKb)}
           sub="ライブラリ全体"
           icon={<HardDrive className="h-5 w-5" />}
-          accent="violet"
+          accent="sky"
         />
         <StatCard
           label="今月アップロード"
@@ -207,7 +207,7 @@ export default function DocumentsPage() {
                 <button
                   key={d.id}
                   onClick={() => setDetailId(d.id)}
-                  className="cursor-pointer rounded-xl border border-slate-100 p-3 text-left transition-colors hover:border-indigo-200 hover:bg-indigo-50/40 dark:border-slate-800 dark:hover:border-indigo-500/30 dark:hover:bg-indigo-500/5"
+                  className="cursor-pointer rounded-xl border border-slate-100 p-3 text-left transition-colors hover:border-cyan-200 hover:bg-cyan-50/40 dark:border-slate-800 dark:hover:border-cyan-500/30 dark:hover:bg-cyan-500/5"
                 >
                   <div className="flex items-center gap-2.5">
                     <span
@@ -288,7 +288,7 @@ export default function DocumentsPage() {
               className={cn(
                 "cursor-pointer rounded-lg p-2 transition-all",
                 view === key
-                  ? "bg-white text-indigo-600 shadow-sm dark:bg-slate-900 dark:text-indigo-400"
+                  ? "bg-white text-cyan-600 shadow-sm dark:bg-slate-900 dark:text-cyan-400"
                   : "text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300"
               )}
             >

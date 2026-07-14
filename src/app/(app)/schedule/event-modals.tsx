@@ -137,7 +137,7 @@ export function DayModal({
             <button
               key={ev.id}
               onClick={() => onEventClick(ev)}
-              className="flex w-full cursor-pointer items-center gap-3 rounded-xl border border-slate-100 p-3 text-left transition-colors hover:border-indigo-200 hover:bg-indigo-50/40 dark:border-slate-800 dark:hover:border-indigo-500/30 dark:hover:bg-indigo-500/5"
+              className="flex w-full cursor-pointer items-center gap-3 rounded-xl border border-slate-100 p-3 text-left transition-colors hover:border-cyan-200 hover:bg-cyan-50/40 dark:border-slate-800 dark:hover:border-cyan-500/30 dark:hover:bg-cyan-500/5"
             >
               <span className={cn("h-9 w-1 shrink-0 rounded-full", cat.dot)} />
               <span className="min-w-0 flex-1">
@@ -296,7 +296,7 @@ export function EventFormModal({
             type="checkbox"
             checked={allDay}
             onChange={(e) => setAllDay(e.target.checked)}
-            className="h-4 w-4 cursor-pointer accent-indigo-600"
+            className="h-4 w-4 cursor-pointer accent-cyan-600"
           />
           終日の予定
         </label>

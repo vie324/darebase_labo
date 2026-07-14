@@ -26,7 +26,7 @@ function LinkPill({
       rel="noopener noreferrer"
       onClick={(e) => e.stopPropagation()}
       title={`${label}を新しいタブで開く`}
-      className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] font-semibold text-slate-600 transition-colors hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-indigo-500/40 dark:hover:bg-indigo-500/10 dark:hover:text-indigo-300"
+      className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] font-semibold text-slate-600 transition-colors hover:border-cyan-300 hover:bg-cyan-50 hover:text-cyan-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-cyan-500/40 dark:hover:bg-cyan-500/10 dark:hover:text-cyan-300"
     >
       {icon}
       {label}
@@ -49,7 +49,7 @@ export function TrainingCard({
     <Card hover onClick={onOpen} className="group flex flex-col p-5">
       {/* 上段: ツール名バッジ + カテゴリ + 外部リンク */}
       <div className="flex flex-wrap items-center gap-2">
-        <span className="inline-flex items-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-2.5 py-1 text-sm font-bold text-indigo-700 dark:border-indigo-500/30 dark:bg-indigo-500/10 dark:text-indigo-300">
+        <span className="inline-flex items-center gap-1.5 rounded-lg border border-cyan-200 bg-cyan-50 px-2.5 py-1 text-sm font-bold text-cyan-700 dark:border-cyan-500/30 dark:bg-cyan-500/10 dark:text-cyan-300">
           <Package className="h-4 w-4" />
           {training.tool_name}
         </span>
@@ -73,7 +73,7 @@ export function TrainingCard({
       </div>
 
       {/* タイトル */}
-      <h3 className="mt-3 text-base leading-snug font-bold transition-colors group-hover:text-indigo-600 dark:group-hover:text-indigo-400">
+      <h3 className="mt-3 text-base leading-snug font-bold transition-colors group-hover:text-cyan-600 dark:group-hover:text-cyan-400">
         {training.title}
       </h3>
 

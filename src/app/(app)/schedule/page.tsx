@@ -157,14 +157,14 @@ export default function SchedulePage() {
           value={`${todayCount}件`}
           sub={`${format(today, "M月d日")}（${WEEKDAYS[today.getDay()]}）`}
           icon={<CalendarCheck className="h-5 w-5" />}
-          accent="indigo"
+          accent="cyan"
         />
         <StatCard
           label="今週の予定"
           value={`${weekEvents.length}件`}
           sub={`${format(weekStart, "M/d")} 〜 ${format(weekEnd, "M/d")}`}
           icon={<CalendarRange className="h-5 w-5" />}
-          accent="violet"
+          accent="sky"
         />
         <StatCard
           label="今週の訪問・商談"
@@ -378,7 +378,7 @@ function WeekView({
             className={cn(
               "p-4",
               isToday &&
-                "border-indigo-200 ring-1 ring-indigo-100 dark:border-indigo-500/40 dark:ring-indigo-500/10"
+                "border-cyan-200 ring-1 ring-cyan-100 dark:border-cyan-500/40 dark:ring-cyan-500/10"
             )}
           >
             <div className="flex items-start gap-4">
@@ -390,7 +390,7 @@ function WeekView({
                   className={cn(
                     "mx-auto mt-0.5 flex h-9 w-9 items-center justify-center rounded-full text-lg font-bold",
                     isToday
-                      ? "bg-indigo-600 text-white shadow-sm shadow-indigo-500/30"
+                      ? "bg-cyan-500 text-slate-900 shadow-sm shadow-cyan-500/30"
                       : "text-slate-700 dark:text-slate-200"
                   )}
                 >
@@ -412,7 +412,7 @@ function WeekView({
                 onClick={() => onDayCreate(day)}
                 aria-label="この日に予定を作成"
                 title="この日に予定を作成"
-                className="cursor-pointer rounded-lg p-1.5 text-slate-300 transition-colors hover:bg-indigo-50 hover:text-indigo-500 dark:text-slate-600 dark:hover:bg-indigo-500/10 dark:hover:text-indigo-400"
+                className="cursor-pointer rounded-lg p-1.5 text-slate-300 transition-colors hover:bg-cyan-50 hover:text-cyan-500 dark:text-slate-600 dark:hover:bg-cyan-500/10 dark:hover:text-cyan-400"
               >
                 <Plus className="h-4 w-4" />
               </button>
@@ -488,12 +488,12 @@ function ListView({
               {formatDate(key)}
             </h2>
             {key === todayKey && (
-              <Badge className="bg-indigo-50 text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-300">
+              <Badge className="bg-cyan-50 text-cyan-700 dark:bg-cyan-500/15 dark:text-cyan-300">
                 今日
               </Badge>
             )}
             {key === tomorrowKey && (
-              <Badge className="bg-violet-50 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300">
+              <Badge className="bg-sky-50 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300">
                 明日
               </Badge>
             )}
@@ -524,7 +524,7 @@ function EventRow({ ev, onClick }: { ev: CalendarEvent; onClick: () => void }) {
   return (
     <button
       onClick={onClick}
-      className="group flex w-full cursor-pointer items-center gap-3 rounded-xl border border-slate-100 bg-white p-3 text-left transition-all hover:-translate-y-px hover:border-indigo-200 hover:shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:hover:border-indigo-500/30"
+      className="group flex w-full cursor-pointer items-center gap-3 rounded-xl border border-slate-100 bg-white p-3 text-left transition-all hover:-translate-y-px hover:border-cyan-200 hover:shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:hover:border-cyan-500/30"
     >
       <span className={cn("h-10 w-1 shrink-0 rounded-full", cat.dot)} />
       <span className="w-16 shrink-0 text-xs font-semibold text-slate-500 tabular-nums dark:text-slate-400">
@@ -540,7 +540,7 @@ function EventRow({ ev, onClick }: { ev: CalendarEvent; onClick: () => void }) {
         )}
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block truncate text-sm font-semibold transition-colors group-hover:text-indigo-600 dark:group-hover:text-indigo-400">
+        <span className="block truncate text-sm font-semibold transition-colors group-hover:text-cyan-600 dark:group-hover:text-cyan-400">
           {ev.title}
         </span>
         {ev.location && (

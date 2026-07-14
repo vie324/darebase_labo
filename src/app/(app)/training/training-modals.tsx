@@ -45,20 +45,20 @@ function ResourceButton({
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className="group flex flex-1 items-center gap-3 rounded-xl border border-slate-200 bg-white p-3.5 transition-all hover:-translate-y-0.5 hover:border-indigo-300 hover:shadow-md hover:shadow-indigo-500/10 dark:border-slate-700 dark:bg-slate-900 dark:hover:border-indigo-500/40"
+      className="group flex flex-1 items-center gap-3 rounded-xl border border-slate-200 bg-white p-3.5 transition-all hover:-translate-y-0.5 hover:border-cyan-300 hover:shadow-md hover:shadow-cyan-500/10 dark:border-slate-700 dark:bg-slate-900 dark:hover:border-cyan-500/40"
     >
-      <span className="bg-brand-gradient flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-white shadow-sm">
+      <span className="bg-brand-gradient flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-slate-900 shadow-sm">
         {icon}
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block text-sm font-bold group-hover:text-indigo-600 dark:group-hover:text-indigo-400">
+        <span className="block text-sm font-bold group-hover:text-cyan-600 dark:group-hover:text-cyan-400">
           {title}
         </span>
         <span className="block truncate text-[11px] text-slate-400 dark:text-slate-500">
           {desc}
         </span>
       </span>
-      <ExternalLink className="h-4 w-4 shrink-0 text-slate-400 group-hover:text-indigo-500 dark:text-slate-500" />
+      <ExternalLink className="h-4 w-4 shrink-0 text-slate-400 group-hover:text-cyan-500 dark:text-slate-500" />
     </a>
   );
 }
@@ -82,7 +82,7 @@ export function DetailModal({
     <Modal open onClose={onClose} title={training.title} wide>
       {/* メタ: ツール名 / カテゴリ / タグ */}
       <div className="mb-4 flex flex-wrap items-center gap-2">
-        <span className="inline-flex items-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-2.5 py-1 text-sm font-bold text-indigo-700 dark:border-indigo-500/30 dark:bg-indigo-500/10 dark:text-indigo-300">
+        <span className="inline-flex items-center gap-1.5 rounded-lg border border-cyan-200 bg-cyan-50 px-2.5 py-1 text-sm font-bold text-cyan-700 dark:border-cyan-500/30 dark:bg-cyan-500/10 dark:text-cyan-300">
           <Package className="h-4 w-4" />
           {training.tool_name}
         </span>
@@ -110,7 +110,7 @@ export function DetailModal({
             </div>
           </div>
           <span className="flex items-center gap-1.5 text-sm font-medium text-slate-600 dark:text-slate-300">
-            <CalendarDays className="h-4 w-4 text-indigo-500" />
+            <CalendarDays className="h-4 w-4 text-cyan-500" />
             {formatDate(training.held_at)} 開催
           </span>
         </div>

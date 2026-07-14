@@ -5,10 +5,10 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { Sparkles } from "lucide-react";
 import { getSupabase, isSupabaseConfigured } from "@/lib/supabase";
 import { APP_TAGLINE } from "@/lib/constants";
 import { Button, Field, Input } from "@/components/ui";
+import { Logo, LogoMark } from "@/components/brand/logo";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -55,16 +55,12 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-indigo-50 via-white to-violet-50 p-4 dark:from-slate-950 dark:via-slate-950 dark:to-indigo-950/40">
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-cyan-50 via-white to-sky-50 p-4 dark:from-slate-950 dark:via-slate-950 dark:to-cyan-950/40">
       <div className="card w-full max-w-md animate-fade-up p-8">
-        <div className="mb-8 text-center">
-          <div className="bg-brand-gradient mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl shadow-lg shadow-indigo-500/30">
-            <Sparkles className="h-7 w-7 text-white" />
-          </div>
-          <h1 className="text-2xl font-extrabold tracking-tight">
-            Dare<span className="text-gradient">Base</span>
-          </h1>
-          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{APP_TAGLINE}</p>
+        <div className="mb-8 flex flex-col items-center text-center">
+          <LogoMark className="mb-5 h-14 w-auto drop-shadow-[0_0_18px_rgba(34,211,238,0.3)]" />
+          <Logo variant="stacked" className="text-xl" />
+          <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">{APP_TAGLINE}</p>
         </div>
 
         <form onSubmit={submit} className="space-y-4">
@@ -118,7 +114,7 @@ export default function LoginPage() {
           {mode === "signin" ? "アカウントをお持ちでない方は" : "すでにアカウントをお持ちの方は"}
           <button
             onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
-            className="ml-1 cursor-pointer font-semibold text-indigo-600 hover:underline dark:text-indigo-400"
+            className="ml-1 cursor-pointer font-semibold text-cyan-600 hover:underline dark:text-cyan-400"
           >
             {mode === "signin" ? "新規登録" : "ログイン"}
           </button>

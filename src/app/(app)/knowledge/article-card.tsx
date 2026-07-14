@@ -45,14 +45,14 @@ export function ArticleCard({
               e.stopPropagation();
               onTagClick(t);
             }}
-            className="cursor-pointer rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-500 transition-colors hover:bg-indigo-50 hover:text-indigo-600 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-indigo-500/15 dark:hover:text-indigo-300"
+            className="cursor-pointer rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-500 transition-colors hover:bg-cyan-50 hover:text-cyan-600 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-cyan-500/15 dark:hover:text-cyan-300"
           >
             #{t}
           </button>
         ))}
       </div>
 
-      <h3 className="mt-2.5 text-base leading-snug font-bold transition-colors group-hover:text-indigo-600 dark:group-hover:text-indigo-400">
+      <h3 className="mt-2.5 text-base leading-snug font-bold transition-colors group-hover:text-cyan-600 dark:group-hover:text-cyan-400">
         {article.title}
       </h3>
       <p className="mt-1 line-clamp-2 text-sm leading-relaxed text-slate-500 dark:text-slate-400">

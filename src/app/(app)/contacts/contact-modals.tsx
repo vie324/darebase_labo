@@ -54,7 +54,7 @@ function InfoRow({
 }
 
 const linkClass =
-  "text-indigo-600 hover:underline underline-offset-2 dark:text-indigo-400";
+  "text-cyan-600 hover:underline underline-offset-2 dark:text-cyan-400";
 
 // =============================================================
 // 詳細モーダル
@@ -76,7 +76,7 @@ export function ContactDetailModal({
     <Modal open onClose={onClose} title="名刺の詳細" wide>
       <div className="space-y-5">
         {/* 名刺ヘッダー */}
-        <div className="flex flex-wrap items-center gap-4 rounded-2xl bg-gradient-to-r from-indigo-50 to-violet-50 p-5 dark:from-indigo-500/10 dark:to-violet-500/10">
+        <div className="flex flex-wrap items-center gap-4 rounded-2xl bg-gradient-to-r from-cyan-50 to-sky-50 p-5 dark:from-cyan-500/10 dark:to-sky-500/10">
           <Avatar name={contact.name} color={companyColor(contact.company)} size="lg" />
           <div className="min-w-0 flex-1">
             <p className="text-xs text-slate-400 dark:text-slate-500">
@@ -98,7 +98,7 @@ export function ContactDetailModal({
               {contact.tags.map((t) => (
                 <Badge
                   key={t}
-                  className="bg-white/80 text-indigo-600 dark:bg-slate-900/60 dark:text-indigo-300"
+                  className="bg-white/80 text-cyan-600 dark:bg-slate-900/60 dark:text-cyan-300"
                 >
                   #{t}
                 </Badge>
@@ -411,7 +411,7 @@ export function ContactFormModal({
                 {previewTags.map((t) => (
                   <Badge
                     key={t}
-                    className="bg-indigo-50 text-indigo-600 dark:bg-indigo-500/15 dark:text-indigo-300"
+                    className="bg-cyan-50 text-cyan-600 dark:bg-cyan-500/15 dark:text-cyan-300"
                   >
                     #{t}
                   </Badge>
@@ -455,7 +455,7 @@ export function ContactFormModal({
               </div>
             ) : (
               <label
-                className={`flex cursor-pointer flex-col items-center justify-center gap-1.5 rounded-xl border-2 border-dashed border-slate-200 py-6 text-slate-400 transition-colors hover:border-indigo-300 hover:text-indigo-500 dark:border-slate-700 dark:text-slate-500 dark:hover:border-indigo-500/50 dark:hover:text-indigo-400 ${uploading ? "pointer-events-none opacity-60" : ""}`}
+                className={`flex cursor-pointer flex-col items-center justify-center gap-1.5 rounded-xl border-2 border-dashed border-slate-200 py-6 text-slate-400 transition-colors hover:border-cyan-300 hover:text-cyan-500 dark:border-slate-700 dark:text-slate-500 dark:hover:border-cyan-500/50 dark:hover:text-cyan-400 ${uploading ? "pointer-events-none opacity-60" : ""}`}
               >
                 <ImagePlus className="h-6 w-6" />
                 <span className="text-xs font-medium">

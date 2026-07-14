@@ -51,7 +51,7 @@ export default function TrainingPage() {
 
   // ---------- 派生データ（loading 後のみ計算するのでハイドレーション安全） ----------
   const colorOf = (name: string) =>
-    profiles.find((p) => p.name === name)?.color ?? "indigo";
+    profiles.find((p) => p.name === name)?.color ?? "cyan";
 
   // カテゴリ（件数付き / 件数降順→名前順）
   const catCount = new Map<string, number>();
@@ -164,14 +164,14 @@ export default function TrainingPage() {
           value={total}
           sub="これまでの勉強会ログ"
           icon={<GraduationCap className="h-5 w-5" />}
-          accent="indigo"
+          accent="cyan"
         />
         <StatCard
           label="対象ツール数"
           value={toolCount}
           sub="学んだ商材・ツール"
           icon={<Package className="h-5 w-5" />}
-          accent="violet"
+          accent="sky"
         />
         <StatCard
           label="今月の開催"
@@ -268,7 +268,7 @@ export default function TrainingPage() {
           {toolGroups.map(([toolName, list]) => (
             <section key={toolName}>
               <div className="mb-3 flex flex-wrap items-center gap-2 border-b border-slate-200 pb-2 dark:border-slate-800">
-                <span className="inline-flex items-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-2.5 py-1 text-sm font-bold text-indigo-700 dark:border-indigo-500/30 dark:bg-indigo-500/10 dark:text-indigo-300">
+                <span className="inline-flex items-center gap-1.5 rounded-lg border border-cyan-200 bg-cyan-50 px-2.5 py-1 text-sm font-bold text-cyan-700 dark:border-cyan-500/30 dark:bg-cyan-500/10 dark:text-cyan-300">
                   <Package className="h-4 w-4" />
                   {toolName}
                 </span>
@@ -304,7 +304,7 @@ export default function TrainingPage() {
       {/* 詳細 */}
       <DetailModal
         training={detail}
-        presenterColor={detail ? colorOf(detail.presenter) : "indigo"}
+        presenterColor={detail ? colorOf(detail.presenter) : "cyan"}
         onClose={() => setDetailId(null)}
         onEdit={() => detail && openEdit(detail)}
         onDelete={() => detail && void handleDelete(detail)}

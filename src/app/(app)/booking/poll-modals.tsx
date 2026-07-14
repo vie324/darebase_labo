@@ -191,7 +191,7 @@ export function PollFormModal({
                 key={c.id}
                 className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50/60 p-2 dark:border-slate-800 dark:bg-slate-800/40"
               >
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-[11px] font-bold text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-300">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-cyan-100 text-[11px] font-bold text-cyan-600 dark:bg-cyan-500/20 dark:text-cyan-300">
                   {i + 1}
                 </span>
                 <Input
@@ -523,9 +523,9 @@ function ResponseForm({
   };
 
   return (
-    <div className="rounded-2xl border border-indigo-100 bg-indigo-50/40 p-4 dark:border-indigo-500/20 dark:bg-indigo-500/5">
+    <div className="rounded-2xl border border-cyan-100 bg-cyan-50/40 p-4 dark:border-cyan-500/20 dark:bg-cyan-500/5">
       <h3 className="mb-3 flex items-center gap-2 text-sm font-bold text-slate-700 dark:text-slate-200">
-        <Send className="h-4 w-4 text-indigo-500" />
+        <Send className="h-4 w-4 text-cyan-500" />
         出欠を回答する
       </h3>
 

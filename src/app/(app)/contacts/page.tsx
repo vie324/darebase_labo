@@ -51,7 +51,7 @@ export default function ContactsPage() {
 
   // ---------- 派生データ（loading 後のみ計算するのでハイドレーション安全） ----------
   const colorOf = (name: string) =>
-    profiles.items.find((p) => p.name === name)?.color ?? "indigo";
+    profiles.items.find((p) => p.name === name)?.color ?? "cyan";
   const members = profiles.items.map((p) => p.name);
 
   // 統計
@@ -187,14 +187,14 @@ export default function ContactsPage() {
           value={`${total}枚`}
           sub={`表示中 ${sorted.length}枚`}
           icon={<ContactIcon className="h-5 w-5" />}
-          accent="indigo"
+          accent="cyan"
         />
         <StatCard
           label="会社数"
           value={`${companyCount}社`}
           sub="取引先ネットワーク"
           icon={<Building2 className="h-5 w-5" />}
-          accent="violet"
+          accent="sky"
         />
         <StatCard
           label="今月の追加"
@@ -249,12 +249,12 @@ export default function ContactsPage() {
                 className={cn(
                   "cursor-pointer rounded-full border px-3 py-1 text-xs font-medium transition-all",
                   active
-                    ? "border-indigo-300 bg-indigo-50 text-indigo-700 shadow-sm dark:border-indigo-500/40 dark:bg-indigo-500/15 dark:text-indigo-300"
-                    : "border-slate-200 bg-white text-slate-500 hover:border-indigo-200 hover:text-indigo-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400 dark:hover:border-indigo-500/30 dark:hover:text-indigo-300"
+                    ? "border-cyan-300 bg-cyan-50 text-cyan-700 shadow-sm dark:border-cyan-500/40 dark:bg-cyan-500/15 dark:text-cyan-300"
+                    : "border-slate-200 bg-white text-slate-500 hover:border-cyan-200 hover:text-cyan-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400 dark:hover:border-cyan-500/30 dark:hover:text-cyan-300"
                 )}
               >
                 #{tag}
-                <span className={cn("ml-1", active ? "text-indigo-400" : "text-slate-300 dark:text-slate-600")}>
+                <span className={cn("ml-1", active ? "text-cyan-400" : "text-slate-300 dark:text-slate-600")}>
                   {count}
                 </span>
               </button>
@@ -305,7 +305,7 @@ export default function ContactsPage() {
                   <span
                     className={cn(
                       "flex h-8 w-8 items-center justify-center rounded-xl text-white shadow-sm",
-                      AVATAR_COLORS[companyColor(company)] ?? "bg-indigo-500"
+                      AVATAR_COLORS[companyColor(company)] ?? "bg-cyan-500"
                     )}
                   >
                     <Building2 className="h-4 w-4" />
