@@ -54,6 +54,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
         name = localStorage.getItem(LS_KEY);
       } catch {}
       const member = DEMO_TEAM.find((m) => m.name === name) ?? DEMO_TEAM[0];
+      // SSRではlocalStorageに触れないため、マウント後にユーザーを復元する
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setUser({
         name: member.name,
         email: member.email,
@@ -65,7 +67,6 @@ export function UserProvider({ children }: { children: ReactNode }) {
     }
 
     // Supabase Auth
-    let unsub: (() => void) | undefined;
     sb.auth.getSession().then(({ data }) => {
       const s = data.session;
       setUser(
@@ -98,8 +99,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
           : null
       );
     });
-    unsub = () => sub.subscription.unsubscribe();
-    return unsub;
+    return () => sub.subscription.unsubscribe();
   }, [sb]);
 
   const switchDemoUser = useCallback((name: string) => {

@@ -25,7 +25,6 @@ import {
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { APP_NAME } from "@/lib/constants";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import { UserProvider, useUser } from "@/lib/use-user";
 import { DEMO_TEAM } from "@/lib/demo/team";
@@ -186,6 +185,8 @@ function Topbar({ onMenuOpen }: { onMenuOpen: () => void }) {
   const router = useRouter();
 
   useEffect(() => {
+    // SSRでは<html>のクラスを参照できないため、ハイドレーション後に実テーマを同期する
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setDark(document.documentElement.classList.contains("dark"));
   }, []);
 

@@ -92,6 +92,8 @@ export function useCollection<K extends TableName>(
 
   useEffect(() => {
     mounted.current = true;
+    // SSRではlocalStorage/Supabaseに触れないため、マウント後に初回ロードする
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     refresh();
 
     if (!sb) {
