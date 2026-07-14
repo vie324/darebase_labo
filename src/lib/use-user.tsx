@@ -14,6 +14,14 @@ import {
 import { getSupabase } from "./supabase";
 import { DEMO_TEAM } from "./demo/team";
 
+// 実ユーザーのアバター色を名前/メールから決定的に割り当てる
+const AVATAR_PALETTE = ["indigo", "violet", "emerald", "sky", "amber", "rose", "teal"];
+function colorFromString(s: string): string {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+  return AVATAR_PALETTE[h % AVATAR_PALETTE.length];
+}
+
 export interface CurrentUser {
   name: string;
   email: string;
@@ -67,37 +75,58 @@ export function UserProvider({ children }: { children: ReactNode }) {
     }
 
     // Supabase Auth
+    type SessionUser = {
+      id: string;
+      email?: string;
+      user_metadata?: { name?: string; role?: string };
+    };
+    const toUser = (u: SessionUser): CurrentUser => ({
+      name: u.user_metadata?.name ?? u.email?.split("@")[0] ?? "ユーザー",
+      email: u.email ?? "",
+      role: u.user_metadata?.role ?? "メンバー",
+      color: colorFromString(u.email ?? u.id),
+    });
+
+    // ログインユーザーを profiles テーブルに1度だけ登録する（メンバー一覧に反映）。
+    // 既存行があれば ignoreDuplicates で上書きしない。
+    const ensureProfile = async (u: SessionUser) => {
+      const cu = toUser(u);
+      try {
+        await sb
+          .from("profiles")
+          .upsert(
+            {
+              id: u.id,
+              name: cu.name,
+              email: cu.email,
+              role: cu.role,
+              department: "",
+              color: cu.color,
+            },
+            { onConflict: "id", ignoreDuplicates: true }
+          );
+      } catch {
+        // profiles未整備でも致命的ではないため無視
+      }
+    };
+
     sb.auth.getSession().then(({ data }) => {
       const s = data.session;
-      setUser(
-        s
-          ? {
-              name:
-                (s.user.user_metadata?.name as string) ??
-                s.user.email?.split("@")[0] ??
-                "ユーザー",
-              email: s.user.email ?? "",
-              role: (s.user.user_metadata?.role as string) ?? "メンバー",
-              color: "indigo",
-            }
-          : null
-      );
+      if (s) {
+        setUser(toUser(s.user as SessionUser));
+        ensureProfile(s.user as SessionUser);
+      } else {
+        setUser(null);
+      }
       setLoading(false);
     });
     const { data: sub } = sb.auth.onAuthStateChange((_event, session) => {
-      setUser(
-        session
-          ? {
-              name:
-                (session.user.user_metadata?.name as string) ??
-                session.user.email?.split("@")[0] ??
-                "ユーザー",
-              email: session.user.email ?? "",
-              role: (session.user.user_metadata?.role as string) ?? "メンバー",
-              color: "indigo",
-            }
-          : null
-      );
+      if (session) {
+        setUser(toUser(session.user as SessionUser));
+        ensureProfile(session.user as SessionUser);
+      } else {
+        setUser(null);
+      }
     });
     return () => sub.subscription.unsubscribe();
   }, [sb]);

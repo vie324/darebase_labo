@@ -80,7 +80,7 @@ export default function SettingsPage() {
                   でプロジェクトを作成
                 </li>
                 <li>
-                  リポジトリの <code className="rounded bg-slate-100 px-1.5 py-0.5 text-xs dark:bg-slate-800">supabase/migrations/0001_init.sql</code> を SQL Editor で実行
+                  リポジトリの <code className="rounded bg-slate-100 px-1.5 py-0.5 text-xs dark:bg-slate-800">supabase/migrations/</code> 内の SQL を番号順にすべて実行
                 </li>
                 <li>
                   環境変数 <code className="rounded bg-slate-100 px-1.5 py-0.5 text-xs dark:bg-slate-800">NEXT_PUBLIC_SUPABASE_URL</code> と{" "}
