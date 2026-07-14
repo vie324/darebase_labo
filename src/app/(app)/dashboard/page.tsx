@@ -63,6 +63,7 @@ import {
   StatCard,
   Textarea,
 } from "@/components/ui";
+import { CountUp } from "@/components/ui/count-up";
 import { FounderQuote } from "./founder-quote";
 
 // ---------- セクション共通のカード枠 ----------
@@ -305,14 +306,14 @@ export default function DashboardPage() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
           label="進行中案件"
-          value={`${activeDeals.length}件`}
+          value={<CountUp value={activeDeals.length} format={(n) => `${n}件`} />}
           sub={`総額 ${formatYenShort(activeAmount)}`}
           icon={<Briefcase className="h-5 w-5" />}
           accent="cyan"
         />
         <StatCard
           label="今日の予定"
-          value={`${todayEvents.length}件`}
+          value={<CountUp value={todayEvents.length} format={(n) => `${n}件`} />}
           sub={
             nextEvent
               ? `次は ${formatTime(nextEvent.start_at)}〜`
@@ -325,7 +326,7 @@ export default function DashboardPage() {
         />
         <StatCard
           label="自分の未完了タスク"
-          value={`${myOpenTasks.length}件`}
+          value={<CountUp value={myOpenTasks.length} format={(n) => `${n}件`} />}
           sub={
             overdueCount > 0 ? (
               <span className="font-semibold text-rose-500">
@@ -340,7 +341,7 @@ export default function DashboardPage() {
         />
         <StatCard
           label="受注済み金額"
-          value={formatYenShort(wonAmount)}
+          value={<CountUp value={wonAmount} format={formatYenShort} />}
           sub={`${wonDeals.length}件を受注`}
           icon={<Trophy className="h-5 w-5" />}
           accent="emerald"

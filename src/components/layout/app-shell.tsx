@@ -19,6 +19,7 @@ import {
   Mic,
   Moon,
   Newspaper,
+  Search,
   Settings,
   Sun,
   X,
@@ -28,9 +29,11 @@ import { isSupabaseConfigured } from "@/lib/supabase";
 import { UserProvider, useUser } from "@/lib/use-user";
 import { DEMO_TEAM } from "@/lib/demo/team";
 import { Avatar } from "@/components/ui";
+import { ToastProvider, useToast } from "@/components/ui/toast";
 import { Logo } from "@/components/brand/logo";
 import { SplashScreen } from "@/components/brand/splash-screen";
 import { BottomNav } from "@/components/layout/bottom-nav";
+import { CommandPalette } from "@/components/layout/command-palette";
 
 const NAV_SECTIONS: {
   heading: string;
@@ -180,6 +183,7 @@ function Topbar({ onMenuOpen }: { onMenuOpen: () => void }) {
   const [dark, setDark] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const router = useRouter();
+  const { toast } = useToast();
 
   useEffect(() => {
     // SSRでは<html>のクラスを参照できないため、ハイドレーション後に実テーマを同期する
@@ -194,6 +198,7 @@ function Topbar({ onMenuOpen }: { onMenuOpen: () => void }) {
     try {
       localStorage.setItem("dbl:theme", next ? "dark" : "light");
     } catch {}
+    toast(next ? "ダークモードに切り替えました" : "ライトモードに切り替えました", "info");
   };
 
   return (
@@ -214,6 +219,18 @@ function Topbar({ onMenuOpen }: { onMenuOpen: () => void }) {
       )}
 
       <div className="ml-auto flex items-center gap-1.5">
+        {/* コマンドパレット起動（⌘K） */}
+        <button
+          onClick={() => window.dispatchEvent(new Event("dbl:open-command"))}
+          aria-label="検索・コマンド"
+          className="flex cursor-pointer items-center gap-2 rounded-xl border border-slate-200 bg-white/60 py-2 pr-2 pl-3 text-sm text-slate-400 transition-colors hover:bg-slate-50 sm:min-w-[180px] dark:border-slate-700 dark:bg-slate-900/50 dark:hover:bg-slate-800"
+        >
+          <Search className="h-[18px] w-[18px]" />
+          <span className="hidden flex-1 text-left sm:inline">検索・移動</span>
+          <kbd className="hidden rounded border border-slate-200 px-1.5 py-0.5 text-[10px] font-medium sm:inline dark:border-slate-700">
+            ⌘K
+          </kbd>
+        </button>
         <button
           onClick={toggleTheme}
           aria-label="テーマ切替"
@@ -306,6 +323,7 @@ function ShellInner({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen">
       <SplashScreen />
+      <CommandPalette />
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="lg:pl-64">
         <Topbar onMenuOpen={() => setSidebarOpen(true)} />
@@ -322,7 +340,9 @@ function ShellInner({ children }: { children: ReactNode }) {
 export function AppShell({ children }: { children: ReactNode }) {
   return (
     <UserProvider>
-      <ShellInner>{children}</ShellInner>
+      <ToastProvider>
+        <ShellInner>{children}</ShellInner>
+      </ToastProvider>
     </UserProvider>
   );
 }
