@@ -46,6 +46,50 @@ export const DEMO_SCRIPTS: TalkScript[] = [
     updated_at: daysFromNow(-15),
     created_at: daysFromNow(-35),
   },
+  {
+    id: "script-3",
+    title: "受付突破トーク集",
+    scenario: "受付担当者から決裁者・担当者へ繋いでもらうためのトーク。",
+    content: `## 基本の名乗り
+「お世話になっております。DareBase株式会社の◯◯と申します。**◯◯部のご担当者様**はいらっしゃいますでしょうか。」
+
+## 用件を聞かれたら
+「営業体制の効率化についてのご案内で、**5分ほど**ご担当者様にお繋ぎいただけますでしょうか。」
+
+## 断られたときの切り返し
+- 「担当者に確認します」→「ありがとうございます。私、DareBaseの◯◯と申します、と一言お伝えいただけますと幸いです。」
+- 「資料を送って」→「もちろんです。より的確な資料をお送りしたいので、ご担当者様のお名前だけ伺えますか？」
+
+## NGパターン
+- 早口で社名を名乗る
+- 「営業のお電話です」と自分から言ってしまう`,
+    category: "受付突破",
+    author_name: "山田 花子",
+    updated_at: daysFromNow(-6),
+    created_at: daysFromNow(-22),
+  },
+  {
+    id: "script-4",
+    title: "初回商談ヒアリングの型",
+    scenario: "初回オンライン商談。課題を引き出し次回提案に繋げるヒアリング。",
+    content: `## アイスブレイク
+「本日はお時間いただきありがとうございます。まずは御社の営業体制について少しお伺いしてもよろしいでしょうか。」
+
+## 現状把握
+- 「現在、営業のリスト管理や進捗管理はどのように行っていますか？」
+- 「チームの人数と、案件数の規模感を教えていただけますか？」
+
+## 課題の深掘り
+「その中で、**一番手間に感じている業務**はどのあたりでしょうか？」
+（沈黙を恐れず、相手の言葉を待つ）
+
+## 次回への布石
+「ありがとうございます。今伺った課題に合わせて、**具体的な活用イメージ**を次回ご提案させてください。来週で30分お時間いただけますか？」`,
+    category: "ヒアリング",
+    author_name: "田中 美咲",
+    updated_at: daysFromNow(-3),
+    created_at: daysFromNow(-12),
+  },
 ];
 
 export const DEMO_ROLEPLAY_SESSIONS: RoleplaySession[] = [
@@ -70,5 +114,48 @@ export const DEMO_ROLEPLAY_SESSIONS: RoleplaySession[] = [
     ],
     media_url: "",
     created_at: daysFromNow(-2, 17),
+  },
+  {
+    id: "rp-2",
+    script_id: "script-2",
+    script_title: "クロージング（見積提示後）",
+    user_name: "田中 美咲",
+    mode: "screen",
+    duration_sec: 242,
+    transcript:
+      "えっと、ここまでのご説明で気になる点はございますか。仮に導入いただくとしたら、いつ頃から使い始めたいイメージでしょうか。あのー、今月中にご契約いただけますと、初期設定サポートを無償でお付けできます。ぜひ前向きにご検討いただければと思います。",
+    self_note:
+      "テストクロージングまでは良かった。特典提示のあと沈黙できず、こちらから話してしまった。",
+    feedbacks: [
+      {
+        author_name: "佐藤 健太",
+        rating: 5,
+        comment:
+          "画面共有しながらの説明が分かりやすい。テストクローズの入り方が自然で良かった。",
+        created_at: daysFromNow(-1, 11),
+      },
+      {
+        author_name: "鈴木 大輔",
+        rating: 4,
+        comment: "特典提示のあとは沈黙で相手の反応を待ちましょう。フィラーの「あのー」も少し気になりました。",
+        created_at: daysFromNow(-1, 15),
+      },
+    ],
+    media_url: "",
+    created_at: daysFromNow(-1, 10),
+  },
+  {
+    id: "rp-3",
+    script_id: "",
+    script_title: "自由練習",
+    user_name: "伊藤 翔",
+    mode: "audio",
+    duration_sec: 96,
+    transcript:
+      "まあ、御社の営業体制について少しお伺いしたいのですが、現在リスト管理はどのように行っていますか。えー、チームの人数感も教えていただけますでしょうか。",
+    self_note: "初回商談のヒアリングを想定して自由に練習。質問の順番をもう少し整理したい。",
+    feedbacks: [],
+    media_url: "",
+    created_at: daysFromNow(-4, 9),
   },
 ];
