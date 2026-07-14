@@ -1,0 +1,163 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: "Inter", "Hiragino Sans", "Hiragino Kaku Gothic ProN",
+    "Noto Sans JP", "Yu Gothic UI", "Meiryo", system-ui, sans-serif;
+
+  --animate-fade-up: fade-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+  --animate-fade-in: fade-in 0.4s ease-out both;
+  --animate-scale-in: scale-in 0.25s cubic-bezier(0.16, 1, 0.3, 1) both;
+  --animate-slide-in-right: slide-in-right 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+  --animate-shimmer: shimmer 1.6s linear infinite;
+
+  @keyframes fade-up {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  @keyframes scale-in {
+    from {
+      opacity: 0;
+      transform: scale(0.96);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+  @keyframes slide-in-right {
+    from {
+      opacity: 0;
+      transform: translateX(16px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+  @keyframes shimmer {
+    from {
+      background-position: 200% 0;
+    }
+    to {
+      background-position: -200% 0;
+    }
+  }
+}
+
+:root {
+  color-scheme: light;
+}
+.dark {
+  color-scheme: dark;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  @apply bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100;
+  font-feature-settings: "palt";
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---- shared visual utilities ---- */
+
+.glass {
+  @apply bg-white/70 backdrop-blur-xl dark:bg-slate-900/70;
+}
+
+.card {
+  @apply rounded-2xl border border-slate-200/80 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900;
+}
+
+.card-hover {
+  @apply transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-indigo-500/5 dark:hover:shadow-black/30;
+}
+
+.text-gradient {
+  @apply bg-gradient-to-r from-indigo-600 via-violet-600 to-fuchsia-600 bg-clip-text text-transparent dark:from-indigo-400 dark:via-violet-400 dark:to-fuchsia-400;
+}
+
+.bg-brand-gradient {
+  @apply bg-gradient-to-r from-indigo-600 to-violet-600;
+}
+
+.skeleton {
+  @apply animate-shimmer rounded-lg bg-gradient-to-r from-slate-200 via-slate-100 to-slate-200 bg-[length:200%_100%] dark:from-slate-800 dark:via-slate-700 dark:to-slate-800;
+}
+
+/* thin, unobtrusive scrollbars */
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(148 163 184 / 0.4) transparent;
+}
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  border-radius: 9999px;
+  background: rgb(148 163 184 / 0.4);
+}
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* markdown-ish prose used by knowledge / board / training */
+.prose-simple :where(h1, h2, h3) {
+  @apply mt-6 mb-2 font-bold text-slate-900 first:mt-0 dark:text-slate-100;
+}
+.prose-simple h1 {
+  @apply text-xl;
+}
+.prose-simple h2 {
+  @apply border-b border-slate-200 pb-1 text-lg dark:border-slate-800;
+}
+.prose-simple h3 {
+  @apply text-base;
+}
+.prose-simple p {
+  @apply my-2 leading-relaxed;
+}
+.prose-simple ul {
+  @apply my-2 list-disc space-y-1 pl-5;
+}
+.prose-simple ol {
+  @apply my-2 list-decimal space-y-1 pl-5;
+}
+.prose-simple code {
+  @apply rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[0.85em] text-rose-600 dark:bg-slate-800 dark:text-rose-400;
+}
+.prose-simple pre {
+  @apply my-3 overflow-x-auto rounded-xl bg-slate-900 p-4 text-sm text-slate-100 dark:bg-black/50;
+}
+.prose-simple pre code {
+  @apply bg-transparent p-0 text-inherit;
+}
+.prose-simple blockquote {
+  @apply my-3 border-l-4 border-indigo-300 bg-indigo-50/50 py-1 pl-4 text-slate-600 dark:border-indigo-700 dark:bg-indigo-950/30 dark:text-slate-300;
+}
+.prose-simple a {
+  @apply text-indigo-600 underline underline-offset-2 hover:text-indigo-500 dark:text-indigo-400;
+}
+.prose-simple strong {
+  @apply font-bold text-slate-900 dark:text-white;
+}
