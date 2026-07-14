@@ -1,10 +1,15 @@
+/* eslint-disable @next/next/no-img-element */
 import { cn } from "@/lib/utils";
 
 // =============================================================
-// DareBase ロゴ
-// ロゴマーク: 上向き三角(△)と下向き三角(▽)を縦に重ねたシアンのシンボル
-//   （ワードマークの "DARE" / "BASE" の A を表す三角形に由来）
-// ワードマーク: 白地に黒文字＋シアンの三角形。ライト/ダーク両対応。
+// DareBase LABO ロゴ
+//
+// 実ロゴは public/ の透過SVGを参照する（差し替え可能）:
+//   - public/darebase-mark.svg       … シンボルマーク（△▽・シアン）
+//   - public/darebase-logo.svg       … ワードマーク（ライト用・濃色文字）
+//   - public/darebase-logo-dark.svg  … ワードマーク（ダーク用・白文字）
+// 公式のロゴ画像（透過PNG/SVG）がある場合は、これらのファイルを
+// 上書きするだけでアプリ全体に反映される。
 // =============================================================
 
 /** シンボルマーク（△▽）。favicon・小スペース・アニメーション用。 */
@@ -16,52 +21,19 @@ export function LogoMark({
   animated?: boolean;
 }) {
   return (
-    <svg
-      viewBox="0 0 40 48"
-      fill="none"
+    <img
+      src="/darebase-mark.svg"
+      alt=""
       aria-hidden="true"
-      className={cn("text-cyan-400", className)}
-    >
-      <path
-        d="M20 3 L36 22 H4 Z"
-        stroke="currentColor"
-        strokeWidth="3.5"
-        strokeLinejoin="round"
-        className={cn(animated && "origin-center animate-logo-pop")}
-      />
-      <path
-        d="M4 26 H36 L20 45 Z"
-        stroke="currentColor"
-        strokeWidth="3.5"
-        strokeLinejoin="round"
-        className={cn(animated && "origin-center animate-logo-pop [animation-delay:0.15s]")}
-      />
-    </svg>
-  );
-}
-
-/** 三角形（ワードマーク内の A として使用） */
-function Triangle({ down = false }: { down?: boolean }) {
-  return (
-    <svg
-      viewBox="0 0 24 22"
-      fill="none"
-      aria-hidden="true"
-      className="inline-block h-[0.82em] w-[0.82em] translate-y-[0.06em] text-cyan-400"
-    >
-      {down ? (
-        <path d="M2 3 H22 L12 20 Z" stroke="currentColor" strokeWidth="2.6" strokeLinejoin="round" />
-      ) : (
-        <path d="M12 2 L22 19 H2 Z" stroke="currentColor" strokeWidth="2.6" strokeLinejoin="round" />
-      )}
-    </svg>
+      className={cn(animated && "origin-center animate-logo-pop", className)}
+    />
   );
 }
 
 /**
- * ワードマーク。
- * - stacked: DARE / BASE の2段組（スプラッシュ・ログイン向け）
- * - inline : マーク + DareBase の横並び（サイドバー向け）
+ * ワードマーク。ライト/ダークで文字色の異なる透過SVGを出し分ける。
+ * - stacked: DARE / BASE + LABO の縦組み（スプラッシュ・ログイン向け）
+ * - inline : マーク + DareBase LABO の横並び（サイドバー向け）
  */
 export function Logo({
   variant = "stacked",
@@ -72,30 +44,34 @@ export function Logo({
 }) {
   if (variant === "inline") {
     return (
-      <span className={cn("inline-flex items-center gap-2", className)}>
+      <span className={cn("inline-flex items-center gap-2.5", className)}>
         <LogoMark className="h-7 w-auto" />
-        <span className="text-lg font-extrabold tracking-tight text-slate-900 dark:text-white">
-          Dare<span className="text-cyan-500 dark:text-cyan-400">Base</span>
+        <span className="inline-flex items-baseline gap-1.5">
+          <span className="text-lg font-extrabold tracking-tight text-slate-900 dark:text-white">
+            Dare<span className="text-cyan-500 dark:text-cyan-400">Base</span>
+          </span>
+          <span className="rounded bg-cyan-100 px-1.5 py-0.5 text-[10px] font-bold tracking-wider text-cyan-700 dark:bg-cyan-500/20 dark:text-cyan-300">
+            LABO
+          </span>
         </span>
       </span>
     );
   }
 
-  // stacked wordmark
+  // stacked wordmark（ライト/ダークで画像を出し分け）
   return (
-    <span
-      className={cn(
-        "inline-flex flex-col font-extrabold leading-[1.05] tracking-[0.22em] text-slate-900 dark:text-white",
-        className
-      )}
-      aria-label="DareBase"
-    >
-      <span className="flex items-center">
-        D<Triangle />R<span className="pl-[0.22em]">E</span>
-      </span>
-      <span className="flex items-center">
-        B<Triangle down />S<span className="pl-[0.22em]">E</span>
-      </span>
+    <span className={cn("inline-block", className)}>
+      <img
+        src="/darebase-logo.svg"
+        alt="DARE BASE LABO"
+        className="block h-full w-auto dark:hidden"
+      />
+      <img
+        src="/darebase-logo-dark.svg"
+        alt=""
+        aria-hidden="true"
+        className="hidden h-full w-auto dark:block"
+      />
     </span>
   );
 }

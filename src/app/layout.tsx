@@ -3,11 +3,11 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: {
-    default: "DareBase | 営業チームのオールインワン基地",
-    template: "%s | DareBase",
+    default: "DareBase LABO | 営業力を研究し、売上を上げる",
+    template: "%s | DareBase LABO",
   },
   description:
-    "スケジュール・案件・名刺・ナレッジ・ロープレ練習まで、営業チームのすべてをひとつに。",
+    "営業力を研究し売上を上げる営業支援ラボ。スケジュール・案件・名刺・ナレッジ・ロープレ練習・日程調整まで、営業チームのすべてをひとつに。",
 };
 
 // ペイント前にテーマを適用してダークモードのちらつきを防ぐ

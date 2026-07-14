@@ -63,6 +63,7 @@ import {
   StatCard,
   Textarea,
 } from "@/components/ui";
+import { FounderQuote } from "./founder-quote";
 
 // ---------- セクション共通のカード枠 ----------
 function SectionCard({
@@ -296,6 +297,9 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* ---------- 代表 岡崎 佑真 の今日の一言 ---------- */}
+      <FounderQuote />
 
       {/* ---------- サマリー ---------- */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

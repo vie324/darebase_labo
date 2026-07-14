@@ -53,8 +53,8 @@ export function SplashScreen() {
 
       <div className="relative flex flex-col items-center">
         <LogoMark className="h-20 w-auto drop-shadow-[0_0_24px_rgba(34,211,238,0.35)]" animated />
-        <div className="mt-6 animate-fade-up [animation-delay:0.35s]">
-          <Logo variant="stacked" className="text-2xl" />
+        <div className="mt-5 animate-fade-up [animation-delay:0.35s]">
+          <Logo variant="stacked" className="h-16" />
         </div>
         <p className="mt-4 animate-fade-up text-sm text-slate-400 [animation-delay:0.55s] dark:text-slate-500">
           {APP_TAGLINE}

@@ -59,7 +59,7 @@ export default function LoginPage() {
       <div className="card w-full max-w-md animate-fade-up p-8">
         <div className="mb-8 flex flex-col items-center text-center">
           <LogoMark className="mb-5 h-14 w-auto drop-shadow-[0_0_18px_rgba(34,211,238,0.3)]" />
-          <Logo variant="stacked" className="text-xl" />
+          <Logo variant="stacked" className="h-16" />
           <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">{APP_TAGLINE}</p>
         </div>
 
