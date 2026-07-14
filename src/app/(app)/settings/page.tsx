@@ -144,7 +144,7 @@ export default function SettingsPage() {
       <div className="mt-6 flex items-start gap-2.5 rounded-2xl border border-cyan-100 bg-cyan-50/50 p-4 text-sm text-slate-600 dark:border-cyan-500/20 dark:bg-cyan-500/5 dark:text-slate-300">
         <Info className="mt-0.5 h-4 w-4 shrink-0 text-cyan-500" />
         <p className="leading-relaxed">
-          DareBase は Vercel + Supabase で動作する営業チーム向けオールインワンツールです。
+          DARE BASE LABO は Vercel + Supabase で動作する営業チーム向けオールインワンツールです。
           スケジュール・案件・名刺・ナレッジ・ロープレ練習・勉強会ログ・チャット・掲示板・日程調整を
           ひとつのワークスペースに統合します。
         </p>

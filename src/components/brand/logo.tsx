@@ -2,7 +2,7 @@
 import { cn } from "@/lib/utils";
 
 // =============================================================
-// DareBase LABO ロゴ
+// DARE BASE LABO ロゴ
 //
 // 実ロゴは public/ の透過SVGを参照する（差し替え可能）:
 //   - public/darebase-mark.svg       … シンボルマーク（△▽・シアン）
@@ -33,7 +33,7 @@ export function LogoMark({
 /**
  * ワードマーク。ライト/ダークで文字色の異なる透過SVGを出し分ける。
  * - stacked: DARE / BASE + LABO の縦組み（スプラッシュ・ログイン向け）
- * - inline : マーク + DareBase LABO の横並び（サイドバー向け）
+ * - inline : マーク + DARE BASE LABO の横並び（サイドバー向け）
  */
 export function Logo({
   variant = "stacked",
@@ -48,7 +48,7 @@ export function Logo({
         <LogoMark className="h-7 w-auto" />
         <span className="inline-flex items-baseline gap-1.5">
           <span className="text-lg font-extrabold tracking-tight text-slate-900 dark:text-white">
-            Dare<span className="text-cyan-500 dark:text-cyan-400">Base</span>
+            DARE <span className="text-cyan-500 dark:text-cyan-400">BASE</span>
           </span>
           <span className="rounded bg-cyan-100 px-1.5 py-0.5 text-[10px] font-bold tracking-wider text-cyan-700 dark:bg-cyan-500/20 dark:text-cyan-300">
             LABO

@@ -50,7 +50,7 @@ export function FounderQuote() {
             )}
           </p>
           <p className="mt-2 text-sm font-semibold text-slate-500 dark:text-slate-400">
-            — {CEO_NAME}／DareBase LABO 代表
+            — {CEO_NAME}／DARE BASE LABO 代表
           </p>
         </div>
         <button

@@ -59,7 +59,7 @@ export function buildIcs(ev: CalendarEventDraft): string {
   const lines = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
-    "PRODID:-//DareBase//Booking//JA",
+    "PRODID:-//DARE BASE LABO//Booking//JA",
     "CALSCALE:GREGORIAN",
     "METHOD:PUBLISH",
     "BEGIN:VEVENT",
