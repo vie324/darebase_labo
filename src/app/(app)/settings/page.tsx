@@ -42,7 +42,7 @@ export default function SettingsPage() {
         {/* データベース接続 */}
         <Card className="p-6">
           <div className="mb-3 flex items-center gap-2.5">
-            <Database className="h-5 w-5 text-indigo-500" />
+            <Database className="h-5 w-5 text-cyan-500" />
             <h2 className="font-bold">データベース接続</h2>
             {configured ? (
               <Badge className="bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">
@@ -73,7 +73,7 @@ export default function SettingsPage() {
                     href="https://supabase.com"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-indigo-600 hover:underline dark:text-indigo-400"
+                    className="text-cyan-600 hover:underline dark:text-cyan-400"
                   >
                     supabase.com
                   </a>
@@ -95,7 +95,7 @@ export default function SettingsPage() {
         {/* Google カレンダー連携 */}
         <Card className="p-6">
           <div className="mb-3 flex items-center gap-2.5">
-            <CalendarClock className="h-5 w-5 text-indigo-500" />
+            <CalendarClock className="h-5 w-5 text-cyan-500" />
             <h2 className="font-bold">Google カレンダー連携</h2>
           </div>
           <div className="space-y-3 text-sm leading-relaxed text-slate-500 dark:text-slate-400">
@@ -114,7 +114,7 @@ export default function SettingsPage() {
         {/* テーマ */}
         <Card className="p-6">
           <div className="mb-3 flex items-center gap-2.5">
-            <Palette className="h-5 w-5 text-indigo-500" />
+            <Palette className="h-5 w-5 text-cyan-500" />
             <h2 className="font-bold">テーマ</h2>
           </div>
           <p className="text-sm leading-relaxed text-slate-500 dark:text-slate-400">
@@ -127,7 +127,7 @@ export default function SettingsPage() {
         {!configured && (
           <Card className="p-6">
             <div className="mb-3 flex items-center gap-2.5">
-              <RefreshCw className="h-5 w-5 text-indigo-500" />
+              <RefreshCw className="h-5 w-5 text-cyan-500" />
               <h2 className="font-bold">デモデータの初期化</h2>
             </div>
             <p className="mb-4 text-sm leading-relaxed text-slate-500 dark:text-slate-400">
@@ -141,8 +141,8 @@ export default function SettingsPage() {
         )}
       </div>
 
-      <div className="mt-6 flex items-start gap-2.5 rounded-2xl border border-indigo-100 bg-indigo-50/50 p-4 text-sm text-slate-600 dark:border-indigo-500/20 dark:bg-indigo-500/5 dark:text-slate-300">
-        <Info className="mt-0.5 h-4 w-4 shrink-0 text-indigo-500" />
+      <div className="mt-6 flex items-start gap-2.5 rounded-2xl border border-cyan-100 bg-cyan-50/50 p-4 text-sm text-slate-600 dark:border-cyan-500/20 dark:bg-cyan-500/5 dark:text-slate-300">
+        <Info className="mt-0.5 h-4 w-4 shrink-0 text-cyan-500" />
         <p className="leading-relaxed">
           DareBase は Vercel + Supabase で動作する営業チーム向けオールインワンツールです。
           スケジュール・案件・名刺・ナレッジ・ロープレ練習・勉強会ログ・チャット・掲示板・日程調整を

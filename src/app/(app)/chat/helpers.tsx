@@ -4,10 +4,10 @@ import type { ReactNode } from "react";
 import { cn, formatDate } from "@/lib/utils";
 import { DEMO_TEAM } from "@/lib/demo/team";
 
-// 同名メンバーのアバター色を引く（いなければ indigo）
+// 同名メンバーのアバター色を引く（いなければ cyan）
 const TEAM_COLORS = new Map(DEMO_TEAM.map((m) => [m.name, m.color]));
 export function authorColor(name: string): string {
-  return TEAM_COLORS.get(name) ?? "indigo";
+  return TEAM_COLORS.get(name) ?? "cyan";
 }
 
 function isSameDay(a: Date, b: Date): boolean {
@@ -54,7 +54,7 @@ export function linkify(text: string, onDark = false): ReactNode {
             "break-all underline underline-offset-2 transition-colors",
             onDark
               ? "text-white/90 hover:text-white"
-              : "text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300"
+              : "text-cyan-600 hover:text-cyan-500 dark:text-cyan-400 dark:hover:text-cyan-300"
           )}
         >
           {part}

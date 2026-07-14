@@ -139,7 +139,7 @@ export function DetailModal({
       {/* コメントスレッド */}
       <div className="mt-6 border-t border-slate-200 pt-5 dark:border-slate-800">
         <h3 className="mb-3 flex items-center gap-1.5 text-sm font-bold">
-          <MessageCircle className="h-4 w-4 text-indigo-500" />
+          <MessageCircle className="h-4 w-4 text-cyan-500" />
           コメント
           <span className="text-slate-400 dark:text-slate-500">{post.comments.length}件</span>
         </h3>
@@ -342,7 +342,7 @@ function FormModalInner({ editing, onClose, onSubmit }: Omit<FormModalProps, "op
               type="checkbox"
               checked={values.pinned}
               onChange={(e) => setValues({ ...values, pinned: e.target.checked })}
-              className="h-4 w-4 cursor-pointer accent-indigo-600"
+              className="h-4 w-4 cursor-pointer accent-cyan-600"
             />
             <Pin className="h-4 w-4 text-amber-500" />
             お知らせとして最上部にピン留めする

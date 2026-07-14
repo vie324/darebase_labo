@@ -98,4 +98,25 @@ export const DEMO_POLLS: SchedulePoll[] = [
     confirmed_index: null,
     created_at: daysFromNow(-1),
   },
+  {
+    id: "poll-4",
+    title: "オンライン相談（30分）ご予約",
+    description:
+      "サービス概要のご説明とご相談。ご都合の良い時間をお選びください。",
+    organizer: "佐藤 健太",
+    location: "Google Meet（ご予約後にリンクをお送りします）",
+    duration_min: 30,
+    candidates: [
+      { start: daysFromNow(2, 10, 0), end: daysFromNow(2, 10, 30) },
+      { start: daysFromNow(2, 13, 30), end: daysFromNow(2, 14, 0) },
+      { start: daysFromNow(3, 11, 0), end: daysFromNow(3, 11, 30) },
+      { start: daysFromNow(3, 15, 0), end: daysFromNow(3, 15, 30) },
+      { start: daysFromNow(4, 16, 0), end: daysFromNow(4, 16, 30) },
+    ],
+    responses: [],
+    status: "open",
+    confirmed_index: null,
+    kind: "customer",
+    created_at: daysFromNow(0),
+  },
 ];

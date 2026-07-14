@@ -41,7 +41,7 @@ export function DownloadAction({
         onDownloaded(doc);
       }}
       className={cn(
-        "inline-flex cursor-pointer items-center gap-1.5 rounded-lg bg-indigo-50 font-semibold text-indigo-600 transition-colors hover:bg-indigo-100 dark:bg-indigo-500/15 dark:text-indigo-300 dark:hover:bg-indigo-500/25",
+        "inline-flex cursor-pointer items-center gap-1.5 rounded-lg bg-cyan-50 font-semibold text-cyan-600 transition-colors hover:bg-cyan-100 dark:bg-cyan-500/15 dark:text-cyan-300 dark:hover:bg-cyan-500/25",
         size === "md" ? "px-3 py-2 text-xs" : "px-2.5 py-1.5 text-[11px]"
       )}
     >

@@ -382,7 +382,7 @@ export function PracticePanel({
           <Card className="p-5">
             <h3 className="mb-3 flex items-center gap-2 text-sm font-bold">
               {mode === "screen" ? (
-                <Monitor className="h-4 w-4 text-violet-500" />
+                <Monitor className="h-4 w-4 text-sky-500" />
               ) : (
                 <Volume2 className="h-4 w-4 text-sky-500" />
               )}
@@ -408,7 +408,7 @@ export function PracticePanel({
           {/* 簡易分析 */}
           <Card className="p-5">
             <h3 className="mb-3 flex items-center gap-2 text-sm font-bold">
-              <Sparkles className="h-4 w-4 text-indigo-500" />
+              <Sparkles className="h-4 w-4 text-cyan-500" />
               簡易分析
             </h3>
             <AnalysisGrid durationSec={elapsed} transcript={transcript} />
@@ -503,7 +503,7 @@ export function PracticePanel({
           {/* 左: スクリプト本文 */}
           <Card className="flex flex-col p-5">
             <h3 className="mb-3 flex items-center gap-2 text-sm font-bold">
-              <FileText className="h-4 w-4 text-indigo-500" />
+              <FileText className="h-4 w-4 text-cyan-500" />
               {selectedScript ? selectedScript.title : "自由練習"}
             </h3>
             {selectedScript ? (
@@ -581,7 +581,7 @@ export function PracticePanel({
                   className={cn(
                     "flex h-16 w-16 items-center justify-center rounded-2xl",
                     mode === "screen"
-                      ? "bg-violet-50 text-violet-600 dark:bg-violet-500/15 dark:text-violet-400"
+                      ? "bg-sky-50 text-sky-600 dark:bg-sky-500/15 dark:text-sky-400"
                       : "bg-sky-50 text-sky-600 dark:bg-sky-500/15 dark:text-sky-400"
                   )}
                 >
@@ -620,7 +620,7 @@ export function PracticePanel({
     <div className="mx-auto max-w-2xl animate-fade-in">
       <Card className="p-6">
         <h2 className="flex items-center gap-2 text-base font-bold">
-          <Mic className="h-5 w-5 text-indigo-500" />
+          <Mic className="h-5 w-5 text-cyan-500" />
           練習をはじめる
         </h2>
         <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
@@ -664,7 +664,7 @@ export function PracticePanel({
                 icon={<Monitor className="h-5 w-5" />}
                 title="画面録画"
                 desc="画面＋音声を録画"
-                accent="violet"
+                accent="sky"
               />
             </div>
           </div>
@@ -719,16 +719,16 @@ function ModeCard({
   icon: React.ReactNode;
   title: string;
   desc: string;
-  accent: "sky" | "violet";
+  accent: "sky" | "sky";
 }) {
   const activeRing =
     accent === "sky"
       ? "border-sky-400 bg-sky-50 dark:border-sky-500/50 dark:bg-sky-500/10"
-      : "border-violet-400 bg-violet-50 dark:border-violet-500/50 dark:bg-violet-500/10";
+      : "border-sky-400 bg-sky-50 dark:border-sky-500/50 dark:bg-sky-500/10";
   const iconTint =
     accent === "sky"
       ? "bg-sky-100 text-sky-600 dark:bg-sky-500/20 dark:text-sky-300"
-      : "bg-violet-100 text-violet-600 dark:bg-violet-500/20 dark:text-violet-300";
+      : "bg-sky-100 text-sky-600 dark:bg-sky-500/20 dark:text-sky-300";
   return (
     <button
       type="button"

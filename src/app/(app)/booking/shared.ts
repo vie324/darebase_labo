@@ -48,6 +48,23 @@ export const ANSWER_META: Record<
 export const EMPTY_CELL =
   "bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500";
 
+/** 種別バッジ（customer=顧客予約リンク）の表示メタ。group/未設定は通常調整。 */
+export const POLL_KIND_META: {
+  label: string;
+  badge: string;
+} = {
+  label: "顧客予約リンク",
+  badge:
+    "bg-violet-50 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300",
+};
+
+/** 公開予約ページ（/invite/[id]）の共有URLを組み立てる */
+export function buildInviteUrl(pollId: string): string {
+  const origin =
+    typeof window !== "undefined" ? window.location.origin : "";
+  return `${origin}/invite/${pollId}`;
+}
+
 /** ステータス（open=調整中 / confirmed=確定 / closed=終了）の表示メタ */
 export const POLL_STATUS: Record<
   SchedulePoll["status"],
@@ -199,6 +216,28 @@ export function buildResponse(
     name: name.trim(),
     answers,
     comment: comment.trim(),
+    created_at: new Date().toISOString(),
+  };
+}
+
+/**
+ * 顧客が公開ページで1つの候補を選んだ回答を生成する。
+ * 選択した候補のみ "ok"、それ以外は "ng"。メールはコメント欄に残す。
+ */
+export function buildCustomerResponse(
+  name: string,
+  email: string,
+  candidateCount: number,
+  selectedIndex: number
+): PollResponse {
+  const answers: Answer[] = Array.from({ length: candidateCount }, (_, i) =>
+    i === selectedIndex ? "ok" : "ng"
+  );
+  const trimmedEmail = email.trim();
+  return {
+    name: name.trim(),
+    answers,
+    comment: trimmedEmail ? `連絡先: ${trimmedEmail}` : "",
     created_at: new Date().toISOString(),
   };
 }

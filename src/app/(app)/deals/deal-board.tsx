@@ -67,7 +67,7 @@ export function DealBoard({
             className={cn(
               "flex min-h-48 w-72 shrink-0 flex-col rounded-2xl border p-3 transition-colors duration-150",
               highlighted
-                ? "border-indigo-400 bg-indigo-50/70 dark:border-indigo-500/60 dark:bg-indigo-500/10"
+                ? "border-cyan-400 bg-cyan-50/70 dark:border-cyan-500/60 dark:bg-cyan-500/10"
                 : "border-slate-200/70 bg-slate-100/60 dark:border-slate-800 dark:bg-slate-900/50"
             )}
           >
@@ -132,7 +132,7 @@ export function DealBoard({
                       />
                       {d.next_action && (
                         <p className="mt-2.5 flex items-start gap-1.5 rounded-lg bg-slate-50 px-2 py-1.5 text-xs leading-relaxed text-slate-500 dark:bg-slate-800/70 dark:text-slate-400">
-                          <Flag className="mt-0.5 h-3 w-3 shrink-0 text-indigo-400" />
+                          <Flag className="mt-0.5 h-3 w-3 shrink-0 text-cyan-400" />
                           <span className="line-clamp-2">{d.next_action}</span>
                         </p>
                       )}

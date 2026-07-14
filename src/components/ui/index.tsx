@@ -17,6 +17,7 @@ import {
 import { Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AVATAR_COLORS } from "@/lib/constants";
+import { LogoMark } from "@/components/brand/logo";
 
 // ---------- Button ----------
 type ButtonVariant = "primary" | "secondary" | "ghost" | "danger" | "success";
@@ -24,7 +25,7 @@ type ButtonSize = "sm" | "md" | "lg";
 
 const buttonVariants: Record<ButtonVariant, string> = {
   primary:
-    "bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-sm shadow-indigo-500/25 hover:from-indigo-500 hover:to-violet-500 active:scale-[0.98]",
+    "bg-gradient-to-r from-cyan-400 to-sky-400 text-slate-900 shadow-sm shadow-cyan-500/30 hover:from-cyan-300 hover:to-sky-300 active:scale-[0.98]",
   secondary:
     "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 active:scale-[0.98] dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800",
   ghost:
@@ -110,7 +111,7 @@ export function Card({
 
 // ---------- フォーム部品 ----------
 const fieldBase =
-  "w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 transition-shadow focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 focus:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500";
+  "w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 transition-shadow focus:border-cyan-400 focus:ring-4 focus:ring-cyan-500/15 focus:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500";
 
 export function Input({
   className,
@@ -224,7 +225,7 @@ export function Modal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-4"
       role="dialog"
       aria-modal="true"
     >
@@ -235,16 +236,21 @@ export function Modal({
       <div
         ref={ref}
         className={cn(
-          "card scrollbar-thin relative max-h-[90vh] w-full animate-scale-in overflow-y-auto p-6",
-          wide ? "max-w-3xl" : "max-w-lg"
+          // モバイル: 下から出るボトムシート（角丸上・セーフエリア対応）
+          // sm以上: 中央のカードモーダル
+          "card scrollbar-thin relative max-h-[92vh] w-full animate-slide-up overflow-y-auto rounded-t-3xl rounded-b-none px-5 pt-3 pb-[max(1.25rem,env(safe-area-inset-bottom))]",
+          "sm:animate-scale-in sm:max-h-[90vh] sm:rounded-2xl sm:p-6",
+          wide ? "sm:max-w-3xl" : "sm:max-w-lg"
         )}
       >
-        <div className="mb-4 flex items-start justify-between gap-4">
+        {/* モバイル用のグラブハンドル */}
+        <div className="mx-auto mb-2 h-1.5 w-10 rounded-full bg-slate-300 sm:hidden dark:bg-slate-600" />
+        <div className="sticky -top-3 z-10 -mx-5 mb-4 flex items-start justify-between gap-4 border-b border-slate-100 bg-white/95 px-5 pb-3 backdrop-blur sm:static sm:mx-0 sm:mb-4 sm:border-0 sm:bg-transparent sm:px-0 sm:pb-0 sm:backdrop-blur-none dark:border-slate-800 dark:bg-slate-900/95 sm:dark:bg-transparent">
           <h2 className="text-lg font-bold">{title}</h2>
           <button
             onClick={onClose}
             aria-label="閉じる"
-            className="cursor-pointer rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800 dark:hover:text-slate-300"
+            className="-mr-1 cursor-pointer rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800 dark:hover:text-slate-300"
           >
             <X className="h-5 w-5" />
           </button>
@@ -291,7 +297,7 @@ export function Tabs<T extends string>({
               className={cn(
                 "rounded-full px-1.5 text-[11px] leading-4 font-semibold",
                 active === t.key
-                  ? "bg-indigo-100 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-300"
+                  ? "bg-cyan-100 text-cyan-700 dark:bg-cyan-500/20 dark:text-cyan-300"
                   : "bg-slate-200 text-slate-500 dark:bg-slate-700 dark:text-slate-400"
               )}
             >
@@ -379,7 +385,7 @@ export function PageHeader({
     <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
       <div className="flex items-center gap-3">
         {icon && (
-          <div className="bg-brand-gradient flex h-11 w-11 items-center justify-center rounded-2xl text-white shadow-lg shadow-indigo-500/25">
+          <div className="bg-brand-gradient flex h-11 w-11 items-center justify-center rounded-2xl text-slate-900 shadow-lg shadow-cyan-500/25">
             {icon}
           </div>
         )}
@@ -390,7 +396,11 @@ export function PageHeader({
           )}
         </div>
       </div>
-      {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
+      <div className="flex items-center gap-3">
+        {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
+        {/* 各ページに差し込むブランドマーク（装飾） */}
+        <LogoMark className="hidden h-7 w-auto opacity-25 lg:block" />
+      </div>
     </div>
   );
 }
@@ -401,21 +411,23 @@ export function StatCard({
   value,
   sub,
   icon,
-  accent = "indigo",
+  accent = "cyan",
 }: {
   label: string;
   value: ReactNode;
   sub?: ReactNode;
   icon?: ReactNode;
-  accent?: "indigo" | "emerald" | "amber" | "rose" | "sky" | "violet";
+  accent?: "cyan" | "emerald" | "amber" | "rose" | "sky" | "indigo" | "violet";
 }) {
-  const accents = {
-    indigo: "bg-indigo-50 text-indigo-600 dark:bg-indigo-500/15 dark:text-indigo-400",
+  const accents: Record<string, string> = {
+    cyan: "bg-cyan-50 text-cyan-600 dark:bg-cyan-500/15 dark:text-cyan-400",
     emerald: "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-400",
     amber: "bg-amber-50 text-amber-600 dark:bg-amber-500/15 dark:text-amber-400",
     rose: "bg-rose-50 text-rose-600 dark:bg-rose-500/15 dark:text-rose-400",
     sky: "bg-sky-50 text-sky-600 dark:bg-sky-500/15 dark:text-sky-400",
-    violet: "bg-violet-50 text-violet-600 dark:bg-violet-500/15 dark:text-violet-400",
+    // 後方互換（スイープ漏れ対策）
+    indigo: "bg-cyan-50 text-cyan-600 dark:bg-cyan-500/15 dark:text-cyan-400",
+    violet: "bg-sky-50 text-sky-600 dark:bg-sky-500/15 dark:text-sky-400",
   };
   return (
     <Card className="p-5">

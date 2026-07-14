@@ -11,6 +11,9 @@
   --animate-scale-in: scale-in 0.25s cubic-bezier(0.16, 1, 0.3, 1) both;
   --animate-slide-in-right: slide-in-right 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
   --animate-shimmer: shimmer 1.6s linear infinite;
+  --animate-logo-pop: logo-pop 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+  --animate-splash-bar: splash-bar 1.5s ease-out forwards;
+  --animate-slide-up: slide-up 0.32s cubic-bezier(0.16, 1, 0.3, 1) both;
 
   @keyframes fade-up {
     from {
@@ -58,6 +61,42 @@
       background-position: -200% 0;
     }
   }
+  @keyframes logo-pop {
+    from {
+      opacity: 0;
+      transform: scale(0.6);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+  @keyframes splash-bar {
+    from {
+      transform: scaleX(0);
+    }
+    to {
+      transform: scaleX(1);
+    }
+  }
+  @keyframes slide-up {
+    from {
+      opacity: 0;
+      transform: translateY(100%);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
+
+/* セーフエリア（ノッチ／ホームバー）対応ユーティリティ */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.h-safe-bottom {
+  height: env(safe-area-inset-bottom);
 }
 
 :root {
@@ -89,15 +128,15 @@ body {
 }
 
 .card-hover {
-  @apply transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-indigo-500/5 dark:hover:shadow-black/30;
+  @apply transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-cyan-500/10 dark:hover:shadow-black/30;
 }
 
 .text-gradient {
-  @apply bg-gradient-to-r from-indigo-600 via-violet-600 to-fuchsia-600 bg-clip-text text-transparent dark:from-indigo-400 dark:via-violet-400 dark:to-fuchsia-400;
+  @apply bg-gradient-to-r from-cyan-500 via-cyan-400 to-sky-500 bg-clip-text text-transparent dark:from-cyan-400 dark:via-cyan-300 dark:to-sky-400;
 }
 
 .bg-brand-gradient {
-  @apply bg-gradient-to-r from-indigo-600 to-violet-600;
+  @apply bg-gradient-to-br from-cyan-400 to-sky-500;
 }
 
 .skeleton {
@@ -153,10 +192,10 @@ body {
   @apply bg-transparent p-0 text-inherit;
 }
 .prose-simple blockquote {
-  @apply my-3 border-l-4 border-indigo-300 bg-indigo-50/50 py-1 pl-4 text-slate-600 dark:border-indigo-700 dark:bg-indigo-950/30 dark:text-slate-300;
+  @apply my-3 border-l-4 border-cyan-300 bg-cyan-50/50 py-1 pl-4 text-slate-600 dark:border-cyan-700 dark:bg-cyan-950/30 dark:text-slate-300;
 }
 .prose-simple a {
-  @apply text-indigo-600 underline underline-offset-2 hover:text-indigo-500 dark:text-indigo-400;
+  @apply text-cyan-600 underline underline-offset-2 hover:text-cyan-500 dark:text-cyan-400;
 }
 .prose-simple strong {
   @apply font-bold text-slate-900 dark:text-white;

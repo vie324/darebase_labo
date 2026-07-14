@@ -95,7 +95,7 @@ export default function ChatPage() {
   };
 
   return (
-    <div className="flex h-[calc(100vh-8rem)] gap-4">
+    <div className="flex h-[calc(100dvh-11rem)] gap-4 lg:h-[calc(100vh-8rem)]">
       {/* 左: チャンネル一覧 */}
       <div
         className={cn(

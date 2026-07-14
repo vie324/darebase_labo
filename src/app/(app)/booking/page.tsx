@@ -11,14 +11,16 @@ import {
   CalendarCheck,
   CalendarClock,
   Clock,
+  Link2,
   Plus,
+  Search,
   Sparkles,
   Users,
 } from "lucide-react";
 import { useCollection } from "@/lib/use-collection";
 import { useUser } from "@/lib/use-user";
 import { cn, formatDateTime } from "@/lib/utils";
-import type { PollResponse, SchedulePoll } from "@/lib/types";
+import type { PollCandidate, PollResponse, SchedulePoll } from "@/lib/types";
 import {
   Avatar,
   Badge,
@@ -31,6 +33,7 @@ import {
   Tabs,
 } from "@/components/ui";
 import {
+  POLL_KIND_META,
   POLL_STATUS,
   bestCandidateIndex,
   candidateScore,
@@ -39,6 +42,14 @@ import {
   type PollFormValues,
 } from "./shared";
 import { PollDetailModal, PollFormModal } from "./poll-modals";
+import {
+  AvailabilityModal,
+  type FinderPollPayload,
+} from "./availability-modal";
+import {
+  CustomerLinkModal,
+  type CustomerLinkPayload,
+} from "./customer-link-modal";
 
 type FilterKey = "all" | "open" | "confirmed";
 
@@ -51,6 +62,8 @@ export default function BookingPage() {
   const [filter, setFilter] = useState<FilterKey>("all");
   const [detailId, setDetailId] = useState<string | null>(null);
   const [formOpen, setFormOpen] = useState(false);
+  const [finderOpen, setFinderOpen] = useState(false);
+  const [customerOpen, setCustomerOpen] = useState(false);
 
   if (!user || polls.loading || events.loading || profiles.loading) {
     return <PageSkeleton />;
@@ -58,7 +71,7 @@ export default function BookingPage() {
 
   // ---------- 派生データ ----------
   const colorOf = (name: string) =>
-    profiles.items.find((p) => p.name === name)?.color ?? "indigo";
+    profiles.items.find((p) => p.name === name)?.color ?? "cyan";
 
   const sorted = [...polls.items].sort((a, b) =>
     b.created_at.localeCompare(a.created_at)
@@ -101,6 +114,63 @@ export default function BookingPage() {
       confirmed_index: null,
     });
     setFormOpen(false);
+  };
+
+  // 空き時間ファインダー: スロットを予定として作成
+  const createEventFromSlot = async (
+    slot: PollCandidate,
+    memberNames: string[]
+  ) => {
+    const label = memberNames.length > 0 ? memberNames.join("、") : user.name;
+    await events.add({
+      title: `打ち合わせ（${label}）`,
+      description: `空き時間ファインダーで作成。参加者: ${label}`,
+      start_at: slot.start,
+      end_at: slot.end,
+      all_day: false,
+      category: "meeting",
+      location: "",
+      owner_name: user.name,
+    });
+  };
+
+  // 空き時間ファインダー: 選択スロットを候補にした通常pollを作成
+  const createPollFromFinder = async (
+    payload: FinderPollPayload
+  ): Promise<string> => {
+    const poll = await polls.add({
+      title: payload.title,
+      description: payload.description,
+      organizer: user.name,
+      location: "",
+      duration_min: payload.duration_min,
+      candidates: payload.candidates,
+      responses: [],
+      status: "open",
+      confirmed_index: null,
+      kind: "group",
+    });
+    setFinderOpen(false);
+    setDetailId(poll.id);
+    return poll.id;
+  };
+
+  // 顧客用予約リンクを作成（kind:"customer"）
+  const createCustomerLink = async (payload: CustomerLinkPayload) => {
+    const poll = await polls.add({
+      title: payload.title,
+      description: payload.description,
+      organizer: user.name,
+      location: payload.location,
+      duration_min: payload.duration_min,
+      candidates: payload.candidates,
+      responses: [],
+      status: "open",
+      confirmed_index: null,
+      kind: "customer",
+    });
+    setCustomerOpen(false);
+    setDetailId(poll.id);
   };
 
   const addResponse = async (responses: PollResponse[]) => {
@@ -153,10 +223,28 @@ export default function BookingPage() {
         description="候補日から出欠を集めて、確定した予定をワンクリックでカレンダーへ"
         icon={<CalendarClock className="h-5 w-5" />}
         actions={
-          <Button size="sm" onClick={() => setFormOpen(true)}>
-            <Plus className="h-4 w-4" />
-            新規作成
-          </Button>
+          <>
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => setFinderOpen(true)}
+            >
+              <Search className="h-4 w-4" />
+              空き時間を探す
+            </Button>
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => setCustomerOpen(true)}
+            >
+              <Link2 className="h-4 w-4" />
+              顧客用予約リンク
+            </Button>
+            <Button size="sm" onClick={() => setFormOpen(true)}>
+              <Plus className="h-4 w-4" />
+              新規作成
+            </Button>
+          </>
         }
       />
 
@@ -181,7 +269,7 @@ export default function BookingPage() {
           value={monthCount}
           sub={`${now.getMonth() + 1}月に作成`}
           icon={<Sparkles className="h-5 w-5" />}
-          accent="indigo"
+          accent="cyan"
         />
       </div>
 
@@ -249,6 +337,27 @@ export default function BookingPage() {
           onSubmit={createPoll}
         />
       )}
+
+      {finderOpen && (
+        <AvailabilityModal
+          events={events.items}
+          members={profiles.items.map((p) => p.name)}
+          colorOf={colorOf}
+          defaultSelected={[user.name]}
+          onClose={() => setFinderOpen(false)}
+          onCreateEvent={createEventFromSlot}
+          onCreatePoll={createPollFromFinder}
+        />
+      )}
+
+      {customerOpen && (
+        <CustomerLinkModal
+          organizer={user.name}
+          events={events.items}
+          onClose={() => setCustomerOpen(false)}
+          onSubmit={createCustomerLink}
+        />
+      )}
     </div>
   );
 }
@@ -273,10 +382,18 @@ function PollCard({
   return (
     <Card hover onClick={onClick} className="flex flex-col gap-3 p-5">
       <div className="flex items-start justify-between gap-2">
-        <Badge className={status.badge}>
-          <span className={cn("h-1.5 w-1.5 rounded-full", status.dot)} />
-          {status.label}
-        </Badge>
+        <div className="flex flex-wrap items-center gap-1.5">
+          <Badge className={status.badge}>
+            <span className={cn("h-1.5 w-1.5 rounded-full", status.dot)} />
+            {status.label}
+          </Badge>
+          {poll.kind === "customer" && (
+            <Badge className={POLL_KIND_META.badge}>
+              <Link2 className="h-3 w-3" />
+              {POLL_KIND_META.label}
+            </Badge>
+          )}
+        </div>
         <Badge className="bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400">
           <Clock className="h-3 w-3" />
           {durationLabel(poll.duration_min)}
@@ -300,7 +417,7 @@ function PollCard({
           </span>
         </div>
       ) : leading ? (
-        <div className="rounded-xl bg-indigo-50/70 px-3 py-2 text-xs font-medium text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-300">
+        <div className="rounded-xl bg-cyan-50/70 px-3 py-2 text-xs font-medium text-cyan-600 dark:bg-cyan-500/10 dark:text-cyan-300">
           <span className="flex items-center gap-1">
             <Sparkles className="h-3.5 w-3.5" />
             最有力 {formatDateTime(leading.start)}（{candidateScore(poll, best)}

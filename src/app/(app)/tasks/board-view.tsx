@@ -13,7 +13,7 @@ import { DueBadge, PriorityBadge } from "./badges";
 
 const COLUMN_DOT: Record<TaskStatus, string> = {
   todo: "bg-slate-400",
-  doing: "bg-indigo-500",
+  doing: "bg-cyan-500",
   done: "bg-emerald-500",
 };
 
@@ -106,7 +106,7 @@ function Column({
       className={cn(
         "flex min-h-[420px] flex-col rounded-2xl border border-slate-200/70 bg-slate-100/60 p-3 transition-all duration-150 dark:border-slate-800 dark:bg-slate-900/50",
         over &&
-          "border-indigo-300 bg-indigo-50/70 ring-2 ring-indigo-400/40 dark:border-indigo-700 dark:bg-indigo-500/10"
+          "border-cyan-300 bg-cyan-50/70 ring-2 ring-cyan-400/40 dark:border-cyan-700 dark:bg-cyan-500/10"
       )}
     >
       <header className="mb-3 flex items-center gap-2 px-1">
@@ -161,7 +161,7 @@ function QuickAdd({ onAdd }: { onAdd: (title: string) => void }) {
           setValue("");
         }}
         placeholder="タスクを追加して Enter"
-        className="w-full rounded-xl border border-dashed border-slate-300 bg-transparent py-2 pr-3 pl-9 text-sm text-slate-900 placeholder:text-slate-400 transition-all focus:border-solid focus:border-indigo-400 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:outline-none dark:border-slate-700 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:bg-slate-900"
+        className="w-full rounded-xl border border-dashed border-slate-300 bg-transparent py-2 pr-3 pl-9 text-sm text-slate-900 placeholder:text-slate-400 transition-all focus:border-solid focus:border-cyan-400 focus:bg-white focus:ring-4 focus:ring-cyan-500/10 focus:outline-none dark:border-slate-700 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:bg-slate-900"
       />
     </div>
   );

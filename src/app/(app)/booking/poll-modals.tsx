@@ -11,9 +11,11 @@ import {
   CalendarPlus,
   Check,
   Clock,
+  Copy,
   Download,
   ExternalLink,
   Info,
+  Link2,
   MapPin,
   Plus,
   RotateCcw,
@@ -45,8 +47,10 @@ import {
   ANSWERS,
   ANSWER_META,
   DURATION_OPTIONS,
+  POLL_KIND_META,
   POLL_STATUS,
   bestCandidateIndex,
+  buildInviteUrl,
   buildResponse,
   durationLabel,
   emptyPollForm,
@@ -191,7 +195,7 @@ export function PollFormModal({
                 key={c.id}
                 className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50/60 p-2 dark:border-slate-800 dark:bg-slate-800/40"
               >
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-[11px] font-bold text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-300">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-cyan-100 text-[11px] font-bold text-cyan-600 dark:bg-cyan-500/20 dark:text-cyan-300">
                   {i + 1}
                 </span>
                 <Input
@@ -286,6 +290,12 @@ export function PollDetailModal({
             <span className={cn("h-1.5 w-1.5 rounded-full", status.dot)} />
             {status.label}
           </Badge>
+          {poll.kind === "customer" && (
+            <Badge className={POLL_KIND_META.badge}>
+              <Link2 className="h-3 w-3" />
+              {POLL_KIND_META.label}
+            </Badge>
+          )}
           <span className="inline-flex items-center gap-1 text-slate-500 dark:text-slate-400">
             <Avatar
               name={poll.organizer}
@@ -319,6 +329,9 @@ export function PollDetailModal({
             {poll.description}
           </p>
         )}
+
+        {/* 顧客予約リンクの共有 */}
+        {poll.kind === "customer" && <ShareLinkPanel pollId={poll.id} />}
 
         {/* 確定バナー + 外部連携アクション */}
         {confirmed && (
@@ -381,6 +394,58 @@ export function PollDetailModal({
         </div>
       </div>
     </Modal>
+  );
+}
+
+// ---------- 顧客予約リンク共有パネル ----------
+function ShareLinkPanel({ pollId }: { pollId: string }) {
+  const [copied, setCopied] = useState(false);
+  const url = buildInviteUrl(pollId);
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // クリップボードが使えない環境では選択できるよう promptにフォールバック
+      window.prompt("以下のURLをコピーしてください", url);
+    }
+  };
+
+  return (
+    <div className="rounded-2xl border border-violet-200 bg-violet-50/60 p-4 dark:border-violet-500/25 dark:bg-violet-500/10">
+      <p className="mb-2 flex items-center gap-1.5 text-sm font-bold text-slate-700 dark:text-slate-200">
+        <Link2 className="h-4 w-4 text-violet-500" />
+        顧客用 予約リンク
+      </p>
+      <div className="flex flex-wrap items-center gap-2">
+        <code className="min-w-0 flex-1 truncate rounded-lg bg-white px-3 py-2 text-xs text-slate-600 dark:bg-slate-900 dark:text-slate-300">
+          {url}
+        </code>
+        <Button
+          variant={copied ? "success" : "primary"}
+          size="sm"
+          onClick={copy}
+        >
+          {copied ? (
+            <>
+              <Check className="h-4 w-4" />
+              コピーしました
+            </>
+          ) : (
+            <>
+              <Copy className="h-4 w-4" />
+              共有リンクをコピー
+            </>
+          )}
+        </Button>
+      </div>
+      <p className="mt-2 flex items-center gap-1.5 text-[11px] text-violet-700/80 dark:text-violet-300/80">
+        <Info className="h-3.5 w-3.5 shrink-0" />
+        このリンクを顧客に送ると、顧客が候補から1つ選んで予約できます。
+      </p>
+    </div>
   );
 }
 
@@ -523,9 +588,9 @@ function ResponseForm({
   };
 
   return (
-    <div className="rounded-2xl border border-indigo-100 bg-indigo-50/40 p-4 dark:border-indigo-500/20 dark:bg-indigo-500/5">
+    <div className="rounded-2xl border border-cyan-100 bg-cyan-50/40 p-4 dark:border-cyan-500/20 dark:bg-cyan-500/5">
       <h3 className="mb-3 flex items-center gap-2 text-sm font-bold text-slate-700 dark:text-slate-200">
-        <Send className="h-4 w-4 text-indigo-500" />
+        <Send className="h-4 w-4 text-cyan-500" />
         出欠を回答する
       </h3>
 

@@ -300,7 +300,7 @@ function FormModalInner({
               type="checkbox"
               checked={values.pinned}
               onChange={(e) => setValues({ ...values, pinned: e.target.checked })}
-              className="h-4 w-4 cursor-pointer accent-indigo-600"
+              className="h-4 w-4 cursor-pointer accent-cyan-600"
             />
             <Pin className="h-4 w-4 text-amber-500" />
             一覧の最上部にピン留めする

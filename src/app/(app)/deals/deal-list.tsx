@@ -70,14 +70,14 @@ export function DealList({
     <th className={cn("px-4 py-3", align === "right" && "text-right")}>
       <button
         onClick={() => toggle(k)}
-        className="inline-flex cursor-pointer items-center gap-1 text-xs font-bold whitespace-nowrap text-slate-500 transition-colors hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400"
+        className="inline-flex cursor-pointer items-center gap-1 text-xs font-bold whitespace-nowrap text-slate-500 transition-colors hover:text-cyan-600 dark:text-slate-400 dark:hover:text-cyan-400"
       >
         {label}
         {sortKey === k ? (
           asc ? (
-            <ChevronUp className="h-3.5 w-3.5 text-indigo-500" />
+            <ChevronUp className="h-3.5 w-3.5 text-cyan-500" />
           ) : (
-            <ChevronDown className="h-3.5 w-3.5 text-indigo-500" />
+            <ChevronDown className="h-3.5 w-3.5 text-cyan-500" />
           )
         ) : (
           <ArrowUpDown className="h-3 w-3 opacity-40" />
@@ -108,7 +108,7 @@ export function DealList({
                 <tr
                   key={d.id}
                   onClick={() => onRowClick(d)}
-                  className="cursor-pointer transition-colors hover:bg-indigo-50/40 dark:hover:bg-slate-800/50"
+                  className="cursor-pointer transition-colors hover:bg-cyan-50/40 dark:hover:bg-slate-800/50"
                 >
                   <td className="max-w-64 px-4 py-3">
                     <p className="truncate font-semibold">{d.name}</p>

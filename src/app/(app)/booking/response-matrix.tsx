@@ -36,7 +36,7 @@ export function ResponseMatrix({
   const columnTone = (i: number): string => {
     if (confirmed_index === i)
       return "bg-emerald-50/80 dark:bg-emerald-500/10";
-    if (bestIndex === i) return "bg-indigo-50/70 dark:bg-indigo-500/10";
+    if (bestIndex === i) return "bg-cyan-50/70 dark:bg-cyan-500/10";
     return "";
   };
 
@@ -63,7 +63,7 @@ export function ResponseMatrix({
                         "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold",
                         confirmed_index === i
                           ? "bg-emerald-500 text-white"
-                          : "bg-indigo-500 text-white"
+                          : "bg-cyan-500 text-slate-900"
                       )}
                     >
                       {confirmed_index === i ? (
@@ -88,7 +88,7 @@ export function ResponseMatrix({
                   {canConfirm && (
                     <button
                       onClick={() => onConfirm(i)}
-                      className="mt-1 inline-flex cursor-pointer items-center gap-1 rounded-lg border border-indigo-200 bg-white px-2 py-1 text-[11px] font-semibold text-indigo-600 transition-colors hover:bg-indigo-50 dark:border-indigo-500/30 dark:bg-slate-900 dark:text-indigo-300 dark:hover:bg-indigo-500/10"
+                      className="mt-1 inline-flex cursor-pointer items-center gap-1 rounded-lg border border-cyan-200 bg-white px-2 py-1 text-[11px] font-semibold text-cyan-600 transition-colors hover:bg-cyan-50 dark:border-cyan-500/30 dark:bg-slate-900 dark:text-cyan-300 dark:hover:bg-cyan-500/10"
                     >
                       <Check className="h-3 w-3" />
                       この日時で確定
@@ -175,7 +175,7 @@ export function ResponseMatrix({
                     className={cn(
                       "px-2 py-2.5 text-center align-middle",
                       isBest
-                        ? "bg-indigo-50 dark:bg-indigo-500/10"
+                        ? "bg-cyan-50 dark:bg-cyan-500/10"
                         : confirmed_index === ci
                           ? "bg-emerald-50 dark:bg-emerald-500/10"
                           : "bg-slate-50 dark:bg-slate-800/60"
@@ -185,7 +185,7 @@ export function ResponseMatrix({
                       className={cn(
                         "text-lg font-bold tabular-nums",
                         isBest
-                          ? "text-indigo-600 dark:text-indigo-300"
+                          ? "text-cyan-600 dark:text-cyan-300"
                           : "text-slate-700 dark:text-slate-200"
                       )}
                     >

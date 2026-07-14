@@ -66,10 +66,10 @@ export function MonthView({
                 key={day.toISOString()}
                 onClick={() => onDayClick(day)}
                 className={cn(
-                  "min-h-28 cursor-pointer border-slate-100 p-1.5 transition-colors hover:bg-indigo-50/50 dark:border-slate-800 dark:hover:bg-indigo-500/5",
+                  "min-h-28 cursor-pointer border-slate-100 p-1.5 transition-colors hover:bg-cyan-50/50 dark:border-slate-800 dark:hover:bg-cyan-500/5",
                   !lastRow && "border-b",
                   idx % 7 !== 6 && "border-r",
-                  isToday && "bg-indigo-50/70 dark:bg-indigo-500/10"
+                  isToday && "bg-cyan-50/70 dark:bg-cyan-500/10"
                 )}
               >
                 <div className="mb-1 flex items-center justify-between">
@@ -77,7 +77,7 @@ export function MonthView({
                     className={cn(
                       "flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold",
                       isToday
-                        ? "bg-indigo-600 text-white shadow-sm shadow-indigo-500/30"
+                        ? "bg-cyan-500 text-slate-900 shadow-sm shadow-cyan-500/30"
                         : !inMonth
                           ? "text-slate-300 dark:text-slate-600"
                           : dow === 0
@@ -90,7 +90,7 @@ export function MonthView({
                     {day.getDate()}
                   </span>
                   {isToday && (
-                    <span className="text-[10px] font-bold text-indigo-500 dark:text-indigo-400">
+                    <span className="text-[10px] font-bold text-cyan-500 dark:text-cyan-400">
                       今日
                     </span>
                   )}

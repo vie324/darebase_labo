@@ -57,7 +57,7 @@ function MessageRow({
             </button>
             <div
               className={cn(
-                "min-w-0 whitespace-pre-wrap break-words bg-gradient-to-br from-indigo-500 to-indigo-600 px-3.5 py-2 text-sm leading-relaxed text-white shadow-sm shadow-indigo-500/20",
+                "min-w-0 whitespace-pre-wrap break-words bg-gradient-to-br from-cyan-500 to-cyan-600 px-3.5 py-2 text-sm leading-relaxed text-white shadow-sm shadow-cyan-500/20",
                 showHeader ? "rounded-2xl rounded-tr-md" : "rounded-2xl"
               )}
             >

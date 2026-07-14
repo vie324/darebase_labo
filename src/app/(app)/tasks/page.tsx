@@ -192,7 +192,7 @@ export default function TasksPage() {
           value={stats.open}
           sub={`全${stats.total}件・完了率 ${stats.rate}%`}
           icon={<ListTodo className="h-5 w-5" />}
-          accent="indigo"
+          accent="cyan"
         />
         <StatCard
           label="今日期限"

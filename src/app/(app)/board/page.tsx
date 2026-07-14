@@ -45,7 +45,7 @@ export default function BoardPage() {
   // ---------- 派生データ ----------
   const authorColor = useMemo(() => {
     const map = new Map(profiles.map((p) => [p.name, p.color]));
-    return (name: string) => map.get(name) ?? "indigo";
+    return (name: string) => map.get(name) ?? "cyan";
   }, [profiles]);
 
   const counts = useMemo(() => {
@@ -165,7 +165,7 @@ export default function BoardPage() {
           value={items.length}
           sub="掲示板の総投稿"
           icon={<Newspaper className="h-5 w-5" />}
-          accent="indigo"
+          accent="cyan"
         />
         <StatCard
           label="今週の投稿"
@@ -263,7 +263,7 @@ export default function BoardPage() {
           liked={likedIds.has(detail.id)}
           canManage={detail.author_name === user?.name}
           authorColor={authorColor}
-          currentUser={{ name: user?.name ?? "名無し", color: user?.color ?? "indigo" }}
+          currentUser={{ name: user?.name ?? "名無し", color: user?.color ?? "cyan" }}
           onClose={() => setDetailId(null)}
           onToggleLike={() => toggleLike(detail)}
           onEdit={() => startEdit(detail)}

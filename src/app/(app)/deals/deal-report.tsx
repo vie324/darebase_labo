@@ -64,7 +64,7 @@ export function DealReport({
       {/* ファネル */}
       <Card className="p-5 sm:p-6">
         <h2 className="mb-5 flex items-center gap-2.5 font-bold">
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 dark:bg-indigo-500/15 dark:text-indigo-400">
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-cyan-50 text-cyan-600 dark:bg-cyan-500/15 dark:text-cyan-400">
             <BarChart3 className="h-4 w-4" />
           </span>
           ステージ別ファネル
@@ -114,7 +114,7 @@ export function DealReport({
       {/* 担当者別 */}
       <Card className="overflow-hidden">
         <h2 className="flex items-center gap-2.5 p-5 pb-0 font-bold sm:p-6 sm:pb-0">
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-violet-50 text-violet-600 dark:bg-violet-500/15 dark:text-violet-400">
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-sky-50 text-sky-600 dark:bg-sky-500/15 dark:text-sky-400">
             <Users className="h-4 w-4" />
           </span>
           担当者別サマリー

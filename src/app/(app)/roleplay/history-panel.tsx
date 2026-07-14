@@ -231,7 +231,7 @@ function SessionDetailModal({
       {/* 文字起こし */}
       <section className="mb-4">
         <h3 className="mb-1.5 flex items-center gap-1.5 text-sm font-bold">
-          <FileText className="h-4 w-4 text-indigo-500" />
+          <FileText className="h-4 w-4 text-cyan-500" />
           文字起こし
         </h3>
         <div className="scrollbar-thin max-h-52 overflow-y-auto rounded-xl bg-slate-50 p-4 text-sm leading-relaxed whitespace-pre-wrap dark:bg-slate-800/50">
@@ -256,7 +256,7 @@ function SessionDetailModal({
       {/* フィードバック */}
       <section className="border-t border-slate-200 pt-4 dark:border-slate-800">
         <h3 className="mb-3 flex items-center gap-1.5 text-sm font-bold">
-          <MessageSquare className="h-4 w-4 text-indigo-500" />
+          <MessageSquare className="h-4 w-4 text-cyan-500" />
           フィードバック
           <span className="text-xs font-normal text-slate-400 dark:text-slate-500">
             {session.feedbacks.length}件

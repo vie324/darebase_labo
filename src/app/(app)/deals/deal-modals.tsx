@@ -112,7 +112,7 @@ export function DealDetailModal({
                   s === deal.stage
                     ? cn(
                         DEAL_STAGES[s].color,
-                        "ring-2 ring-indigo-400/60 dark:ring-indigo-500/50"
+                        "ring-2 ring-cyan-400/60 dark:ring-cyan-500/50"
                       )
                     : "bg-slate-50 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:bg-slate-800/60 dark:text-slate-500 dark:hover:bg-slate-800 dark:hover:text-slate-300"
                 )}
@@ -164,10 +164,10 @@ export function DealDetailModal({
 
         {/* 次のアクション */}
         {deal.next_action && (
-          <div className="flex items-start gap-2.5 rounded-2xl border border-indigo-100 bg-indigo-50/60 p-4 dark:border-indigo-500/20 dark:bg-indigo-500/10">
-            <Flag className="mt-0.5 h-4 w-4 shrink-0 text-indigo-500" />
+          <div className="flex items-start gap-2.5 rounded-2xl border border-cyan-100 bg-cyan-50/60 p-4 dark:border-cyan-500/20 dark:bg-cyan-500/10">
+            <Flag className="mt-0.5 h-4 w-4 shrink-0 text-cyan-500" />
             <div className="min-w-0">
-              <p className="text-[11px] font-semibold text-indigo-400 dark:text-indigo-300">
+              <p className="text-[11px] font-semibold text-cyan-400 dark:text-cyan-300">
                 次のアクション
               </p>
               <p className="mt-0.5 text-sm font-medium text-slate-700 dark:text-slate-200">
@@ -392,7 +392,7 @@ export function DealFormModal({
               value={values.amount}
               onChange={(e) => set("amount", Math.max(0, Number(e.target.value) || 0))}
             />
-            <p className="mt-1 text-right text-xs font-semibold text-indigo-500 dark:text-indigo-400">
+            <p className="mt-1 text-right text-xs font-semibold text-cyan-500 dark:text-cyan-400">
               {formatYenShort(values.amount)}
             </p>
           </Field>
@@ -413,7 +413,7 @@ export function DealFormModal({
                 step={5}
                 value={values.probability}
                 onChange={(e) => set("probability", Number(e.target.value))}
-                className="h-2 flex-1 cursor-pointer accent-indigo-600"
+                className="h-2 flex-1 cursor-pointer accent-cyan-600"
                 aria-label="確度"
               />
               <Badge className={probabilityClass(values.probability)}>

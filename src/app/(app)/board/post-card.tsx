@@ -47,7 +47,7 @@ export function PostCard({
         <Badge className={cat.color}>{cat.label}</Badge>
       </div>
 
-      <h3 className="mt-2.5 text-base leading-snug font-bold transition-colors group-hover:text-indigo-600 dark:group-hover:text-indigo-400">
+      <h3 className="mt-2.5 text-base leading-snug font-bold transition-colors group-hover:text-cyan-600 dark:group-hover:text-cyan-400">
         {post.title}
       </h3>
       <p className="mt-1 line-clamp-2 text-sm leading-relaxed text-slate-500 dark:text-slate-400">
