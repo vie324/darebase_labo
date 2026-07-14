@@ -62,4 +62,40 @@ export const DEMO_POLLS: SchedulePoll[] = [
     confirmed_index: 1,
     created_at: daysFromNow(-3),
   },
+  {
+    id: "poll-3",
+    title: "アクア食品様 契約前 最終すり合わせ",
+    description: "先方の法務・情シスも交えて条件面の最終確認。45分想定。",
+    organizer: "田中 美咲",
+    location: "Google Meet（当日リンク送付）",
+    duration_min: 45,
+    candidates: [
+      { start: daysFromNow(2, 11, 0), end: daysFromNow(2, 11, 45) },
+      { start: daysFromNow(4, 14, 0), end: daysFromNow(4, 14, 45) },
+      { start: daysFromNow(6, 16, 0), end: daysFromNow(6, 16, 45) },
+    ],
+    responses: [
+      {
+        name: "田中 美咲",
+        answers: ["ok", "ok", "maybe"],
+        comment: "どこでも調整可能です。",
+        created_at: daysFromNow(-1, 10),
+      },
+      {
+        name: "渡辺 由紀（アクア食品）",
+        answers: ["maybe", "ok", "ng"],
+        comment: "4日後の午後が最も都合が良いです。",
+        created_at: daysFromNow(-1, 15),
+      },
+      {
+        name: "佐藤 健太",
+        answers: ["ng", "ok", "ok"],
+        comment: "初日午前は別商談のため不可。",
+        created_at: daysFromNow(0, 9),
+      },
+    ],
+    status: "open",
+    confirmed_index: null,
+    created_at: daysFromNow(-1),
+  },
 ];
