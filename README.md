@@ -79,6 +79,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
 - **lucide-react** — アイコン
 - ロープレ機能: `MediaRecorder` / `getDisplayMedia` / Web Speech API（文字起こし。Chrome / Edge 推奨）
 - 名刺 OCR: **tesseract.js**（`jpn+eng`、ブラウザ内で文字認識。ワーカー/言語データの取得にオンライン環境が必要）
+- **モバイル対応 / PWA**: 下部タブナビ・ボトムシート型モーダル・セーフエリア対応。「ホーム画面に追加」でスタンドアロン起動（`manifest.webmanifest` / `apple-icon`）
 
 ## プロジェクト構成
 

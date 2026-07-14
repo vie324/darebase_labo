@@ -225,7 +225,7 @@ export function Modal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-4"
       role="dialog"
       aria-modal="true"
     >
@@ -236,16 +236,21 @@ export function Modal({
       <div
         ref={ref}
         className={cn(
-          "card scrollbar-thin relative max-h-[90vh] w-full animate-scale-in overflow-y-auto p-6",
-          wide ? "max-w-3xl" : "max-w-lg"
+          // モバイル: 下から出るボトムシート（角丸上・セーフエリア対応）
+          // sm以上: 中央のカードモーダル
+          "card scrollbar-thin relative max-h-[92vh] w-full animate-slide-up overflow-y-auto rounded-t-3xl rounded-b-none px-5 pt-3 pb-[max(1.25rem,env(safe-area-inset-bottom))]",
+          "sm:animate-scale-in sm:max-h-[90vh] sm:rounded-2xl sm:p-6",
+          wide ? "sm:max-w-3xl" : "sm:max-w-lg"
         )}
       >
-        <div className="mb-4 flex items-start justify-between gap-4">
+        {/* モバイル用のグラブハンドル */}
+        <div className="mx-auto mb-2 h-1.5 w-10 rounded-full bg-slate-300 sm:hidden dark:bg-slate-600" />
+        <div className="sticky -top-3 z-10 -mx-5 mb-4 flex items-start justify-between gap-4 border-b border-slate-100 bg-white/95 px-5 pb-3 backdrop-blur sm:static sm:mx-0 sm:mb-4 sm:border-0 sm:bg-transparent sm:px-0 sm:pb-0 sm:backdrop-blur-none dark:border-slate-800 dark:bg-slate-900/95 sm:dark:bg-transparent">
           <h2 className="text-lg font-bold">{title}</h2>
           <button
             onClick={onClose}
             aria-label="閉じる"
-            className="cursor-pointer rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800 dark:hover:text-slate-300"
+            className="-mr-1 cursor-pointer rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800 dark:hover:text-slate-300"
           >
             <X className="h-5 w-5" />
           </button>

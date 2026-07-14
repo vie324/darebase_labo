@@ -30,6 +30,7 @@ import { DEMO_TEAM } from "@/lib/demo/team";
 import { Avatar } from "@/components/ui";
 import { Logo } from "@/components/brand/logo";
 import { SplashScreen } from "@/components/brand/splash-screen";
+import { BottomNav } from "@/components/layout/bottom-nav";
 
 const NAV_SECTIONS: {
   heading: string;
@@ -308,10 +309,12 @@ function ShellInner({ children }: { children: ReactNode }) {
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="lg:pl-64">
         <Topbar onMenuOpen={() => setSidebarOpen(true)} />
-        <main className="mx-auto max-w-7xl p-4 sm:p-6 lg:p-8">
+        {/* 下部ナビ分の余白をモバイルで確保（セーフエリア込み） */}
+        <main className="mx-auto max-w-7xl p-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))] sm:p-6 lg:p-8 lg:pb-8">
           <div className="animate-fade-up">{children}</div>
         </main>
       </div>
+      <BottomNav onMenuOpen={() => setSidebarOpen(true)} />
     </div>
   );
 }
