@@ -234,6 +234,12 @@ export interface SchedulePoll extends BaseRow {
   responses: PollResponse[]; // jsonb
   status: "open" | "confirmed" | "closed";
   confirmed_index: number | null; // 確定した候補のindex
+  /**
+   * 調整の種別（任意・後方互換）。
+   * - "group"（未設定含む）: 通常のチーム内日程調整
+   * - "customer": 顧客Web会議予約リンク（公開ページ /invite/[id] で予約可能）
+   */
+  kind?: "group" | "customer";
 }
 
 // ---------- テーブル名 → 行型のマッピング ----------
