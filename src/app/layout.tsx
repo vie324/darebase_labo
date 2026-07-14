@@ -3,16 +3,16 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: {
-    default: "DareBase LABO | 営業力を研究し、売上を上げる",
-    template: "%s | DareBase LABO",
+    default: "DARE BASE LABO | 営業力を研究し、売上を上げる",
+    template: "%s | DARE BASE LABO",
   },
   description:
     "営業力を研究し売上を上げる営業支援ラボ。スケジュール・案件・名刺・ナレッジ・ロープレ練習・日程調整まで、営業チームのすべてをひとつに。",
-  applicationName: "DareBase LABO",
+  applicationName: "DARE BASE LABO",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "DareBase LABO",
+    title: "DARE BASE LABO",
   },
   formatDetection: { telephone: false },
 };

@@ -193,7 +193,7 @@ export default function InvitePage({
       </main>
 
       <footer className="px-5 py-6 text-center text-xs text-slate-400 dark:text-slate-600">
-        Powered by DareBase LABO
+        Powered by DARE BASE LABO
       </footer>
     </div>
   );

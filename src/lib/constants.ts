@@ -12,10 +12,10 @@ import type {
   TaskStatus,
 } from "./types";
 
-export const APP_NAME = "DareBase LABO";
+export const APP_NAME = "DARE BASE LABO";
 export const APP_TAGLINE = "営業力を研究し、売上を上げる";
-/** 運営会社名（DareBase LABO は株式会社DareBaseが運営する営業支援ツール） */
-export const COMPANY_NAME = "DareBase";
+/** 運営会社名（DARE BASE LABO は株式会社DARE BASEが運営する営業支援ツール） */
+export const COMPANY_NAME = "DARE BASE";
 /** 代表者名（トップの名言表示などで使用） */
 export const CEO_NAME = "岡崎 佑真";
 
