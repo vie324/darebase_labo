@@ -2,27 +2,53 @@
 
 // 名刺の詳細モーダルと新規/編集フォームモーダル
 
-import { useState, type ChangeEvent, type FormEvent, type ReactNode } from "react";
 import {
+  useEffect,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type FormEvent,
+  type ReactNode,
+} from "react";
+import {
+  AlertTriangle,
   Building2,
   CalendarDays,
+  Camera,
+  CheckCircle2,
+  ChevronDown,
+  ClipboardPaste,
   ExternalLink,
+  FileText,
   Globe,
   ImagePlus,
+  Loader2,
   Mail,
   MapPin,
   NotebookTabs,
   Pencil,
   Phone,
+  ScanLine,
   Smartphone,
+  Sparkles,
   Trash2,
   UserPlus,
   X,
 } from "lucide-react";
 import { storeFile } from "@/lib/supabase";
-import { formatDate, uid } from "@/lib/utils";
+import { cn, formatDate, uid } from "@/lib/utils";
 import type { Contact } from "@/lib/types";
-import { Avatar, Badge, Button, Field, Input, Modal, Select, Textarea } from "@/components/ui";
+import {
+  Avatar,
+  Badge,
+  Button,
+  Field,
+  Input,
+  Modal,
+  ProgressBar,
+  Select,
+  Textarea,
+} from "@/components/ui";
 import {
   companyColor,
   emptyFormValues,
@@ -30,6 +56,7 @@ import {
   toFormValues,
   type ContactFormValues,
 } from "./shared";
+import { parseBusinessCard, runOcr, type ParsedCardFields } from "./ocr";
 
 function InfoRow({
   icon,
@@ -222,6 +249,19 @@ export function ContactDetailModal({
   );
 }
 
+// OCR で自動入力できるフィールドと日本語ラベルの対応（入力済みハイライト用）
+const OCR_FIELD_LABELS: Record<keyof ParsedCardFields, string> = {
+  name: "氏名",
+  company: "会社名",
+  department: "部署",
+  title: "役職",
+  email: "メールアドレス",
+  phone: "電話番号",
+  mobile: "携帯番号",
+  address: "住所",
+  website: "Webサイト",
+};
+
 // =============================================================
 // 新規 / 編集フォームモーダル
 // =============================================================
@@ -246,6 +286,29 @@ export function ContactFormModal({
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [transientImage, setTransientImage] = useState(false);
+
+  // ---------- 名刺 OCR 用の状態 ----------
+  const [ocrRunning, setOcrRunning] = useState(false);
+  const [ocrProgress, setOcrProgress] = useState(0); // 0-1
+  const [ocrPreview, setOcrPreview] = useState(""); // 読み取り中に表示するプレビュー(objectURL)
+  const [ocrText, setOcrText] = useState(""); // 認識した生テキスト
+  const [ocrError, setOcrError] = useState("");
+  const [filledFields, setFilledFields] = useState<string[]>([]);
+  const [showRawText, setShowRawText] = useState(false);
+  // 生成した objectURL を破棄するために保持する
+  const previewUrlRef = useRef<string>("");
+  // 非同期な OCR 完了時に「最新の」入力値を参照するための ref
+  const valuesRef = useRef(values);
+  useEffect(() => {
+    valuesRef.current = values;
+  }, [values]);
+
+  useEffect(() => {
+    // アンマウント時にプレビュー用 objectURL を解放
+    return () => {
+      if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
+    };
+  }, []);
 
   const set = <K extends keyof ContactFormValues>(key: K, v: ContactFormValues[K]) =>
     setValues((prev) => ({ ...prev, [key]: v }));
@@ -275,9 +338,81 @@ export function ContactFormModal({
     }
   };
 
+  // 認識結果を「空欄のフォーム項目のみ」自動入力する（既入力は上書きしない）。
+  // 埋めたフィールドのラベル一覧を返す。
+  const applyParsed = (parsed: ParsedCardFields): string[] => {
+    const current = valuesRef.current;
+    const patch: Partial<ContactFormValues> = {};
+    const filled: string[] = [];
+    (Object.keys(parsed) as (keyof ParsedCardFields)[]).forEach((key) => {
+      const value = parsed[key];
+      if (value && current[key].trim() === "") {
+        patch[key] = value;
+        filled.push(OCR_FIELD_LABELS[key]);
+      }
+    });
+    if (filled.length > 0) setValues((prev) => ({ ...prev, ...patch }));
+    return filled;
+  };
+
+  // 名刺画像を選択 → プレビュー → OCR → 解析 → 空欄へ自動入力 → 画像保存
+  const handleOcrFile = async (e: ChangeEvent<HTMLInputElement>) => {
+    const input = e.target;
+    const file = input.files?.[0];
+    input.value = "";
+    if (!file) return;
+
+    // 直前のプレビューを破棄して新しいプレビューを表示
+    if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
+    const preview = URL.createObjectURL(file);
+    previewUrlRef.current = preview;
+
+    setOcrPreview(preview);
+    setOcrError("");
+    setOcrText("");
+    setFilledFields([]);
+    setShowRawText(false);
+    setOcrProgress(0);
+    setOcrRunning(true);
+
+    try {
+      const text = await runOcr(file, (p) => setOcrProgress(p));
+      setOcrText(text);
+      const filled = applyParsed(parseBusinessCard(text));
+      setFilledFields(filled);
+
+      // 認識に使った画像を名刺画像としても保存する（空欄のときのみ）
+      try {
+        const ext = (file.name.split(".").pop() || "png").toLowerCase();
+        const { url, persistent } = await storeFile(file, `cards/${uid()}.${ext}`);
+        setValues((prev) =>
+          prev.card_image_url ? prev : { ...prev, card_image_url: url }
+        );
+        setTransientImage((prev) => prev || !persistent);
+      } catch {
+        // 画像保存に失敗しても OCR 結果は活かせるので致命的ではない
+      }
+    } catch {
+      setOcrError(
+        "名刺の読み取りに失敗しました。オンライン環境か、画像が鮮明かをご確認のうえ再度お試しください。手入力でも登録できます。"
+      );
+    } finally {
+      setOcrRunning(false);
+    }
+  };
+
+  // 認識した生テキスト全文をメモ末尾に追記する
+  const appendRawTextToMemo = () => {
+    if (!ocrText.trim()) return;
+    setValues((prev) => ({
+      ...prev,
+      memo: prev.memo.trim() ? `${prev.memo}\n\n${ocrText.trim()}` : ocrText.trim(),
+    }));
+  };
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!valid || saving || uploading) return;
+    if (!valid || saving || uploading || ocrRunning) return;
     setSaving(true);
     try {
       await onSubmit({
@@ -303,6 +438,136 @@ export function ContactFormModal({
   return (
     <Modal open onClose={onClose} title={initial ? "名刺を編集" : "名刺を登録"} wide>
       <form onSubmit={handleSubmit} className="space-y-4">
+        {/* ---------- 名刺 OCR 読み取り ---------- */}
+        <div className="rounded-2xl border border-cyan-200/70 bg-gradient-to-br from-cyan-50/80 to-sky-50/50 p-4 dark:border-cyan-500/25 dark:from-cyan-500/10 dark:to-sky-500/5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/80 text-cyan-600 shadow-sm dark:bg-slate-900/50 dark:text-cyan-400">
+                <ScanLine className="h-4 w-4" />
+              </span>
+              <div>
+                <p className="text-sm font-bold">📇 名刺を撮影して読み取り</p>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                  写真から文字を読み取り、空欄の項目を自動入力します
+                </p>
+              </div>
+            </div>
+            <label
+              className={cn(
+                "inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-400 to-sky-400 px-4 text-sm font-medium text-slate-900 shadow-sm shadow-cyan-500/30 transition-all hover:from-cyan-300 hover:to-sky-300 active:scale-[0.98]",
+                ocrRunning && "pointer-events-none opacity-60"
+              )}
+            >
+              {ocrRunning ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Camera className="h-4 w-4" />
+              )}
+              {ocrRunning ? "読み取り中…" : "名刺を撮影 / 画像を選択"}
+              <input
+                type="file"
+                accept="image/*"
+                capture="environment"
+                className="hidden"
+                onChange={handleOcrFile}
+                disabled={ocrRunning}
+              />
+            </label>
+          </div>
+
+          {/* プレビュー + 進捗 / 結果 */}
+          {ocrPreview && (
+            <div className="mt-4 flex flex-col gap-4 sm:flex-row">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={ocrPreview}
+                alt="読み取り対象の名刺"
+                className="h-28 w-full shrink-0 rounded-xl border border-slate-200 bg-white object-contain sm:w-40 dark:border-slate-700 dark:bg-slate-800/50"
+              />
+              <div className="min-w-0 flex-1">
+                {ocrRunning ? (
+                  <div className="space-y-2">
+                    <p className="flex items-center gap-1.5 text-sm font-medium text-slate-600 dark:text-slate-300">
+                      <Sparkles className="h-4 w-4 text-cyan-500" />
+                      読み取り中… {Math.round(ocrProgress * 100)}%
+                    </p>
+                    <ProgressBar
+                      value={ocrProgress}
+                      max={1}
+                      barClassName="bg-gradient-to-r from-cyan-400 to-sky-400"
+                    />
+                    <p className="text-[11px] text-slate-400 dark:text-slate-500">
+                      初回は言語データの取得に少し時間がかかります。
+                    </p>
+                  </div>
+                ) : ocrError ? (
+                  <p className="flex items-start gap-1.5 rounded-xl bg-rose-50 p-3 text-xs leading-relaxed text-rose-600 dark:bg-rose-500/10 dark:text-rose-300">
+                    <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                    {ocrError}
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    {filledFields.length > 0 ? (
+                      <>
+                        <p className="flex items-center gap-1.5 text-sm font-semibold text-emerald-600 dark:text-emerald-400">
+                          <CheckCircle2 className="h-4 w-4" />
+                          {filledFields.length}項目を自動入力しました
+                        </p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {filledFields.map((label) => (
+                            <Badge
+                              key={label}
+                              className="bg-emerald-50 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-300"
+                            >
+                              {label}
+                            </Badge>
+                          ))}
+                        </div>
+                        <p className="text-[11px] text-slate-400 dark:text-slate-500">
+                          既に入力済みの項目は上書きしていません。内容をご確認ください。
+                        </p>
+                      </>
+                    ) : (
+                      <p className="flex items-start gap-1.5 text-xs leading-relaxed text-slate-500 dark:text-slate-400">
+                        <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
+                        自動で判別できる項目が見つかりませんでした。下の全文を参考に手入力してください。
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* 認識した生テキスト（折りたたみ） */}
+          {ocrText && !ocrRunning && (
+            <details
+              className="group mt-3"
+              open={showRawText}
+              onToggle={(e) => setShowRawText((e.target as HTMLDetailsElement).open)}
+            >
+              <summary className="flex cursor-pointer items-center gap-1.5 text-xs font-semibold text-slate-500 select-none hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200">
+                <FileText className="h-3.5 w-3.5" />
+                認識した全文を{showRawText ? "隠す" : "表示"}
+                <ChevronDown className="h-3.5 w-3.5 transition-transform group-open:rotate-180" />
+              </summary>
+              <pre className="scrollbar-thin mt-2 max-h-40 overflow-auto rounded-xl border border-slate-200 bg-white/70 p-3 text-[11px] leading-relaxed whitespace-pre-wrap text-slate-600 dark:border-slate-700 dark:bg-slate-900/50 dark:text-slate-300">
+                {ocrText}
+              </pre>
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                className="mt-2"
+                onClick={appendRawTextToMemo}
+              >
+                <ClipboardPaste className="h-4 w-4" />
+                メモに全文を貼り付け
+              </Button>
+            </details>
+          )}
+        </div>
+
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="氏名" required>
             <Input
@@ -482,7 +747,7 @@ export function ContactFormModal({
           <Button type="button" variant="secondary" onClick={onClose}>
             キャンセル
           </Button>
-          <Button type="submit" disabled={!valid || saving || uploading}>
+          <Button type="submit" disabled={!valid || saving || uploading || ocrRunning}>
             {initial ? <Pencil className="h-4 w-4" /> : <UserPlus className="h-4 w-4" />}
             {initial ? "保存する" : "登録する"}
           </Button>
