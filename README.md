@@ -19,6 +19,9 @@
 | 🎓 勉強会 | 営業代理業の商材・ツール勉強会の議事録/録画/資料アーカイブ |
 | 💬 チャット | チャンネル制チームチャット（Supabase Realtime 対応） |
 | 📌 掲示板 | お知らせ・質問・共有のスレッド + コメント |
+| 🧾 請求・支払 | 請求書の**受領ボックス**（LINE自動取込 + 手動）・発行/受領の一覧管理・OCR読取・**メーカー明細の取込→率マスタで代理店別に自動計算→承認→支払明細の一括生成**・入金/支払の**手動消込**（一部入金対応） |
+| 📈 経営ダッシュボード | **経営層限定**。売上・粗利の12ヶ月推移、メーカー/代理店別収益ランキング、請求・入金ステータスと期限超過アラート、**キャッシュフロー予測**（期日ベース6ヶ月） |
+| 💚 LINE連携 | 公式アカウントを**三者グループ**（担当者＋クライアント＋公式アカウント）に招待すると、届いた請求書（画像・PDF）を自動でシステムに取込。アプリからのLINE送付（署名URL）にも対応 |
 
 ## ロゴについて
 
@@ -71,6 +74,40 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
 
 組織全体での双方向同期（空き時間の自動取得・自動予定作成）を行いたい場合は、Google Cloud Console で OAuth 2.0 クライアントを作成し、Google Calendar API を有効化した上でサーバーサイド連携を追加実装してください（このリポジトリの日程調整データモデルはそのまま流用できます）。
 
+### 5. LINE連携（請求書の受け取り・送付）
+
+公式LINEアカウントを「担当者＋クライアント＋公式アカウント」の三者グループに招待すると、グループに届いた請求書（画像・PDF）が **請求・支払 > 受領ボックス** に自動で取り込まれます。アプリからのLINE送付にも対応します。
+
+**サーバー環境変数**（Vercel の Environment Variables に設定。`NEXT_PUBLIC_` は付けない）:
+
+| 変数 | 内容 |
+| --- | --- |
+| `LINE_CHANNEL_SECRET` | Messaging API チャネルのチャネルシークレット（Webhook署名検証に使用） |
+| `LINE_CHANNEL_ACCESS_TOKEN` | チャネルアクセストークン（長期） |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase の service_role キー（Webhook がDB/Storageへ書き込むため） |
+| `SUPABASE_URL` | Supabase の URL（省略時は `NEXT_PUBLIC_SUPABASE_URL` を使用） |
+
+**LINE Developers コンソールでの設定手順**:
+
+1. プロバイダー配下に **Messaging API チャネル**を作成し、チャネルアクセストークン（長期）を発行
+2. **Webhook URL** に `https://<デプロイ先ドメイン>/api/line/webhook` を設定し、「Webhookの利用」を **ON**
+3. LINE Official Account Manager で **応答メッセージ / あいさつメッセージを OFF**（自動応答はアプリ側で行うため）
+4. 「**グループトーク・複数人トークへの参加を許可する**」を **ON**
+5. 公式アカウントを各三者グループへ招待 → グループが **請求・支払 > マスタ > LINEグループ** に自動登録されるので、取引先に紐付け
+
+**動作確認（ローカル）** — 署名付きリクエストでWebhookをテストできます:
+
+```bash
+BODY='{"destination":"x","events":[]}'
+SIG=$(printf '%s' "$BODY" | openssl dgst -sha256 -hmac "$LINE_CHANNEL_SECRET" -binary | base64)
+curl -i -X POST http://localhost:3000/api/line/webhook \
+  -H "content-type: application/json" -H "x-line-signature: $SIG" -d "$BODY"   # → 200
+```
+
+- 請求書ファイルは**非公開バケット `invoices`** に保存され、閲覧は署名URL経由のみ（公開バケットの `files` とは分離）
+- LINE送付時の添付は**7日間有効の署名URL**として送られます（LINEにPDFメッセージ型がないため、ファイルはリンク + 画像のみ画像メッセージ併送）
+- Webhook は本番の公開HTTPSが必須のため、デモモード・ローカルでは受領ボックスの「LINE受信をシミュレート」で動作を確認できます
+
 ## 技術構成
 
 - **Next.js 16**（App Router / TypeScript / Turbopack）
@@ -108,3 +145,5 @@ supabase/
 
 - ブラウザ対応: 文字起こし（Web Speech API）は Chrome / Edge のみ。他ブラウザでは録音 + 手動文字起こしにフォールバックします
 - RLS は「認証済みユーザーに全権限」の社内ツール前提です。部署別権限などが必要な場合は `0001_init.sql` のポリシーを調整してください
+- **経営層限定（`profiles.access_level`）はUI上の区分**です。ナビ・画面の出し分けは行いますが、RLSは全認証ユーザー全権のままなので、APIレベルの厳密なデータ分離ではありません（`access_level` 自体も全員が更新可能な社内信頼モデル）。財務データの厳密な分離が必要になったら、集計をビュー+専用ロールに移し、`0004_billing.sql` のポリシーを絞ってください
+- 請求書OCRは画像のみ対応（tesseract.js は PDF を読めません）。PDFは添付保存 + 手入力を想定しています

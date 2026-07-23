@@ -14,6 +14,15 @@ import { DEMO_TRAININGS } from "./demo/trainings";
 import { DEMO_CHANNELS, DEMO_MESSAGES } from "./demo/chat";
 import { DEMO_POSTS } from "./demo/posts";
 import { DEMO_POLLS } from "./demo/polls";
+import {
+  DEMO_COMMISSION_RATES,
+  DEMO_INVOICES,
+  DEMO_INVOICE_PAYMENTS,
+  DEMO_LINE_GROUPS,
+  DEMO_MAKER_STATEMENTS,
+  DEMO_PARTNERS,
+  DEMO_STATEMENT_LINES,
+} from "./demo/billing";
 
 export const DEMO_DATA: { [K in TableName]: TableMap[K][] } = {
   profiles: DEMO_TEAM,
@@ -31,6 +40,13 @@ export const DEMO_DATA: { [K in TableName]: TableMap[K][] } = {
   messages: DEMO_MESSAGES,
   posts: DEMO_POSTS,
   schedule_polls: DEMO_POLLS,
+  partners: DEMO_PARTNERS,
+  commission_rates: DEMO_COMMISSION_RATES,
+  maker_statements: DEMO_MAKER_STATEMENTS,
+  statement_lines: DEMO_STATEMENT_LINES,
+  invoices: DEMO_INVOICES,
+  invoice_payments: DEMO_INVOICE_PAYMENTS,
+  line_groups: DEMO_LINE_GROUPS,
 };
 
 export { DEMO_TEAM };
