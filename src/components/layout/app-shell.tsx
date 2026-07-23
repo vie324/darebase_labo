@@ -19,14 +19,17 @@ import {
   Mic,
   Moon,
   Newspaper,
+  Receipt,
   Search,
   Settings,
   Sun,
+  TrendingUp,
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import { UserProvider, useUser } from "@/lib/use-user";
+import { useAccess } from "@/lib/use-access";
 import { DEMO_TEAM } from "@/lib/demo/team";
 import { Avatar } from "@/components/ui";
 import { ToastProvider, useToast } from "@/components/ui/toast";
@@ -37,7 +40,7 @@ import { CommandPalette } from "@/components/layout/command-palette";
 
 const NAV_SECTIONS: {
   heading: string;
-  items: { href: string; label: string; icon: ReactNode }[];
+  items: { href: string; label: string; icon: ReactNode; execOnly?: boolean }[];
 }[] = [
   {
     heading: "ホーム",
@@ -53,6 +56,18 @@ const NAV_SECTIONS: {
       { href: "/deals", label: "案件管理", icon: <Briefcase className="h-[18px] w-[18px]" /> },
       { href: "/tasks", label: "タスク", icon: <CheckSquare className="h-[18px] w-[18px]" /> },
       { href: "/contacts", label: "名刺管理", icon: <Contact className="h-[18px] w-[18px]" /> },
+    ],
+  },
+  {
+    heading: "経営管理",
+    items: [
+      { href: "/billing", label: "請求・支払", icon: <Receipt className="h-[18px] w-[18px]" /> },
+      {
+        href: "/executive",
+        label: "経営ダッシュボード",
+        icon: <TrendingUp className="h-[18px] w-[18px]" />,
+        execOnly: true,
+      },
     ],
   },
   {
@@ -81,6 +96,7 @@ function Sidebar({
   onClose: () => void;
 }) {
   const pathname = usePathname();
+  const { isExecutive } = useAccess();
 
   return (
     <>
@@ -113,13 +129,17 @@ function Sidebar({
 
         {/* ナビゲーション */}
         <nav className="scrollbar-thin flex-1 overflow-y-auto px-3 py-4">
-          {NAV_SECTIONS.map((section) => (
+          {NAV_SECTIONS.map((section) => {
+            // 経営層限定の項目（経営ダッシュボード等）は権限がある場合のみ表示
+            const visibleItems = section.items.filter((item) => !item.execOnly || isExecutive);
+            if (visibleItems.length === 0) return null;
+            return (
             <div key={section.heading} className="mb-5">
               <p className="mb-1.5 px-3 text-[11px] font-bold tracking-wider text-slate-400 dark:text-slate-500">
                 {section.heading}
               </p>
               <ul className="space-y-0.5">
-                {section.items.map((item) => {
+                {visibleItems.map((item) => {
                   const active =
                     pathname === item.href || pathname.startsWith(item.href + "/");
                   return (
@@ -154,7 +174,8 @@ function Sidebar({
                 })}
               </ul>
             </div>
-          ))}
+            );
+          })}
         </nav>
 
         {/* フッター: 設定 */}

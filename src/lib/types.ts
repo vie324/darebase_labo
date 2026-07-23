@@ -16,6 +16,11 @@ export interface Profile extends BaseRow {
   role: string; // 例: "マネージャー" | "フィールドセールス" | "インサイドセールス"
   department: string;
   color: string; // アバター用のtailwind色名 例: "indigo" | "emerald"
+  /**
+   * 経営層区分（任意・後方互換）。未設定は "member" 扱い。
+   * "executive" のみ経営ダッシュボード・権限管理にアクセスできる（UI上のゲート）。
+   */
+  access_level?: "executive" | "member";
 }
 
 // ---------- スケジュール ----------
@@ -242,6 +247,121 @@ export interface SchedulePoll extends BaseRow {
   kind?: "group" | "customer";
 }
 
+// ---------- 請求・支払（経営管理） ----------
+
+/** 取引先の種別。メーカー=商材の供給元 / 代理店=販売パートナー / 顧客=エンド顧客 */
+export type PartnerKind = "maker" | "agency" | "client";
+
+/** 取引先マスタ（メーカー・代理店・顧客を1テーブルで管理し kind で区別） */
+export interface Partner extends BaseRow {
+  name: string;
+  kind: PartnerKind;
+  contact_name: string;
+  email: string;
+  phone: string;
+  address: string;
+  payment_rule: string; // 表示用 例: "月末締め翌月末払い"
+  default_due_days: number; // 請求書の支払期日サイト（発行日からの日数）
+  memo: string;
+  is_active: boolean;
+}
+
+/** 手数料率マスタ（代理店×メーカー、商材指定があればそちらを優先適用） */
+export interface CommissionRate extends BaseRow {
+  agency_id: string; // partners(kind=agency)
+  maker_id: string; // partners(kind=maker)
+  product_name: string; // "" = このメーカーの全商材に適用するデフォルト率
+  rate_type: "percent" | "fixed";
+  rate_percent: number; // rate_type=percent のとき使用 (0-100)
+  fixed_fee: number; // rate_type=fixed のとき使用（円）
+  effective_from: string; // YYYY-MM-DD ("" = 制限なし)
+  effective_to: string; // YYYY-MM-DD ("" = 制限なし)
+  memo: string;
+}
+
+/** メーカー明細のステータス（承認フロー） */
+export type StatementStatus = "draft" | "calculated" | "approved" | "invoiced";
+
+/** メーカーから受領した明細（ヘッダ）。承認フローは status で表現する */
+export interface MakerStatement extends BaseRow {
+  maker_id: string | null; // partners(kind=maker)
+  title: string;
+  statement_month: string; // 対象月 YYYY-MM
+  status: StatementStatus;
+  total_amount: number; // 明細行合計（円・キャッシュ）
+  source: "csv" | "manual";
+  approved_by: string; // 承認者名 ("" = 未承認)
+  approved_at: string; // ISO ("" = 未承認)
+  memo: string;
+}
+
+/** 明細行。計算実行時に率をスナップショットして保存する */
+export interface StatementLine extends BaseRow {
+  statement_id: string;
+  agency_id: string | null; // 未割当は null（警告対象）
+  product_name: string;
+  customer_name: string;
+  amount: number; // メーカー明細の金額（円）
+  rate_percent: number | null; // 適用率のスナップショット（未計算は null）
+  agency_amount: number; // 代理店取り分（円未満切り捨て）
+  company_amount: number; // 自社取り分 = amount - agency_amount
+  rate_source: "master" | "manual" | ""; // "" = 率未決定（警告）
+  memo: string;
+}
+
+export type InvoiceDirection = "receivable" | "payable"; // 入金(こちらが請求) / 支払(こちらが支払う)
+export type InvoiceStatus = "draft" | "sent" | "received" | "confirmed" | "paid" | "cancelled";
+export type InvoiceSource = "manual" | "line" | "statement";
+
+/** 請求書（受領・発行の両方向を1テーブルで管理） */
+export interface Invoice extends BaseRow {
+  direction: InvoiceDirection;
+  partner_id: string | null; // 取引先（未紐付けは null）
+  partner_name: string; // 表示用スナップショット（未紐付けLINE受信でも名前を残せる）
+  invoice_number: string;
+  title: string;
+  subtotal: number; // 税抜（円）
+  tax: number; // 消費税（円）
+  withholding: number; // 源泉徴収（円・差し引き）
+  total: number; // 請求合計 = subtotal + tax - withholding
+  issue_date: string; // YYYY-MM-DD
+  due_date: string; // YYYY-MM-DD（期限超過はここから導出）
+  status: InvoiceStatus;
+  paid_amount: number; // 消込済み金額（invoice_payments の合計キャッシュ）
+  paid_date: string; // 全額消込日 YYYY-MM-DD ("" = 未完了)
+  source: InvoiceSource;
+  statement_id: string | null; // 明細計算から生成された場合の元明細
+  line_group_id: string; // LINE経由の場合の受信/送付先グループ ("" = なし)
+  line_message_id: string; // LINE受信メッセージID（取込の冪等性キー）
+  file_url: string; // 添付ファイル。非公開バケットはStorageパス、デモはdataURL
+  file_type: string; // 拡張子 "pdf" | "jpg" など
+  ocr_text: string; // OCR結果の生テキスト
+  memo: string;
+  updated_at: string;
+}
+
+/** 入金・支払の消込履歴（一部入金に対応） */
+export interface InvoicePayment extends BaseRow {
+  invoice_id: string;
+  amount: number; // 円
+  paid_on: string; // YYYY-MM-DD
+  method: string; // "振込" | "現金" など
+  recorded_by: string; // 消込した担当者名
+  memo: string;
+}
+
+export type LineGroupStatus = "unmapped" | "active" | "left";
+
+/** 公式LINEが参加しているグループと取引先の紐付け */
+export interface LineGroup extends BaseRow {
+  group_id: string; // LINEのグループID（unique）
+  group_name: string;
+  partner_id: string | null; // 紐付け先取引先（null = 未紐付け）
+  status: LineGroupStatus;
+  joined_at: string; // ISO
+  memo: string;
+}
+
 // ---------- テーブル名 → 行型のマッピング ----------
 export interface TableMap {
   profiles: Profile;
@@ -259,6 +379,13 @@ export interface TableMap {
   messages: ChatMessage;
   posts: BoardPost;
   schedule_polls: SchedulePoll;
+  partners: Partner;
+  commission_rates: CommissionRate;
+  maker_statements: MakerStatement;
+  statement_lines: StatementLine;
+  invoices: Invoice;
+  invoice_payments: InvoicePayment;
+  line_groups: LineGroup;
 }
 
 export type TableName = keyof TableMap;

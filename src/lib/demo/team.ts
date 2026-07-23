@@ -2,6 +2,7 @@ import type { Profile } from "../types";
 import { daysFromNow } from "../utils";
 
 // デモモードのチームメンバー。ログインユーザーもここから選択する。
+// access_level: "executive" のメンバーのみ経営ダッシュボードを閲覧できる。
 export const DEMO_TEAM: Profile[] = [
   {
     id: "member-sato",
@@ -10,6 +11,7 @@ export const DEMO_TEAM: Profile[] = [
     role: "マネージャー",
     department: "営業部",
     color: "indigo",
+    access_level: "executive",
     created_at: daysFromNow(-400),
   },
   {
@@ -47,6 +49,16 @@ export const DEMO_TEAM: Profile[] = [
     department: "営業代理事業部",
     color: "amber",
     created_at: daysFromNow(-90),
+  },
+  {
+    id: "member-okazaki",
+    name: "岡崎 佑真",
+    email: "okazaki@example.com",
+    role: "代表取締役",
+    department: "経営",
+    color: "teal",
+    access_level: "executive",
+    created_at: daysFromNow(-500),
   },
 ];
 

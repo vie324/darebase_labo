@@ -21,12 +21,15 @@ import {
   Moon,
   Newspaper,
   GraduationCap,
+  Receipt,
   Search,
   Settings,
   Sun,
+  TrendingUp,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCollection } from "@/lib/use-collection";
+import { useAccess } from "@/lib/use-access";
 import { useToast } from "@/components/ui/toast";
 import type { ReactNode } from "react";
 
@@ -56,6 +59,7 @@ export function CommandPalette() {
   const deals = useCollection("deals");
   const knowledge = useCollection("knowledge");
   const tasks = useCollection("tasks");
+  const { isExecutive } = useAccess();
 
   // ⌘K / Ctrl+K でトグル
   useEffect(() => {
@@ -117,6 +121,10 @@ export function CommandPalette() {
       { id: "n-deal", group: "移動", label: "案件管理", icon: <Briefcase className={IC} />, keywords: "deals 案件 パイプライン", run: () => go("/deals") },
       { id: "n-task", group: "移動", label: "タスク", icon: <CheckSquare className={IC} />, keywords: "tasks todo タスク", run: () => go("/tasks") },
       { id: "n-contact", group: "移動", label: "名刺管理", icon: <ContactIcon className={IC} />, keywords: "contacts 名刺 連絡先", run: () => go("/contacts") },
+      { id: "n-billing", group: "移動", label: "請求・支払", icon: <Receipt className={IC} />, keywords: "billing invoice 請求 請求書 支払 入金 消込 明細", run: () => go("/billing") },
+      ...(isExecutive
+        ? [{ id: "n-exec", group: "移動", label: "経営ダッシュボード", icon: <TrendingUp className={IC} />, keywords: "executive 経営 売上 粗利 キャッシュフロー", run: () => go("/executive") } satisfies CmdItem]
+        : []),
       { id: "n-know", group: "移動", label: "ナレッジ", icon: <BookOpen className={IC} />, keywords: "knowledge ナレッジ 記事", run: () => go("/knowledge") },
       { id: "n-doc", group: "移動", label: "営業資料", icon: <FileText className={IC} />, keywords: "documents 資料 ファイル", run: () => go("/documents") },
       { id: "n-role", group: "移動", label: "ロープレ練習", icon: <Mic className={IC} />, keywords: "roleplay ロープレ 練習", run: () => go("/roleplay") },
@@ -167,7 +175,7 @@ export function CommandPalette() {
       })),
     ];
     return [...nav, ...actions, ...data];
-  }, [contacts.items, deals.items, knowledge.items, tasks.items, go, toggleTheme]);
+  }, [contacts.items, deals.items, knowledge.items, tasks.items, isExecutive, go, toggleTheme]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();

@@ -57,3 +57,41 @@ export async function storeFile(
   }
   return { url: URL.createObjectURL(file), persistent: false };
 }
+
+const INVOICE_BUCKET = "invoices";
+
+/**
+ * 請求書ファイルを保存する（機密のため非公開バケット）。
+ * - Supabase接続時: "invoices" バケットへアップロードし **Storageパス** を返す
+ *   （公開URLは存在しない。表示時は getSignedFileUrl で署名URLを取得する）
+ * - デモモード: storeFile と同じく dataURL / objectURL を返す
+ */
+export async function storeInvoiceFile(
+  file: File | Blob,
+  path: string
+): Promise<{ ref: string; persistent: boolean }> {
+  const sb = getSupabase();
+  if (sb) {
+    const { error } = await sb.storage
+      .from(INVOICE_BUCKET)
+      .upload(path, file, { upsert: true });
+    if (error) throw error;
+    return { ref: path, persistent: true };
+  }
+  const { url, persistent } = await storeFile(file, path);
+  return { ref: url, persistent };
+}
+
+/** 非公開バケットのパスから署名URLを取得する（Supabase接続時のみ） */
+export async function getSignedFileUrl(
+  path: string,
+  expiresSec = 3600
+): Promise<string | null> {
+  const sb = getSupabase();
+  if (!sb) return null;
+  const { data, error } = await sb.storage
+    .from(INVOICE_BUCKET)
+    .createSignedUrl(path, expiresSec);
+  if (error) return null;
+  return data.signedUrl;
+}

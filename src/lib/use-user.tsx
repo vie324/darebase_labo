@@ -23,6 +23,8 @@ function colorFromString(s: string): string {
 }
 
 export interface CurrentUser {
+  /** profiles.id（Supabase接続時は auth.uid()、デモモードは DEMO_TEAM の id） */
+  id: string;
   name: string;
   email: string;
   role: string;
@@ -65,6 +67,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
       // SSRではlocalStorageに触れないため、マウント後にユーザーを復元する
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setUser({
+        id: member.id,
         name: member.name,
         email: member.email,
         role: member.role,
@@ -81,6 +84,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
       user_metadata?: { name?: string; role?: string };
     };
     const toUser = (u: SessionUser): CurrentUser => ({
+      id: u.id,
       name: u.user_metadata?.name ?? u.email?.split("@")[0] ?? "ユーザー",
       email: u.email ?? "",
       role: u.user_metadata?.role ?? "メンバー",
@@ -138,6 +142,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
       localStorage.setItem(LS_KEY, name);
     } catch {}
     setUser({
+      id: member.id,
       name: member.name,
       email: member.email,
       role: member.role,

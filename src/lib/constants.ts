@@ -6,8 +6,14 @@ import type {
   DealStage,
   DocCategory,
   EventCategory,
+  InvoiceDirection,
+  InvoiceSource,
+  InvoiceStatus,
   KnowledgeCategory,
+  LineGroupStatus,
+  PartnerKind,
   PostCategory,
+  StatementStatus,
   TaskPriority,
   TaskStatus,
 } from "./types";
@@ -207,6 +213,125 @@ export const POST_CATEGORIES: Record<PostCategory, { label: string; color: strin
   free: {
     label: "雑談",
     color: "bg-amber-50 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300",
+  },
+};
+
+// ---------- 請求・支払（経営管理） ----------
+export const PARTNER_KINDS: Record<PartnerKind, { label: string; color: string }> = {
+  maker: {
+    label: "メーカー",
+    color: "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300",
+  },
+  agency: {
+    label: "代理店",
+    color: "bg-indigo-50 text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-300",
+  },
+  client: {
+    label: "顧客",
+    color: "bg-sky-50 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300",
+  },
+};
+
+export const INVOICE_DIRECTIONS: Record<InvoiceDirection, { label: string; color: string }> = {
+  receivable: {
+    label: "入金（請求）",
+    color: "bg-cyan-50 text-cyan-700 dark:bg-cyan-500/15 dark:text-cyan-300",
+  },
+  payable: {
+    label: "支払",
+    color: "bg-amber-50 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300",
+  },
+};
+
+export const INVOICE_STATUSES: Record<
+  InvoiceStatus,
+  { label: string; color: string; order: number }
+> = {
+  draft: {
+    label: "下書き",
+    color: "bg-slate-100 text-slate-600 dark:bg-slate-500/15 dark:text-slate-300",
+    order: 0,
+  },
+  sent: {
+    label: "送付済",
+    color: "bg-sky-50 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300",
+    order: 1,
+  },
+  received: {
+    label: "受領",
+    color: "bg-amber-50 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300",
+    order: 2,
+  },
+  confirmed: {
+    label: "確認済",
+    color: "bg-violet-50 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300",
+    order: 3,
+  },
+  paid: {
+    label: "入金・支払済",
+    color: "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300",
+    order: 4,
+  },
+  cancelled: {
+    label: "取消",
+    color: "bg-rose-50 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300",
+    order: 5,
+  },
+};
+
+export const STATEMENT_STATUSES: Record<
+  StatementStatus,
+  { label: string; color: string; order: number }
+> = {
+  draft: {
+    label: "下書き",
+    color: "bg-slate-100 text-slate-600 dark:bg-slate-500/15 dark:text-slate-300",
+    order: 0,
+  },
+  calculated: {
+    label: "計算済",
+    color: "bg-sky-50 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300",
+    order: 1,
+  },
+  approved: {
+    label: "承認済",
+    color: "bg-violet-50 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300",
+    order: 2,
+  },
+  invoiced: {
+    label: "請求書発行済",
+    color: "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300",
+    order: 3,
+  },
+};
+
+export const INVOICE_SOURCES: Record<InvoiceSource, { label: string; color: string }> = {
+  manual: {
+    label: "手動",
+    color: "bg-slate-100 text-slate-600 dark:bg-slate-500/15 dark:text-slate-300",
+  },
+  line: {
+    label: "LINE",
+    color: "bg-green-50 text-green-700 dark:bg-green-500/15 dark:text-green-300",
+  },
+  statement: {
+    label: "明細計算",
+    color: "bg-indigo-50 text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-300",
+  },
+};
+
+export const LINE_GROUP_STATUSES: Record<LineGroupStatus, { label: string; color: string }> = {
+  unmapped: {
+    label: "未紐付け",
+    color: "bg-amber-50 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300",
+  },
+  active: {
+    label: "紐付け済",
+    color: "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300",
+  },
+  left: {
+    label: "退出",
+    color: "bg-slate-100 text-slate-500 dark:bg-slate-500/15 dark:text-slate-400",
   },
 };
 
