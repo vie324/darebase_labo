@@ -1,43 +1,11 @@
 // メーカー明細の取込 — CSV/TSVテキストの解析（UI非依存の純粋ロジック）
 
+import { parseDelimited } from "@/lib/csv";
 import { parseAmount } from "./invoice-ocr";
 
-/** 区切りテキストを行×列に分解する（カンマ/タブ対応・簡易クオート処理） */
-export function parseDelimited(text: string): string[][] {
-  const lines = text
-    .replace(/\r\n?/g, "\n")
-    .split("\n")
-    .map((l) => l.trim())
-    .filter(Boolean);
-  if (lines.length === 0) return [];
-  // タブが含まれていればTSV、なければCSVとして扱う
-  const delimiter = lines.some((l) => l.includes("\t")) ? "\t" : ",";
-  return lines.map((line) => splitLine(line, delimiter));
-}
-
-function splitLine(line: string, delimiter: string): string[] {
-  const cells: string[] = [];
-  let current = "";
-  let inQuotes = false;
-  for (let i = 0; i < line.length; i++) {
-    const ch = line[i];
-    if (ch === '"') {
-      if (inQuotes && line[i + 1] === '"') {
-        current += '"';
-        i++;
-      } else {
-        inQuotes = !inQuotes;
-      }
-    } else if (ch === delimiter && !inQuotes) {
-      cells.push(current.trim());
-      current = "";
-    } else {
-      current += ch;
-    }
-  }
-  cells.push(current.trim());
-  return cells;
-}
+// 区切りテキストの解析は銀行・支店マスタの取込と共通のため @/lib/csv に移動した。
+// 既存の呼び出し側（statements-tab）のために同名で再エクスポートする。
+export { parseDelimited };
 
 /** 列マッピング（-1 = 未割当） */
 export interface ColumnMapping {

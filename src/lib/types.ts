@@ -58,6 +58,24 @@ export interface Deal extends BaseRow {
   next_action: string;
   memo: string;
   updated_at: string;
+
+  // ---- 銀行営業の拡張（0005 で追加・すべて任意 / 後方互換） ----
+  // Phase 1 では「アポイントの案件化」で bank_id / branch_id / appointment_id のみ設定する。
+  // 受注後フェーズ・確度・金額内訳の画面は Phase 2 以降。
+  bank_id?: string | null;
+  branch_id?: string | null;
+  appointment_id?: string | null;
+  organization_id?: string | null;
+  business_unit_id?: string | null;
+  contract_amount?: number; // 契約金額（円）
+  gross_profit?: number; // 粗利（円）
+  visited_at?: string; // 訪問日 YYYY-MM-DD
+  contracted_at?: string; // 契約日 YYYY-MM-DD
+  /** 受注後フェーズ。値の一覧は constants.ts の FULFILLMENT_STAGES に集約（"" = 未設定） */
+  fulfillment_status?: string;
+  fulfillment_updated_at?: string; // 現フェーズに入った日 YYYY-MM-DD（停滞日数の計算に使用）
+  confidence_rank?: string; // "A" | "B" | "C" | ""
+  confidence_score?: number | null; // 0-100
 }
 
 /** 案件の活動履歴（訪問・架電・メールなどの進捗ログ） */
@@ -362,6 +380,102 @@ export interface LineGroup extends BaseRow {
   memo: string;
 }
 
+// ---------- 事業部（Phase 5 の事業部切替。Phase 1 から ID を持たせておく） ----------
+export interface BusinessUnit extends BaseRow {
+  name: string; // "銀行営業" | "AI" | "SALON1" | "人材" など
+  slug: string;
+  is_active: boolean;
+}
+
+// ---------- 銀行営業: 組織（自社 / 代理店） ----------
+export type OrganizationType = "headquarters" | "agency";
+
+/**
+ * 営業を実行する組織。請求モジュールの partners(kind="agency") とは別軸で、
+ * こちらは「誰がその支店・案件を担当しているか」を表す。
+ */
+export interface Organization extends BaseRow {
+  name: string;
+  type: OrganizationType;
+  commission_rate: number; // % （Phase 3 の報酬計算で使用。Phase 1 では表示のみ）
+  is_active: boolean;
+  business_unit_id: string | null;
+}
+
+// ---------- 銀行営業: 銀行・支店マスタ ----------
+export interface Bank extends BaseRow {
+  name: string;
+  code: string; // 金融機関コード（CSV取込の重複判定キー。"" = 未設定）
+  is_active: boolean;
+  business_unit_id: string | null;
+}
+
+/** 支店の運用ステータス。suspended（取引停止）は稼働率の母数から除外される */
+export type BranchStatus = "active" | "dormant" | "suspended";
+
+export interface Branch extends BaseRow {
+  bank_id: string;
+  name: string;
+  code: string; // 支店コード（銀行内で一意。CSV取込の重複判定キー）
+  address: string;
+  prefecture: string;
+  assigned_to: string | null; // profiles.id（null = 未割当）
+  assigned_name: string; // 表示用スナップショット（プロフィール未解決時のフォールバック）
+  assigned_org_id: string | null; // organizations.id（担当代理店）
+  status: BranchStatus;
+  /** 最終接点日 YYYY-MM-DD。アポ・活動ログから自動更新されるキャッシュ（"" = 接点なし） */
+  last_contact_at: string;
+  note: string;
+  business_unit_id: string | null;
+  updated_at: string;
+}
+
+// ---------- 銀行営業: アポイント ----------
+export type AppointmentStatus = "scheduled" | "done" | "won" | "lost" | "cancelled";
+/** 商談相手の役職区分 */
+export type ContactRole = "decision_maker" | "staff" | "unknown";
+
+export interface Appointment extends BaseRow {
+  bank_id: string | null;
+  branch_id: string | null;
+  assigned_to: string | null; // profiles.id
+  assigned_name: string;
+  organization_id: string | null;
+  received_at: string; // 銀行から連絡を受けた日 YYYY-MM-DD（＝支店との接点日）
+  scheduled_at: string; // 商談予定日時 ISO（"" = 未定）
+  company_name: string; // 紹介先企業名（顧客マスタは持たない）
+  industry: string; // INDUSTRY_OPTIONS のいずれか（自由入力も許容）
+  revenue_scale: string; // REVENUE_SCALE_OPTIONS のいずれか
+  contact_role: ContactRole | "";
+  source_note: string;
+  status: AppointmentStatus;
+  deal_id: string | null; // 案件化した場合の案件
+  event_id: string | null; // 連動して作成したスケジュール予定
+  business_unit_id: string | null;
+  updated_at: string;
+}
+
+// ---------- 銀行営業: 支店への活動ログ ----------
+export type BranchActivityType = "visit" | "call" | "study" | "training" | "other";
+
+export interface BranchActivity extends BaseRow {
+  branch_id: string;
+  bank_id: string | null;
+  user_id: string | null;
+  user_name: string;
+  type: BranchActivityType;
+  occurred_at: string; // YYYY-MM-DD
+  memo: string;
+  business_unit_id: string | null;
+}
+
+// ---------- アプリ設定（休眠判定日数など「先方未確定の値」の受け皿） ----------
+export interface AppSetting extends BaseRow {
+  key: string; // 例: "branch_activity"
+  value: Record<string, unknown>; // jsonb
+  updated_at: string;
+}
+
 // ---------- テーブル名 → 行型のマッピング ----------
 export interface TableMap {
   profiles: Profile;
@@ -386,6 +500,13 @@ export interface TableMap {
   invoices: Invoice;
   invoice_payments: InvoicePayment;
   line_groups: LineGroup;
+  business_units: BusinessUnit;
+  organizations: Organization;
+  banks: Bank;
+  branches: Branch;
+  appointments: Appointment;
+  branch_activities: BranchActivity;
+  app_settings: AppSetting;
 }
 
 export type TableName = keyof TableMap;

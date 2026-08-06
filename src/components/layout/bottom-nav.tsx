@@ -9,14 +9,17 @@ import {
   Contact,
   LayoutDashboard,
   Menu,
+  Phone,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // スマホ用の下部タブナビ（片手操作向け）。lg未満でのみ表示。
-// 主要4モジュール + 「メニュー」（サイドバードロワーを開く）。
+// 主要モジュール + 「メニュー」（サイドバードロワーを開く）。
+// アポイント登録は出張中のスマホから最も頻繁に叩く導線のため下部タブに追加した。
 
 const ITEMS: { href: string; label: string; icon: ReactNode }[] = [
   { href: "/dashboard", label: "ホーム", icon: <LayoutDashboard className="h-[22px] w-[22px]" /> },
+  { href: "/appointments", label: "アポ", icon: <Phone className="h-[22px] w-[22px]" /> },
   { href: "/schedule", label: "予定", icon: <CalendarDays className="h-[22px] w-[22px]" /> },
   { href: "/deals", label: "案件", icon: <Briefcase className="h-[22px] w-[22px]" /> },
   { href: "/contacts", label: "名刺", icon: <Contact className="h-[22px] w-[22px]" /> },

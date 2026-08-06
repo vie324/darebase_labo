@@ -11,6 +11,9 @@
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
+    // テスト（node --test / 型ストリップ）から相対パス + .ts 拡張子で
+    // import できるようにする。noEmit のため出力への影響はない。
+    "allowImportingTsExtensions": true,
     "jsx": "react-jsx",
     "incremental": true,
     "plugins": [

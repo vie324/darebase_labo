@@ -18,6 +18,7 @@ import { useAccess } from "@/lib/use-access";
 import { Avatar, Badge, Button, Card, PageHeader, Select } from "@/components/ui";
 import { useToast } from "@/components/ui/toast";
 import { fetchLineStatus } from "../billing/line-client";
+import { BranchSettingsCard } from "./branch-settings-card";
 
 export default function SettingsPage() {
   const configured = isSupabaseConfigured();
@@ -60,6 +61,9 @@ export default function SettingsPage() {
       />
 
       <div className="grid gap-4 lg:grid-cols-2">
+        {/* 銀行営業の判定基準 */}
+        <BranchSettingsCard />
+
         {/* データベース接続 */}
         <Card className="p-6">
           <div className="mb-3 flex items-center gap-2.5">

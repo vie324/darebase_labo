@@ -4,6 +4,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
+  Activity,
   BookOpen,
   Briefcase,
   CalendarClock,
@@ -12,6 +13,7 @@ import {
   Contact,
   FolderOpen,
   GraduationCap,
+  Landmark,
   LayoutDashboard,
   LogOut,
   Menu,
@@ -19,6 +21,7 @@ import {
   Mic,
   Moon,
   Newspaper,
+  Phone,
   Receipt,
   Search,
   Settings,
@@ -40,7 +43,14 @@ import { CommandPalette } from "@/components/layout/command-palette";
 
 const NAV_SECTIONS: {
   heading: string;
-  items: { href: string; label: string; icon: ReactNode; execOnly?: boolean }[];
+  items: {
+    href: string;
+    label: string;
+    icon: ReactNode;
+    execOnly?: boolean;
+    /** 配下のパスでハイライトしない（親子で同時に光るのを防ぐ） */
+    exact?: boolean;
+  }[];
 }[] = [
   {
     heading: "ホーム",
@@ -48,6 +58,14 @@ const NAV_SECTIONS: {
       { href: "/dashboard", label: "ダッシュボード", icon: <LayoutDashboard className="h-[18px] w-[18px]" /> },
       { href: "/schedule", label: "スケジュール", icon: <CalendarDays className="h-[18px] w-[18px]" /> },
       { href: "/booking", label: "日程調整", icon: <CalendarClock className="h-[18px] w-[18px]" /> },
+    ],
+  },
+  {
+    heading: "銀行営業",
+    items: [
+      { href: "/banks", label: "銀行・支店", icon: <Landmark className="h-[18px] w-[18px]" />, exact: true },
+      { href: "/appointments", label: "アポイント", icon: <Phone className="h-[18px] w-[18px]" /> },
+      { href: "/banks/activity", label: "支店稼働", icon: <Activity className="h-[18px] w-[18px]" /> },
     ],
   },
   {
@@ -140,8 +158,9 @@ function Sidebar({
               </p>
               <ul className="space-y-0.5">
                 {visibleItems.map((item) => {
-                  const active =
-                    pathname === item.href || pathname.startsWith(item.href + "/");
+                  const active = item.exact
+                    ? pathname === item.href
+                    : pathname === item.href || pathname.startsWith(item.href + "/");
                   return (
                     <li key={item.href}>
                       <Link
