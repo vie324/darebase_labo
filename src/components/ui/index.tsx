@@ -14,6 +14,7 @@ import {
   type SelectHTMLAttributes,
   type TextareaHTMLAttributes,
 } from "react";
+import { createPortal } from "react-dom";
 import { Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AVATAR_COLORS } from "@/lib/constants";
@@ -144,7 +145,7 @@ export function Select({
   );
 }
 
-/** ラベル付きフォームフィールド */
+/** ラベル付きフォームフィールド（input / select / textarea など単一コントロール用） */
 export function Field({
   label,
   required,
@@ -164,6 +165,35 @@ export function Field({
       </span>
       {children}
     </label>
+  );
+}
+
+/**
+ * Field と同じ見た目の、<label> を使わないフィールド枠。
+ *
+ * button は HTML 上「ラベル付け可能要素」なので、ボタン群や
+ * ボタン型のカスタムセレクトを <label> で包むと、見出しをタップしただけで
+ * 先頭のボタンが押されてしまう。そうした入力にはこちらを使う。
+ */
+export function FieldSet({
+  label,
+  required,
+  children,
+  className,
+}: {
+  label: string;
+  required?: boolean;
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={cn("block", className)}>
+      <span className="mb-1.5 block text-xs font-semibold text-slate-500 dark:text-slate-400">
+        {label}
+        {required && <span className="ml-1 text-rose-500">*</span>}
+      </span>
+      {children}
+    </div>
   );
 }
 
@@ -221,9 +251,13 @@ export function Modal({
     };
   }, [open, onClose]);
 
-  if (!open) return null;
+  if (!open || typeof document === "undefined") return null;
 
-  return (
+  // body 直下へポータルする。
+  // アプリシェルの .animate-fade-up は transform を保持したままになるため、
+  // その内側に置くと position:fixed の基準がビューポートではなく
+  // ページコンテンツ全体になり、縦に長いページでモーダルが画面外に出てしまう。
+  return createPortal(
     <div
       className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-4"
       role="dialog"
@@ -257,7 +291,8 @@ export function Modal({
         </div>
         {children}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 

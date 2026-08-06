@@ -7,6 +7,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
+  Activity,
   Briefcase,
   Calendar,
   CalendarClock,
@@ -15,12 +16,14 @@ import {
   Contact as ContactIcon,
   FileText,
   BookOpen,
+  Landmark,
   LayoutDashboard,
   Mic,
   MessageSquare,
   Moon,
   Newspaper,
   GraduationCap,
+  Phone,
   Receipt,
   Search,
   Settings,
@@ -118,6 +121,9 @@ export function CommandPalette() {
       { id: "n-dash", group: "移動", label: "ダッシュボード", icon: <LayoutDashboard className={IC} />, keywords: "dashboard home ホーム", run: () => go("/dashboard") },
       { id: "n-sched", group: "移動", label: "スケジュール", icon: <Calendar className={IC} />, keywords: "schedule calendar 予定 カレンダー", run: () => go("/schedule") },
       { id: "n-book", group: "移動", label: "日程調整", icon: <CalendarClock className={IC} />, keywords: "booking 調整 予約", run: () => go("/booking") },
+      { id: "n-bank", group: "移動", label: "銀行・支店", icon: <Landmark className={IC} />, keywords: "banks branches 銀行 支店 マスタ 取込 csv 担当 振り替え", run: () => go("/banks") },
+      { id: "n-appt", group: "移動", label: "アポイント", icon: <Phone className={IC} />, keywords: "appointments アポ 商談 紹介 リード 登録", run: () => go("/appointments") },
+      { id: "n-activity", group: "移動", label: "支店稼働ダッシュボード", icon: <Activity className={IC} />, keywords: "activity 稼働 休眠 支店 稼働率 カバレッジ ヒートマップ", run: () => go("/banks/activity") },
       { id: "n-deal", group: "移動", label: "案件管理", icon: <Briefcase className={IC} />, keywords: "deals 案件 パイプライン", run: () => go("/deals") },
       { id: "n-task", group: "移動", label: "タスク", icon: <CheckSquare className={IC} />, keywords: "tasks todo タスク", run: () => go("/tasks") },
       { id: "n-contact", group: "移動", label: "名刺管理", icon: <ContactIcon className={IC} />, keywords: "contacts 名刺 連絡先", run: () => go("/contacts") },

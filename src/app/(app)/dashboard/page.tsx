@@ -65,6 +65,7 @@ import {
 } from "@/components/ui";
 import { CountUp } from "@/components/ui/count-up";
 import { FounderQuote } from "./founder-quote";
+import { BranchActivitySection } from "./branch-activity-section";
 
 // ---------- セクション共通のカード枠 ----------
 function SectionCard({
@@ -347,6 +348,9 @@ export default function DashboardPage() {
           accent="emerald"
         />
       </div>
+
+      {/* ---------- 支店稼働（銀行営業） ---------- */}
+      <BranchActivitySection />
 
       {/* ---------- メイングリッド ---------- */}
       <div className="mt-6 grid items-start gap-4 lg:grid-cols-2">

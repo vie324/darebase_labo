@@ -23,6 +23,14 @@ import {
   DEMO_PARTNERS,
   DEMO_STATEMENT_LINES,
 } from "./demo/billing";
+import {
+  DEMO_APPOINTMENTS,
+  DEMO_BANKS,
+  DEMO_BRANCHES,
+  DEMO_BRANCH_ACTIVITIES,
+  DEMO_BUSINESS_UNITS,
+  DEMO_ORGANIZATIONS,
+} from "./demo/banking";
 
 export const DEMO_DATA: { [K in TableName]: TableMap[K][] } = {
   profiles: DEMO_TEAM,
@@ -47,6 +55,14 @@ export const DEMO_DATA: { [K in TableName]: TableMap[K][] } = {
   invoices: DEMO_INVOICES,
   invoice_payments: DEMO_INVOICE_PAYMENTS,
   line_groups: DEMO_LINE_GROUPS,
+  business_units: DEMO_BUSINESS_UNITS,
+  organizations: DEMO_ORGANIZATIONS,
+  banks: DEMO_BANKS,
+  branches: DEMO_BRANCHES,
+  appointments: DEMO_APPOINTMENTS,
+  branch_activities: DEMO_BRANCH_ACTIVITIES,
+  // 設定は「未保存 = 既定値」として扱うため、シードは置かない（settings.ts 参照）
+  app_settings: [],
 };
 
 export { DEMO_TEAM };

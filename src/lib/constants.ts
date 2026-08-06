@@ -3,6 +3,10 @@
 
 import type {
   ActivityType,
+  AppointmentStatus,
+  BranchActivityType,
+  BranchStatus,
+  ContactRole,
   DealStage,
   DocCategory,
   EventCategory,
@@ -11,6 +15,7 @@ import type {
   InvoiceStatus,
   KnowledgeCategory,
   LineGroupStatus,
+  OrganizationType,
   PartnerKind,
   PostCategory,
   StatementStatus,
@@ -332,6 +337,213 @@ export const LINE_GROUP_STATUSES: Record<LineGroupStatus, { label: string; color
   left: {
     label: "退出",
     color: "bg-slate-100 text-slate-500 dark:bg-slate-500/15 dark:text-slate-400",
+  },
+};
+
+// =============================================================
+// 銀行営業（銀行・支店マスタ / アポイント / 支店稼働）
+// =============================================================
+
+export const ORGANIZATION_TYPES: Record<OrganizationType, { label: string; color: string }> = {
+  headquarters: {
+    label: "本部（自社）",
+    color: "bg-cyan-50 text-cyan-700 dark:bg-cyan-500/15 dark:text-cyan-300",
+  },
+  agency: {
+    label: "代理店",
+    color: "bg-indigo-50 text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-300",
+  },
+};
+
+export const BRANCH_STATUSES: Record<BranchStatus, { label: string; color: string }> = {
+  active: {
+    label: "稼働",
+    color: "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300",
+  },
+  dormant: {
+    label: "休眠",
+    color: "bg-amber-50 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300",
+  },
+  suspended: {
+    label: "取引停止",
+    color: "bg-slate-100 text-slate-500 dark:bg-slate-500/15 dark:text-slate-400",
+  },
+};
+
+export const APPOINTMENT_STATUSES: Record<
+  AppointmentStatus,
+  { label: string; color: string; order: number }
+> = {
+  scheduled: {
+    label: "予定",
+    color: "bg-sky-50 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300",
+    order: 0,
+  },
+  done: {
+    label: "実施済",
+    color: "bg-violet-50 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300",
+    order: 1,
+  },
+  won: {
+    label: "受注",
+    color: "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300",
+    order: 2,
+  },
+  lost: {
+    label: "失注",
+    color: "bg-rose-50 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300",
+    order: 3,
+  },
+  cancelled: {
+    label: "キャンセル",
+    color: "bg-slate-100 text-slate-500 dark:bg-slate-500/15 dark:text-slate-400",
+    order: 4,
+  },
+};
+
+export const CONTACT_ROLES: Record<ContactRole, { label: string; color: string }> = {
+  decision_maker: {
+    label: "決裁者",
+    color: "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300",
+  },
+  staff: {
+    label: "担当者",
+    color: "bg-sky-50 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300",
+  },
+  unknown: {
+    label: "不明",
+    color: "bg-slate-100 text-slate-500 dark:bg-slate-500/15 dark:text-slate-400",
+  },
+};
+
+export const BRANCH_ACTIVITY_TYPES: Record<
+  BranchActivityType,
+  { label: string; icon: string }
+> = {
+  visit: { label: "訪問", icon: "🏢" },
+  call: { label: "電話", icon: "📞" },
+  study: { label: "勉強会", icon: "📚" },
+  training: { label: "研修会", icon: "🎓" },
+  other: { label: "その他", icon: "📝" },
+};
+
+/**
+ * 業種の選択肢。先方から確定版が届いたらここを差し替える（§7-2）。
+ * アポイント登録は速度優先のためボタン選択にしている。
+ */
+export const INDUSTRY_OPTIONS: string[] = [
+  "製造",
+  "建設",
+  "小売",
+  "飲食",
+  "医療・介護",
+  "運輸",
+  "不動産",
+  "サービス",
+  "IT",
+  "その他",
+];
+
+/** 売上規模のレンジ選択肢（§7-2 で確定予定） */
+export const REVENUE_SCALE_OPTIONS: string[] = [
+  "〜1億円",
+  "1〜5億円",
+  "5〜10億円",
+  "10〜50億円",
+  "50億円〜",
+  "不明",
+];
+
+/**
+ * 受注後フェーズ（§3 の fulfillment_status）。
+ *
+ * 【重要】正式なフェーズ名・粒度は先方から確定版が届く（§7-1）。
+ * 増減できるようにフェーズ定義は **この配列1箇所だけ** に置き、
+ * DB は text カラム（enum型を使わない）にしてある。
+ * 画面・集計は必ずここを参照すること。
+ */
+export const FULFILLMENT_STAGES: { key: string; label: string; bar: string; color: string }[] = [
+  {
+    key: "contract",
+    label: "契約締結",
+    bar: "bg-cyan-500",
+    color: "bg-cyan-50 text-cyan-700 dark:bg-cyan-500/15 dark:text-cyan-300",
+  },
+  {
+    key: "quote_request",
+    label: "見積依頼",
+    bar: "bg-sky-500",
+    color: "bg-sky-50 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300",
+  },
+  {
+    key: "quote_sent",
+    label: "見積提出",
+    bar: "bg-sky-500",
+    color: "bg-sky-50 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300",
+  },
+  {
+    key: "lease_apply",
+    label: "リース申込",
+    bar: "bg-indigo-500",
+    color: "bg-indigo-50 text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-300",
+  },
+  {
+    key: "lease_review",
+    label: "リース審査中",
+    bar: "bg-indigo-500",
+    color: "bg-indigo-50 text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-300",
+  },
+  {
+    key: "lease_done",
+    label: "リース契約完了",
+    bar: "bg-violet-500",
+    color: "bg-violet-50 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300",
+  },
+  {
+    key: "install_request",
+    label: "設置依頼",
+    bar: "bg-violet-500",
+    color: "bg-violet-50 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300",
+  },
+  {
+    key: "install_schedule",
+    label: "設置日程調整",
+    bar: "bg-amber-500",
+    color: "bg-amber-50 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300",
+  },
+  {
+    key: "install_work",
+    label: "設置工事",
+    bar: "bg-amber-500",
+    color: "bg-amber-50 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300",
+  },
+  {
+    key: "install_done",
+    label: "設置完了",
+    bar: "bg-emerald-500",
+    color: "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300",
+  },
+  {
+    key: "accepted",
+    label: "検収/請求",
+    bar: "bg-emerald-500",
+    color: "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300",
+  },
+];
+
+/** 確度ランク（§7-7 で定義が確定するまでの初期値。判定文は設定画面から編集可能にする） */
+export const CONFIDENCE_RANKS: Record<string, { label: string; color: string }> = {
+  A: {
+    label: "A",
+    color: "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300",
+  },
+  B: {
+    label: "B",
+    color: "bg-amber-50 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300",
+  },
+  C: {
+    label: "C",
+    color: "bg-slate-100 text-slate-600 dark:bg-slate-500/15 dark:text-slate-300",
   },
 };
 
