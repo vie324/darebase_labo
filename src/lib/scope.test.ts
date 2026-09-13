@@ -87,6 +87,18 @@ test("代理店管理者は自社の全アポイント、メンバーは自分�
   );
 });
 
+test("商談ログは案件と同じスコープ（文字起こしに相手の発言が入るため）", () => {
+  assert.deepEqual(
+    scopeRows("meeting_logs", DEALS, ctx("partner_admin")).map((r) => r.id),
+    ["d-1", "d-2"]
+  );
+  assert.deepEqual(
+    scopeRows("meeting_logs", DEALS, ctx("partner_member")).map((r) => r.id),
+    ["d-1"]
+  );
+  assert.deepEqual(scopeRows("meeting_logs", DEALS, ctx("executive")).length, 3);
+});
+
 test("代理店管理者は自社の全案件、メンバーは自分が担当する案件だけ", () => {
   assert.deepEqual(
     scopeRows("deals", DEALS, ctx("partner_admin")).map((r) => r.id),

@@ -495,6 +495,36 @@ export interface BranchActivity extends BaseRow {
   business_unit_id: string | null;
 }
 
+// ---------- 商談ログ（AI解析。0010） ----------
+/**
+ * 1マイクで録った商談の文字起こしと、そのAI解析結果。
+ * analysis の中身は lib/meeting-analysis.ts の MeetingAnalysis
+ * （DBは jsonb で受けるため、ここでは unknown のまま持つ）。
+ */
+export interface MeetingLog extends BaseRow {
+  title: string;
+  held_at: string; // YYYY-MM-DD
+  kind: string; // meeting | internal | study
+  deal_id: string | null;
+  appointment_id: string | null;
+  bank_id: string | null;
+  branch_id: string | null;
+  company_name: string;
+  /** 話者が混ざったままの文字起こし */
+  transcript: string;
+  /** 録音（非公開バケットのパス。"" = なし） */
+  media_url: string;
+  /** AI解析の結果（未解析は null） */
+  analysis: unknown;
+  analyzed_at: string; // ISO ("" = 未解析)
+  analysis_model: string;
+  owner_id?: string | null;
+  owner_name: string;
+  organization_id?: string | null;
+  business_unit_id: string | null;
+  updated_at: string;
+}
+
 // ---------- 招待（サインアップは招待制。0006） ----------
 /**
  * 招待レコード。同じメールで Supabase Auth のアカウントが作られたときに
@@ -549,6 +579,7 @@ export interface TableMap {
   branch_activities: BranchActivity;
   app_settings: AppSetting;
   user_invites: UserInvite;
+  meeting_logs: MeetingLog;
 }
 
 export type TableName = keyof TableMap;
