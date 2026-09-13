@@ -7,7 +7,14 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { HQ_ONLY_TABLES, OWN_SCOPE_TABLES, idSet, scopeRows, type ScopeContext } from "./scope.ts";
+import {
+  BACKOFFICE_ONLY_TABLES,
+  HQ_ONLY_TABLES,
+  OWN_SCOPE_TABLES,
+  idSet,
+  scopeRows,
+  type ScopeContext,
+} from "./scope.ts";
 import type { RoleKey } from "./roles.ts";
 
 const ORG_A = "org-a";
@@ -66,6 +73,17 @@ test("社内向けテーブルは代理店ユーザーには1行も返さない"
     for (const role of ["partner_admin", "partner_member"] as RoleKey[]) {
       assert.deepEqual(scopeRows(table, [{ id: "x" }, { id: "y" }], ctx(role)), []);
     }
+  }
+});
+
+test("応募者データは経営・管理部にしか見えない（本部の営業メンバーも不可）", () => {
+  assert.ok(BACKOFFICE_ONLY_TABLES.includes("candidates"));
+  const rows = [{ id: "cand-1" }, { id: "cand-2" }];
+  for (const role of ["executive", "backoffice"] as RoleKey[]) {
+    assert.equal(scopeRows("candidates", rows, ctx(role)).length, 2, role);
+  }
+  for (const role of ["manager", "member", "partner_admin", "partner_member"] as RoleKey[]) {
+    assert.deepEqual(scopeRows("candidates", rows, ctx(role)), [], role);
   }
 });
 

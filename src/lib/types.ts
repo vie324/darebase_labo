@@ -525,6 +525,37 @@ export interface MeetingLog extends BaseRow {
   updated_at: string;
 }
 
+// ---------- 採用（0011） ----------
+/**
+ * 応募者。履歴書・面接ログは個人情報のため、RLS で経営・管理部のみに絞っている。
+ * AI の解析結果（resume_analysis / questions / crosscheck）は jsonb で受け、
+ * 形は lib/recruiting.ts が持つ。
+ */
+export interface Candidate extends BaseRow {
+  name: string;
+  name_kana: string;
+  email: string;
+  phone: string;
+  position: string;
+  /** 値の一覧は lib/recruiting.ts の CandidateStatus に集約 */
+  status: string;
+  source: string;
+  applied_at: string; // YYYY-MM-DD
+  /** 履歴書・職務経歴書の本文 */
+  resume_text: string;
+  /** 添付（非公開バケット attachments のパス。"" = なし） */
+  resume_file: string;
+  resume_analysis: unknown;
+  questions: unknown;
+  interview_transcript: string;
+  crosscheck: unknown;
+  note: string;
+  owner_id?: string | null;
+  owner_name: string;
+  business_unit_id: string | null;
+  updated_at: string;
+}
+
 // ---------- 招待（サインアップは招待制。0006） ----------
 /**
  * 招待レコード。同じメールで Supabase Auth のアカウントが作られたときに
@@ -580,6 +611,7 @@ export interface TableMap {
   app_settings: AppSetting;
   user_invites: UserInvite;
   meeting_logs: MeetingLog;
+  candidates: Candidate;
 }
 
 export type TableName = keyof TableMap;

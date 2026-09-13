@@ -12,6 +12,13 @@ import { isSupabaseConfigured } from "./supabase";
 import { DEMO_ANALYSIS } from "./demo/meetings";
 import type { MeetingAnalysis, MeetingContext } from "./meeting-analysis";
 import type { LossCase, LossInsight } from "./loss-analysis";
+import type {
+  Crosscheck,
+  InterviewQuestions,
+  RecruitContext,
+  ResumeAnalysis,
+} from "./recruiting";
+import { DEMO_CANDIDATES } from "./demo/recruiting";
 
 export interface AiStatus {
   /** サーバーに APIキーが設定されているか */
@@ -175,4 +182,85 @@ export function useLossInsight(): LossInsightState {
   );
 
   return { analyzing, error, insight, analyze };
+}
+
+// ---------- 採用（履歴書解析 / 面接質問 / 矛盾チェック） ----------
+
+export type RecruitTask = "resume" | "questions" | "crosscheck";
+
+export interface RecruitInput {
+  task: RecruitTask;
+  resumeText: string;
+  /** crosscheck のときだけ使う */
+  transcript?: string;
+  context: RecruitContext;
+  /** questions のときに渡すと、質問が「確認すべき点」に寄る */
+  resumeAnalysis?: ResumeAnalysis | null;
+}
+
+/** task ごとの返り値。呼び出し側で絞り込んで使う */
+export type RecruitOutput = ResumeAnalysis | InterviewQuestions | Crosscheck;
+
+export interface RecruitAiState {
+  /** 実行中の task（null = 待機中）。ボタンごとに出し分けるため種類を持つ */
+  running: RecruitTask | null;
+  error: string;
+  run: (input: RecruitInput) => Promise<{ result: RecruitOutput; model: string } | null>;
+}
+
+/** デモモードで返すサンプル（実際には Claude を呼ばない）。シードの解析済み1件を使う */
+const DEMO_RECRUIT = DEMO_CANDIDATES[0];
+
+export function useRecruitAi(): RecruitAiState {
+  const isDemo = !isSupabaseConfigured();
+  const [running, setRunning] = useState<RecruitTask | null>(null);
+  const [error, setError] = useState("");
+
+  const run = useCallback(
+    async (input: RecruitInput) => {
+      setRunning(input.task);
+      setError("");
+      try {
+        if (isDemo) {
+          await new Promise((resolve) => setTimeout(resolve, 1200));
+          const sample =
+            input.task === "resume"
+              ? DEMO_RECRUIT.resume_analysis
+              : input.task === "questions"
+                ? DEMO_RECRUIT.questions
+                : DEMO_RECRUIT.crosscheck;
+          return { result: sample as RecruitOutput, model: "demo" };
+        }
+        const res = await fetch("/api/ai/recruit", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            task: input.task,
+            resumeText: input.resumeText,
+            transcript: input.transcript ?? "",
+            context: input.context,
+            resumeAnalysis: input.resumeAnalysis ?? null,
+          }),
+        });
+        const data = (await res.json()) as {
+          result?: RecruitOutput;
+          model?: string;
+          error?: string;
+        };
+        if (!res.ok || !data.result) {
+          setError(data.error ?? "解析に失敗しました。");
+          return null;
+        }
+        return { result: data.result, model: data.model ?? "" };
+      } catch {
+        setError("解析に失敗しました。通信環境を確認してください。");
+        return null;
+      } finally {
+        setRunning(null);
+      }
+    },
+    [isDemo]
+  );
+
+  return { running, error, run };
 }

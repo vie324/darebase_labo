@@ -28,6 +28,7 @@ import {
   Settings,
   Sun,
   TrendingUp,
+  UserRoundSearch,
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -102,6 +103,12 @@ const NAV_SECTIONS: {
         label: "経営ダッシュボード",
         icon: <TrendingUp className="h-[18px] w-[18px]" />,
         cap: "executive_dashboard",
+      },
+      {
+        href: "/recruit",
+        label: "採用",
+        icon: <UserRoundSearch className="h-[18px] w-[18px]" />,
+        cap: "recruiting",
       },
     ],
   },

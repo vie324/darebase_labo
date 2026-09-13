@@ -41,7 +41,16 @@ export const HQ_ONLY_TABLES: readonly TableName[] = [
   "invoice_payments",
   "line_groups",
   "user_invites",
+  "candidates",
 ];
+
+/**
+ * 経営・管理部だけが読めるテーブル（RLS の can_backoffice() と対応）。
+ * 応募者の個人情報は、本部社員であっても採用担当以外には見せない。
+ * ※ お金のマスタも DB 側は同じ扱いだが、既存画面の挙動を変えないため
+ *   デモの絞り込みは「代理店に見せない」までにとどめている（上の HQ_ONLY_TABLES）。
+ */
+export const BACKOFFICE_ONLY_TABLES: readonly TableName[] = ["candidates"];
 
 /** 本人の行だけが見えるテーブル（RLS の own_scope_* と対応） */
 export const OWN_SCOPE_TABLES: readonly TableName[] = [
@@ -84,6 +93,12 @@ export function scopeRows<T>(
 ): T[] {
   // ユーザー未確定のときは絞らない（デモの初期表示。RLS 側は逆に全遮断）
   if (!ctx) return rows;
+
+  // 本部ロールでも、採用担当以外には応募者データを見せない
+  if (BACKOFFICE_ONLY_TABLES.includes(table)) {
+    return ctx.role === "executive" || ctx.role === "backoffice" ? rows : [];
+  }
+
   if (isHqRole(ctx.role)) return rows;
 
   if (HQ_ONLY_TABLES.includes(table)) return [];

@@ -78,6 +78,7 @@ export type Capability =
   | "master_edit" // 銀行・支店マスタの編集／CSV取込／担当振り替え
   | "settings_admin" // 判定基準などの設定変更
   | "role_admin" // ロール付与・招待の発行
+  | "recruiting" // 採用（履歴書・面接ログ＝応募者の個人情報）
   | "all_sales_data"; // 本部の営業データを全件見られる
 
 // 本部ロール共通。content_edit は DB 側の shared_write_*（is_hq）と対応する
@@ -97,8 +98,9 @@ export const ROLE_CAPABILITIES: Record<RoleKey, Capability[]> = {
     "master_edit",
     "settings_admin",
     "role_admin",
+    "recruiting",
   ],
-  backoffice: [...HQ_BASE, "billing", "master_edit", "settings_admin"],
+  backoffice: [...HQ_BASE, "billing", "master_edit", "settings_admin", "recruiting"],
   manager: [...HQ_BASE, "master_edit"],
   member: [...HQ_BASE],
   partner_admin: [],
