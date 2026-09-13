@@ -21,7 +21,7 @@ import { RoleSettingsCard } from "./role-settings-card";
 export default function SettingsPage() {
   const configured = isSupabaseConfigured();
   const [cleared, setCleared] = useState(false);
-  const { isExecutive } = useAccess();
+  const { isExecutive, can } = useAccess();
   const [lineConfigured, setLineConfigured] = useState<boolean | null>(null);
 
   useEffect(() => {
@@ -58,7 +58,8 @@ export default function SettingsPage() {
 
       <div className="grid gap-4 lg:grid-cols-2">
         {/* 銀行営業の判定基準 */}
-        <BranchSettingsCard />
+        {/* 判定基準の保存は app_settings への書き込み（経営・管理部のみ許可） */}
+        {can("settings_admin") && <BranchSettingsCard />}
 
         {/* データベース接続 */}
         <Card className="p-6">

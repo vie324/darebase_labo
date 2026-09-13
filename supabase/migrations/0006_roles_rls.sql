@@ -257,7 +257,8 @@ end $$;
 
 -- ---------- 4-3. 全員参照・本部のみ編集（営業資料・ナレッジ・研修） ----------
 -- 代理店にも売るための材料（資料・スクリプト・勉強会）は見せる。
--- いいね/閲覧数のカウントアップがあるため update は全員に許可する。
+-- knowledge（いいね/閲覧数）と documents（DL数）は画面からカウントアップするため
+-- update だけ全員に許可し、それ以外は本部のみに絞る（4-3b）。
 do $$
 declare
   t text;
@@ -283,6 +284,22 @@ begin
     execute format(
       'create policy %I on public.%I for delete to authenticated using (public.is_hq())',
       'shared_delete_' || t, t
+    );
+  end loop;
+end $$;
+
+-- ---------- 4-3b. カウンタを持たないテーブルは update も本部のみ ----------
+do $$
+declare
+  t text;
+begin
+  foreach t in array array['scripts','trainings','business_units']
+  loop
+    execute format('drop policy if exists %I on public.%I', 'shared_update_' || t, t);
+    execute format(
+      'create policy %I on public.%I for update to authenticated '
+      'using (public.is_hq()) with check (public.is_hq())',
+      'shared_update_' || t, t
     );
   end loop;
 end $$;

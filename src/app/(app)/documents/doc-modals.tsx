@@ -85,10 +85,10 @@ export function DocFormModal({
     try {
       const ext = extOf(file.name);
       const path = `docs/${uid()}${ext ? "." + ext : ""}`;
-      const { url, persistent } = await storeFile(file, path);
+      const { ref, persistent } = await storeFile(file, path);
       setValues((prev) => ({
         ...prev,
-        file_url: url,
+        file_url: ref,
         file_type: ext,
         size_kb: Math.max(1, Math.round(file.size / 1024)),
         // 名前が未入力ならファイル名を初期値に

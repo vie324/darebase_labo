@@ -48,11 +48,14 @@ import {
   needsFollowUp,
   type AppointmentFormValues,
 } from "./shared";
+import { useAccess } from "@/lib/use-access";
 
 type TabKey = "all" | "upcoming" | "followup" | "won";
 
 export default function AppointmentsPage() {
   const { user } = useUser();
+  // 代理店ユーザーが登録した行は自組織に紐づける（RLS のスコープ条件）
+  const { organizationId } = useAccess();
   const { toast } = useToast();
   const appointments = useCollection("appointments");
   const banks = useCollection("banks");
@@ -130,7 +133,7 @@ export default function AppointmentsPage() {
       branch_id: values.branch_id || null,
       assigned_to: values.assigned_to || null,
       assigned_name: assignee?.name ?? "",
-      organization_id: branch?.assigned_org_id ?? null,
+      organization_id: branch?.assigned_org_id ?? organizationId ?? null,
       received_at: values.received_at,
       scheduled_at: scheduledIso,
       company_name: values.company_name,
@@ -253,7 +256,7 @@ export default function AppointmentsPage() {
       bank_id: a.bank_id,
       branch_id: a.branch_id,
       appointment_id: a.id,
-      organization_id: branch?.assigned_org_id ?? null,
+      organization_id: branch?.assigned_org_id ?? organizationId ?? null,
       business_unit_id: a.business_unit_id ?? defaultBusinessUnitId,
     });
     await appointments.update(a.id, { deal_id: deal.id, updated_at: now });

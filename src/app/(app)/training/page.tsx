@@ -31,11 +31,15 @@ import type { TrainingLog } from "@/lib/types";
 import { TrainingCard } from "./training-card";
 import { DetailModal, FormModal, type TrainingFormValues } from "./training-modals";
 import { byHeldAtDesc, categoryChip, isThisMonth, parseTags } from "./helpers";
+import { useAccess } from "@/lib/use-access";
 
 type ViewKey = "list" | "by-tool";
 
 export default function TrainingPage() {
   const { items, loading, add, update, remove } = useCollection("trainings");
+  // 記録の追加は本部のみ（代理店は閲覧のみ）
+  const { can } = useAccess();
+  const canEdit = can("content_edit");
   const { items: profiles } = useCollection("profiles");
   const { user } = useUser();
 
@@ -150,10 +154,12 @@ export default function TrainingPage() {
         description="商材・ツール勉強会のログをチームの学習資産に"
         icon={<GraduationCap className="h-5 w-5" />}
         actions={
-          <Button onClick={openCreate}>
-            <Plus className="h-4 w-4" />
-            勉強会を記録
-          </Button>
+          canEdit ? (
+            <Button onClick={openCreate}>
+              <Plus className="h-4 w-4" />
+              勉強会を記録
+            </Button>
+          ) : undefined
         }
       />
 
@@ -244,7 +250,7 @@ export default function TrainingPage() {
               : "検索キーワードやカテゴリ・発表者を変更してみてください"
           }
           action={
-            total === 0 ? (
+            total === 0 && canEdit ? (
               <Button onClick={openCreate}>
                 <Plus className="h-4 w-4" />
                 勉強会を記録

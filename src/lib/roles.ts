@@ -74,12 +74,20 @@ export type Capability =
   | "billing" // 請求・支払
   | "internal_comms" // チャット・掲示板（社内向け）
   | "scheduling_poll" // 日程調整
+  | "content_edit" // ナレッジ・営業資料・トークスクリプト・勉強会の作成/編集
   | "master_edit" // 銀行・支店マスタの編集／CSV取込／担当振り替え
   | "settings_admin" // 判定基準などの設定変更
   | "role_admin" // ロール付与・招待の発行
   | "all_sales_data"; // 本部の営業データを全件見られる
 
-const HQ_BASE: Capability[] = ["internal_comms", "scheduling_poll", "all_sales_data"];
+// 本部ロール共通。content_edit は DB 側の shared_write_*（is_hq）と対応する
+// ＝代理店は閲覧のみで、作成ボタンを出しても保存できないため画面からも隠す。
+const HQ_BASE: Capability[] = [
+  "internal_comms",
+  "scheduling_poll",
+  "content_edit",
+  "all_sales_data",
+];
 
 export const ROLE_CAPABILITIES: Record<RoleKey, Capability[]> = {
   executive: [

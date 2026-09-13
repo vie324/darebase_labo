@@ -9,6 +9,7 @@ import type { SalesDocument } from "@/lib/types";
 import { DOC_CATEGORIES } from "@/lib/constants";
 import { Avatar, Badge, Card } from "@/components/ui";
 import { downloadName, fileTypeStyle, formatSize } from "./shared";
+import { useFileUrl } from "@/lib/use-file-url";
 
 /** file_url ありなら <a download>、なしなら「サンプル」表示 */
 export function DownloadAction({
@@ -20,6 +21,9 @@ export function DownloadAction({
   onDownloaded: (doc: SalesDocument) => void;
   size?: "sm" | "md";
 }) {
+  // 非公開バケットのパスは署名URLに解決してからリンクにする
+  const { url, loading } = useFileUrl(doc.file_url);
+
   if (!doc.file_url) {
     return (
       <span
@@ -32,9 +36,22 @@ export function DownloadAction({
       </span>
     );
   }
+  if (loading || !url) {
+    return (
+      <span
+        className={cn(
+          "inline-flex items-center rounded-lg bg-slate-100 font-medium text-slate-400 dark:bg-slate-800 dark:text-slate-500",
+          size === "md" ? "px-3 py-2 text-xs" : "px-2 py-1 text-[11px]"
+        )}
+      >
+        {loading ? "準備中…" : "取得できません"}
+      </span>
+    );
+  }
+
   return (
     <a
-      href={doc.file_url}
+      href={url}
       download={downloadName(doc)}
       onClick={(e: MouseEvent) => {
         e.stopPropagation();

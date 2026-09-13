@@ -24,6 +24,7 @@ import {
 import { formatDate, renderMarkdown, timeAgo } from "@/lib/utils";
 import type { TalkScript } from "@/lib/types";
 import { SCRIPT_CATEGORIES, scriptCategoryColor } from "./helpers";
+import { useAccess } from "@/lib/use-access";
 
 type NewScript = Omit<TalkScript, "id" | "created_at"> &
   Partial<Pick<TalkScript, "id" | "created_at">>;
@@ -45,6 +46,9 @@ export function ScriptsPanel({
   onRemove: (id: string) => Promise<void>;
   onPractice: (scriptId: string) => void;
 }) {
+  // スクリプトの作成・編集は本部のみ（DB 側も shared_write_scripts = is_hq）
+  const { can } = useAccess();
+  const canEdit = can("content_edit");
   const [q, setQ] = useState("");
   const [cat, setCat] = useState<string>("all");
   const [formOpen, setFormOpen] = useState(false);
@@ -128,10 +132,12 @@ export function ScriptsPanel({
           placeholder="タイトル・シーン・本文で検索…"
           className="w-full sm:w-64"
         />
-        <Button onClick={startCreate}>
-          <Plus className="h-4 w-4" />
-          スクリプト作成
-        </Button>
+        {canEdit && (
+          <Button onClick={startCreate}>
+            <Plus className="h-4 w-4" />
+            スクリプト作成
+          </Button>
+        )}
       </div>
 
       {filtered.length === 0 ? (
@@ -144,7 +150,7 @@ export function ScriptsPanel({
               : "検索条件やカテゴリを変えてみてください"
           }
           action={
-            scripts.length === 0 ? (
+            scripts.length === 0 && canEdit ? (
               <Button onClick={startCreate}>
                 <Plus className="h-4 w-4" />
                 最初のスクリプトを作成
@@ -185,23 +191,27 @@ export function ScriptsPanel({
                   <Mic className="h-4 w-4" />
                   このスクリプトで練習
                 </Button>
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={() => startEdit(s)}
-                  aria-label="編集"
-                >
-                  <Pencil className="h-4 w-4" />
-                </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => handleDelete(s)}
-                  aria-label="削除"
-                  className="text-slate-400 hover:text-rose-500"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
+                {canEdit && (
+                  <>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => startEdit(s)}
+                      aria-label="編集"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => handleDelete(s)}
+                      aria-label="削除"
+                      className="text-slate-400 hover:text-rose-500"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </>
+                )}
               </div>
             </Card>
           ))}

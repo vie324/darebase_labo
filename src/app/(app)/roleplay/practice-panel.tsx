@@ -296,7 +296,7 @@ export function PracticePanel({
       if (mediaBlob) {
         const ext = mode === "screen" ? "webm" : "webm";
         const res = await storeFile(mediaBlob, `roleplay/${uid()}.${ext}`);
-        media_url = res.url;
+        media_url = res.ref;
         persistent = res.persistent;
       }
       await addSession({

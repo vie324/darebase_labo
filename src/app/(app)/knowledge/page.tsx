@@ -25,6 +25,7 @@ import type { Knowledge, KnowledgeCategory } from "@/lib/types";
 import { ArticleCard } from "./article-card";
 import { DetailModal, FormModal, type KnowledgeFormValues } from "./knowledge-modals";
 import { byUpdatedDesc, isThisMonth, loadLikedIds, parseTags, saveLikedIds } from "./helpers";
+import { useAccess } from "@/lib/use-access";
 
 type TabKey = KnowledgeCategory | "all";
 
@@ -36,6 +37,9 @@ const RANK_STYLES = [
 
 export default function KnowledgePage() {
   const { items, loading, add, update, remove } = useCollection("knowledge");
+  // 作成・編集は本部のみ（DB 側も shared_write_knowledge = is_hq で拒否される）
+  const { can } = useAccess();
+  const canEdit = can("content_edit");
   const { items: profiles } = useCollection("profiles");
   const { user } = useUser();
 
@@ -180,10 +184,12 @@ export default function KnowledgePage() {
         description="営業ノウハウ・切り返しトーク・事例をチームの資産に"
         icon={<BookOpen className="h-5 w-5" />}
         actions={
-          <Button onClick={startCreate}>
-            <Plus className="h-4 w-4" />
-            記事を投稿
-          </Button>
+          canEdit ? (
+            <Button onClick={startCreate}>
+              <Plus className="h-4 w-4" />
+              記事を投稿
+            </Button>
+          ) : undefined
         }
       />
 
@@ -240,7 +246,7 @@ export default function KnowledgePage() {
                   : "検索条件やカテゴリを変えてみてください"
               }
               action={
-                items.length === 0 ? (
+                items.length === 0 && canEdit ? (
                   <Button onClick={startCreate}>
                     <Plus className="h-4 w-4" />
                     最初の記事を投稿

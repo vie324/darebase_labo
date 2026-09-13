@@ -55,7 +55,8 @@ npm run dev
    （`0001_init.sql` で全テーブル・Realtime・Storage、`0002_scheduling.sql` で日程調整の追加カラム、
    `0004_billing.sql` で請求・支払、`0005_banking_sales.sql` で銀行営業、
    **`0006_roles_rls.sql` でロールと RLS（ここで全ポリシーが入れ替わります）**、
-   `0007_deal_stages.sql` で案件ステージの移行が行われます）
+   `0007_deal_stages.sql` で案件ステージの移行、
+   `0008_private_attachments.sql` で添付ファイルの非公開化が行われます）
 3. **Project Settings → API** から URL と anon key を取得
 4. **Authentication → Providers → Email** で「Allow new users to sign up」を **OFF**（招待制）にする
    （代理店にアカウントを配るため。招待していない人がサインアップできる状態にしないこと）
@@ -161,7 +162,9 @@ supabase/
 集計・取込などの純粋ロジックにユニットテストを置いています（依存パッケージなし。Node 標準のテストランナー + 型ストリップで動作）。
 
 ```bash
-npm test
+npm test        # ユニットテスト
+npm run typecheck  # 型チェック（tsc --noEmit）
+npm run check   # lint → typecheck → test をまとめて
 ```
 
 | 対象 | 内容 |
@@ -224,5 +227,6 @@ npm test
 - ブラウザ対応: 文字起こし（Web Speech API）は Chrome / Edge のみ。他ブラウザでは録音 + 手動文字起こしにフォールバックします
 - RLS は `0006_roles_rls.sql` でロール別に絞ってあります（上記「権限モデル」参照）。ポリシーを変更したら `src/lib/scope.ts` も同じ内容に更新してください
 - `profiles.access_level` は 0006 以前の名残で、正は `profiles.role_key` です（互換のため両方更新しています）
-- **未対応の既知の穴**: 添付ファイルの公開バケット `files`（名刺画像・営業資料）は URL を知っていれば誰でも読めます。請求書だけは非公開バケット + 署名URLです。商談録音・履歴書など秘匿性の高いファイルを扱う前に、`storeFile` を「パス保存 + 都度署名URL発行」に変更して非公開バケットへ寄せる必要があります
+- 添付ファイルは **すべて非公開バケット**です（0008）。名刺画像・営業資料・ロープレ録音は `attachments`、請求書は `invoices`。DB には Storage のパスだけを保存し、表示時に `useFileUrl` が署名URLを発行します。**公開URLは発行しません**
+- 0008 適用前に公開バケット `files` へアップロード済みのファイルがある場合、その公開URLは無効になります（該当ファイルは再アップロードしてください）
 - 請求書OCRは画像のみ対応（tesseract.js は PDF を読めません）。PDFは添付保存 + 手入力を想定しています
