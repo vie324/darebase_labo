@@ -12,6 +12,7 @@ import {
   type ReactNode,
 } from "react";
 import { getSupabase } from "./supabase";
+import { refreshAllCollections } from "./use-collection";
 import { DEMO_TEAM } from "./demo/team";
 
 // 実ユーザーのアバター色を名前/メールから決定的に割り当てる
@@ -148,6 +149,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
       role: member.role,
       color: member.color,
     });
+    // ロールが変わると見える範囲も変わるので、全コレクションを読み直す
+    refreshAllCollections();
   }, []);
 
   const signOut = useCallback(async () => {

@@ -11,10 +11,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { getSupabase } from "./supabase";
 import { DEMO_DATA } from "./demo-data";
-import type { TableMap, TableName } from "./types";
+import { DEMO_TEAM } from "./demo/team";
+import { normalizeRole } from "./roles";
+import { idSet, scopeRows, type ScopeContext, type ScopeRelations } from "./scope";
+import type { Organization, TableMap, TableName } from "./types";
 import { uid } from "./utils";
 
 const LS_PREFIX = "dbl:data:";
+const USER_LS_KEY = "dbl:user";
 
 function loadLocal<K extends TableName>(table: K): TableMap[K][] {
   try {
@@ -32,6 +36,47 @@ function loadLocal<K extends TableName>(table: K): TableMap[K][] {
   return seed;
 }
 
+/**
+ * デモモードの可視範囲。本番は RLS が同じ判定を行うため、この関数は
+ * デモでも「代理店には何が見えないか」を再現するためだけに存在する。
+ */
+function demoScope(): ScopeContext | null {
+  try {
+    const name = localStorage.getItem(USER_LS_KEY);
+    const me = (name ? DEMO_TEAM.find((m) => m.name === name) : null) ?? DEMO_TEAM[0];
+    if (!me) return null;
+    const organizationId = me.organization_id ?? null;
+    const partnerId = organizationId
+      ? ((loadLocal("organizations") as Organization[]).find((o) => o.id === organizationId)
+          ?.partner_id ?? null)
+      : null;
+    return {
+      role: normalizeRole(me.role_key),
+      userId: me.id,
+      organizationId,
+      partnerId,
+    };
+  } catch {
+    return null;
+  }
+}
+
+/** デモモードで読み込んだ行を、そのユーザーに見える範囲へ絞る */
+function applyDemoScope<K extends TableName>(table: K, rows: TableMap[K][]): TableMap[K][] {
+  const ctx = demoScope();
+  if (!ctx) return rows;
+  const relations: ScopeRelations = {};
+  if (table === "banks" || table === "branch_activities") {
+    const branches = scopeRows("branches", loadLocal("branches"), ctx);
+    relations.visibleBranchIds = idSet(branches);
+    relations.visibleBankIds = idSet(branches, "bank_id");
+  }
+  if (table === "deal_activities") {
+    relations.visibleDealIds = idSet(scopeRows("deals", loadLocal("deals"), ctx));
+  }
+  return scopeRows(table, rows, ctx, relations);
+}
+
 function saveLocal<K extends TableName>(table: K, items: TableMap[K][]) {
   try {
     localStorage.setItem(LS_PREFIX + table, JSON.stringify(items));
@@ -44,6 +89,14 @@ function saveLocal<K extends TableName>(table: K, items: TableMap[K][]) {
 const listeners = new Map<TableName, Set<() => void>>();
 function notify(table: TableName) {
   listeners.get(table)?.forEach((fn) => fn());
+}
+
+/**
+ * すべてのコレクションを読み直す。デモモードでユーザーを切り替えると
+ * 可視範囲（applyDemoScope）が変わるため、切替時に呼ぶ。
+ */
+export function refreshAllCollections() {
+  listeners.forEach((set) => set.forEach((fn) => fn()));
 }
 
 export interface CollectionOptions {
@@ -76,7 +129,7 @@ export function useCollection<K extends TableName>(
 
   const refresh = useCallback(async () => {
     if (!sb) {
-      setItems(loadLocal(table));
+      setItems(applyDemoScope(table, loadLocal(table)));
       setLoading(false);
       return;
     }
@@ -98,7 +151,7 @@ export function useCollection<K extends TableName>(
 
     if (!sb) {
       // デモモード: 同一タブ内の他コンポーネントと同期
-      const listener = () => setItems(loadLocal(table));
+      const listener = () => setItems(applyDemoScope(table, loadLocal(table)));
       if (!listeners.has(table)) listeners.set(table, new Set());
       listeners.get(table)!.add(listener);
       return () => {
@@ -138,7 +191,7 @@ export function useCollection<K extends TableName>(
       if (!sb) {
         const next = [...loadLocal(table), row];
         saveLocal(table, next);
-        setItems(next);
+        setItems(applyDemoScope(table, next));
         notify(table);
         return row;
       }
@@ -159,7 +212,7 @@ export function useCollection<K extends TableName>(
           r.id === id ? ({ ...r, ...patch } as Row) : r
         );
         saveLocal(table, next);
-        setItems(next);
+        setItems(applyDemoScope(table, next));
         notify(table);
         return;
       }
@@ -175,7 +228,7 @@ export function useCollection<K extends TableName>(
       if (!sb) {
         const next = loadLocal(table).filter((r) => r.id !== id);
         saveLocal(table, next);
-        setItems(next);
+        setItems(applyDemoScope(table, next));
         notify(table);
         return;
       }

@@ -23,10 +23,11 @@ import type { BoardPost, PostCategory, PostComment } from "@/lib/types";
 import { PostCard } from "./post-card";
 import { DetailModal, FormModal, type PostFormValues } from "./board-modals";
 import { byCreatedDesc, isThisWeek, loadLikedIds, saveLikedIds } from "./helpers";
+import { RequireCapability } from "@/components/layout/require-capability";
 
 type TabKey = PostCategory | "all";
 
-export default function BoardPage() {
+function BoardPageInner() {
   const { items, loading, add, update, remove } = useCollection("posts");
   const { items: profiles } = useCollection("profiles");
   const { user } = useUser();
@@ -280,5 +281,15 @@ export default function BoardPage() {
         onSubmit={handleSubmit}
       />
     </div>
+  );
+}
+
+// 権限のないロール（代理店ユーザーなど）が URL 直打ちで到達した場合に閉じる。
+// データ自体は RLS 側でも遮断される。
+export default function BoardPage() {
+  return (
+    <RequireCapability cap="internal_comms" title="社内掲示板は本部メンバーのみ利用できます">
+      <BoardPageInner />
+    </RequireCapability>
   );
 }

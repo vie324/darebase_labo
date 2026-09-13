@@ -9,23 +9,19 @@ import {
   Palette,
   RefreshCw,
   Settings,
-  ShieldCheck,
   Trash2,
 } from "lucide-react";
 import { isSupabaseConfigured } from "@/lib/supabase";
-import { useCollection } from "@/lib/use-collection";
 import { useAccess } from "@/lib/use-access";
-import { Avatar, Badge, Button, Card, PageHeader, Select } from "@/components/ui";
-import { useToast } from "@/components/ui/toast";
+import { Badge, Button, Card, PageHeader } from "@/components/ui";
 import { fetchLineStatus } from "../billing/line-client";
 import { BranchSettingsCard } from "./branch-settings-card";
+import { RoleSettingsCard } from "./role-settings-card";
 
 export default function SettingsPage() {
   const configured = isSupabaseConfigured();
   const [cleared, setCleared] = useState(false);
   const { isExecutive } = useAccess();
-  const profiles = useCollection("profiles");
-  const { toast } = useToast();
   const [lineConfigured, setLineConfigured] = useState<boolean | null>(null);
 
   useEffect(() => {
@@ -169,49 +165,8 @@ export default function SettingsPage() {
           </div>
         </Card>
 
-        {/* 権限管理（経営層のみ） */}
-        {isExecutive && (
-          <Card className="p-6">
-            <div className="mb-3 flex items-center gap-2.5">
-              <ShieldCheck className="h-5 w-5 text-cyan-500" />
-              <h2 className="font-bold">権限管理</h2>
-              <Badge className="bg-violet-50 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300">
-                経営層のみ
-              </Badge>
-            </div>
-            <p className="mb-4 text-sm leading-relaxed text-slate-500 dark:text-slate-400">
-              「経営層」に設定したメンバーだけが経営ダッシュボードとこの権限管理を利用できます。
-              ※画面上の区分であり、データベースレベルの権限分離ではありません。
-            </p>
-            <div className="space-y-2">
-              {profiles.items.map((p) => (
-                <div key={p.id} className="flex items-center gap-3">
-                  <Avatar name={p.name} color={p.color} size="sm" />
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium">{p.name}</p>
-                    <p className="truncate text-xs text-slate-400">{p.role}</p>
-                  </div>
-                  <Select
-                    value={p.access_level === "executive" ? "executive" : "member"}
-                    onChange={async (e) => {
-                      await profiles.update(p.id, {
-                        access_level: e.target.value as "executive" | "member",
-                      });
-                      toast(
-                        `${p.name}さんを${e.target.value === "executive" ? "経営層" : "メンバー"}に変更しました`,
-                        "success"
-                      );
-                    }}
-                    className="h-9 w-32 py-1 text-xs"
-                  >
-                    <option value="member">メンバー</option>
-                    <option value="executive">経営層</option>
-                  </Select>
-                </div>
-              ))}
-            </div>
-          </Card>
-        )}
+        {/* 権限管理・招待（経営層のみ） */}
+        {isExecutive && <RoleSettingsCard />}
 
         {/* Google カレンダー連携 */}
         <Card className="p-6">

@@ -237,11 +237,14 @@ export default function AppointmentsPage() {
       name: a.company_name,
       company: a.company_name,
       contact_name: "",
-      stage: "qualified",
+      // 銀行紹介から起こした案件は「商談予定」から始まる（1階の先頭）
+      stage: "appointment",
+      confidence_rank: "",
       amount: 0,
-      probability: 20,
+      probability: 10,
       expected_close: "",
       owner_name: a.assigned_name,
+      owner_id: a.assigned_to,
       next_action: "商談実施",
       memo: [a.source_note, a.industry && `業種: ${a.industry}`, a.revenue_scale && `売上規模: ${a.revenue_scale}`]
         .filter(Boolean)

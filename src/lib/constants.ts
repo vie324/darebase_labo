@@ -62,48 +62,128 @@ export const EVENT_CATEGORIES: Record<
   },
 };
 
-// ---------- 案件 ----------
+// ---------- 案件（1階：商談パイプライン） ----------
+//
+// 商談は「商談予定 → 商談後追い（確度 C/B/A）→ 発注書待ち → 受注／失注」。
+// 「後追い C/B/A」はステージではなく "後追い × 確度" の組み合わせなので、
+// DB は stage='follow_up' + confidence_rank を持ち、カンバンだけ3列に分ける
+// （確度が変わればカードは自動で列を移動する）。列の定義は PIPELINE_COLUMNS。
+//
+// 受注（発注書を受領）した案件は 2階＝受注後フェーズ（FULFILLMENT_STAGES /
+// FULFILLMENT_GROUPS）へ引き継がれる。
 export const DEAL_STAGES: Record<
   DealStage,
   { label: string; color: string; bar: string; order: number }
 > = {
-  lead: {
-    label: "リード",
-    color: "bg-slate-100 text-slate-700 dark:bg-slate-500/15 dark:text-slate-300",
-    bar: "bg-slate-400",
-    order: 0,
-  },
-  qualified: {
-    label: "アプローチ",
+  appointment: {
+    label: "商談予定",
     color: "bg-sky-50 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300",
     bar: "bg-sky-500",
-    order: 1,
+    order: 0,
   },
-  proposal: {
-    label: "提案",
+  follow_up: {
+    label: "商談後追い",
     color: "bg-indigo-50 text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-300",
     bar: "bg-indigo-500",
-    order: 2,
+    order: 1,
   },
-  negotiation: {
-    label: "交渉",
+  po_wait: {
+    label: "発注書待ち",
     color: "bg-violet-50 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300",
     bar: "bg-violet-500",
-    order: 3,
+    order: 2,
   },
   won: {
     label: "受注",
     color: "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300",
     bar: "bg-emerald-500",
-    order: 4,
+    order: 3,
   },
   lost: {
     label: "失注",
     color: "bg-rose-50 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300",
     bar: "bg-rose-400",
-    order: 5,
+    order: 4,
   },
 };
+
+/**
+ * 商談カンバンの列。stage と confidence_rank の組み合わせで1列になる。
+ * 表示順はこの配列の順。
+ */
+export interface PipelineColumn {
+  key: string;
+  label: string;
+  stage: DealStage;
+  /** follow_up の列のみ。確度ランク */
+  rank?: "A" | "B" | "C";
+  /** 列に落としたときの既定の確度(%)。手入力済みの値は上書きしない */
+  defaultProbability: number;
+  bar: string;
+  color: string;
+}
+
+export const PIPELINE_COLUMNS: PipelineColumn[] = [
+  {
+    key: "appointment",
+    label: "商談予定",
+    stage: "appointment",
+    defaultProbability: 10,
+    bar: "bg-sky-500",
+    color: "bg-sky-50 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300",
+  },
+  {
+    key: "follow_up_c",
+    label: "後追い C",
+    stage: "follow_up",
+    rank: "C",
+    defaultProbability: 15,
+    bar: "bg-slate-400",
+    color: "bg-slate-100 text-slate-600 dark:bg-slate-500/15 dark:text-slate-300",
+  },
+  {
+    key: "follow_up_b",
+    label: "後追い B",
+    stage: "follow_up",
+    rank: "B",
+    defaultProbability: 40,
+    bar: "bg-amber-500",
+    color: "bg-amber-50 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300",
+  },
+  {
+    key: "follow_up_a",
+    label: "後追い A",
+    stage: "follow_up",
+    rank: "A",
+    defaultProbability: 70,
+    bar: "bg-emerald-500",
+    color: "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300",
+  },
+  {
+    key: "po_wait",
+    label: "発注書待ち",
+    stage: "po_wait",
+    defaultProbability: 90,
+    bar: "bg-violet-500",
+    color: "bg-violet-50 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300",
+  },
+  {
+    key: "won",
+    label: "受注",
+    stage: "won",
+    defaultProbability: 100,
+    bar: "bg-emerald-500",
+    color: "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300",
+  },
+  {
+    key: "lost",
+    label: "失注",
+    stage: "lost",
+    defaultProbability: 0,
+    bar: "bg-rose-400",
+    color: "bg-rose-50 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300",
+  },
+];
 
 export const ACTIVITY_TYPES: Record<ActivityType, { label: string; icon: string }> = {
   call: { label: "架電", icon: "📞" },
@@ -526,6 +606,61 @@ export const FULFILLMENT_STAGES: { key: string; label: string; bar: string; colo
   {
     key: "accepted",
     label: "検収/請求",
+    bar: "bg-emerald-500",
+    color: "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300",
+  },
+];
+
+/**
+ * 受注後カンバンの列（2階）。
+ *
+ * 先方指定の粒度は「発注書待ち → 設置調整中 → 設置待ち → 開通済み」の4段だが、
+ * 既存の詳細フェーズ（FULFILLMENT_STAGES／見積・リース審査など）は実務で
+ * 追う必要があるため捨てずに残し、カンバンの列だけ大分類に畳んで表示する。
+ * 「発注書待ち」は受注前なので1階（PIPELINE_COLUMNS）側にある。
+ */
+export interface FulfillmentGroup {
+  key: string;
+  label: string;
+  /** この列に含まれる FULFILLMENT_STAGES のキー（先頭が列に落としたときの既定値） */
+  stages: string[];
+  bar: string;
+  color: string;
+}
+
+export const FULFILLMENT_GROUPS: FulfillmentGroup[] = [
+  {
+    key: "contract",
+    label: "契約・見積",
+    stages: ["contract", "quote_request", "quote_sent"],
+    bar: "bg-cyan-500",
+    color: "bg-cyan-50 text-cyan-700 dark:bg-cyan-500/15 dark:text-cyan-300",
+  },
+  {
+    key: "lease",
+    label: "リース審査",
+    stages: ["lease_apply", "lease_review", "lease_done"],
+    bar: "bg-indigo-500",
+    color: "bg-indigo-50 text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-300",
+  },
+  {
+    key: "install_adjust",
+    label: "設置調整中",
+    stages: ["install_request", "install_schedule"],
+    bar: "bg-violet-500",
+    color: "bg-violet-50 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300",
+  },
+  {
+    key: "install_wait",
+    label: "設置待ち",
+    stages: ["install_work"],
+    bar: "bg-amber-500",
+    color: "bg-amber-50 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300",
+  },
+  {
+    key: "activated",
+    label: "開通済み",
+    stages: ["install_done", "accepted"],
     bar: "bg-emerald-500",
     color: "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300",
   },

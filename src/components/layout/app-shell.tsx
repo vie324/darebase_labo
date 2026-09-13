@@ -33,6 +33,7 @@ import { cn } from "@/lib/utils";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import { UserProvider, useUser } from "@/lib/use-user";
 import { useAccess } from "@/lib/use-access";
+import { roleLabel, type Capability } from "@/lib/roles";
 import { DEMO_TEAM } from "@/lib/demo/team";
 import { Avatar } from "@/components/ui";
 import { ToastProvider, useToast } from "@/components/ui/toast";
@@ -47,7 +48,11 @@ const NAV_SECTIONS: {
     href: string;
     label: string;
     icon: ReactNode;
-    execOnly?: boolean;
+    /**
+     * 必要な権限（lib/roles.ts）。未指定＝代理店ユーザーを含む全員に表示。
+     * データ自体の遮断は RLS 側で行うため、ここは導線の整理。
+     */
+    cap?: Capability;
     /** 配下のパスでハイライトしない（親子で同時に光るのを防ぐ） */
     exact?: boolean;
   }[];
@@ -57,7 +62,12 @@ const NAV_SECTIONS: {
     items: [
       { href: "/dashboard", label: "ダッシュボード", icon: <LayoutDashboard className="h-[18px] w-[18px]" /> },
       { href: "/schedule", label: "スケジュール", icon: <CalendarDays className="h-[18px] w-[18px]" /> },
-      { href: "/booking", label: "日程調整", icon: <CalendarClock className="h-[18px] w-[18px]" /> },
+      {
+        href: "/booking",
+        label: "日程調整",
+        icon: <CalendarClock className="h-[18px] w-[18px]" />,
+        cap: "scheduling_poll",
+      },
     ],
   },
   {
@@ -79,12 +89,17 @@ const NAV_SECTIONS: {
   {
     heading: "経営管理",
     items: [
-      { href: "/billing", label: "請求・支払", icon: <Receipt className="h-[18px] w-[18px]" /> },
+      {
+        href: "/billing",
+        label: "請求・支払",
+        icon: <Receipt className="h-[18px] w-[18px]" />,
+        cap: "billing",
+      },
       {
         href: "/executive",
         label: "経営ダッシュボード",
         icon: <TrendingUp className="h-[18px] w-[18px]" />,
-        execOnly: true,
+        cap: "executive_dashboard",
       },
     ],
   },
@@ -100,8 +115,18 @@ const NAV_SECTIONS: {
   {
     heading: "コミュニケーション",
     items: [
-      { href: "/chat", label: "チャット", icon: <MessageSquare className="h-[18px] w-[18px]" /> },
-      { href: "/board", label: "掲示板", icon: <Newspaper className="h-[18px] w-[18px]" /> },
+      {
+        href: "/chat",
+        label: "チャット",
+        icon: <MessageSquare className="h-[18px] w-[18px]" />,
+        cap: "internal_comms",
+      },
+      {
+        href: "/board",
+        label: "掲示板",
+        icon: <Newspaper className="h-[18px] w-[18px]" />,
+        cap: "internal_comms",
+      },
     ],
   },
 ];
@@ -114,7 +139,7 @@ function Sidebar({
   onClose: () => void;
 }) {
   const pathname = usePathname();
-  const { isExecutive } = useAccess();
+  const { can } = useAccess();
 
   return (
     <>
@@ -148,8 +173,9 @@ function Sidebar({
         {/* ナビゲーション */}
         <nav className="scrollbar-thin flex-1 overflow-y-auto px-3 py-4">
           {NAV_SECTIONS.map((section) => {
-            // 経営層限定の項目（経営ダッシュボード等）は権限がある場合のみ表示
-            const visibleItems = section.items.filter((item) => !item.execOnly || isExecutive);
+            // 権限が必要な項目（請求・経営ダッシュボード・社内チャット等）は
+            // 権限を持つロールにのみ表示する
+            const visibleItems = section.items.filter((item) => !item.cap || can(item.cap));
             if (visibleItems.length === 0) return null;
             return (
             <div key={section.heading} className="mb-5">
@@ -220,6 +246,7 @@ function Sidebar({
 
 function Topbar({ onMenuOpen }: { onMenuOpen: () => void }) {
   const { user, isDemo, switchDemoUser, signOut } = useUser();
+  const { role, isPartner } = useAccess();
   const [dark, setDark] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const router = useRouter();
@@ -288,7 +315,10 @@ function Topbar({ onMenuOpen }: { onMenuOpen: () => void }) {
             <Avatar name={user?.name ?? "?"} color={user?.color} size="sm" />
             <div className="hidden text-left sm:block">
               <p className="text-sm leading-tight font-semibold">{user?.name}</p>
-              <p className="text-[11px] leading-tight text-slate-400">{user?.role}</p>
+              <p className="text-[11px] leading-tight text-slate-400">
+                {role ? roleLabel(role) : user?.role}
+                {isPartner && "（代理店）"}
+              </p>
             </div>
           </button>
 

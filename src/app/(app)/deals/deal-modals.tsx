@@ -12,7 +12,13 @@ import {
   Send,
   Trash2,
 } from "lucide-react";
-import { ACTIVITY_TYPES, DEAL_STAGES } from "@/lib/constants";
+import {
+  ACTIVITY_TYPES,
+  DEAL_STAGES,
+  FULFILLMENT_STAGES,
+  PIPELINE_COLUMNS,
+} from "@/lib/constants";
+import { columnKeyOf, fulfillmentLabel } from "@/lib/pipeline";
 import { cn, formatDate, formatYen, formatYenShort, timeAgo } from "@/lib/utils";
 import type { ActivityType, Deal, DealActivity, DealStage } from "@/lib/types";
 import {
@@ -60,7 +66,7 @@ export function DealDetailModal({
   onClose,
   onEdit,
   onDelete,
-  onStageChange,
+  onColumnChange,
   onAddActivity,
 }: {
   deal: Deal | null;
@@ -70,7 +76,7 @@ export function DealDetailModal({
   onClose: () => void;
   onEdit: (deal: Deal) => void;
   onDelete: (deal: Deal) => void;
-  onStageChange: (deal: Deal, to: DealStage) => void;
+  onColumnChange: (deal: Deal, toColumnKey: string) => void;
   onAddActivity: (dealId: string, type: ActivityType, note: string) => Promise<void>;
 }) {
   // 親側で key={deal.id} を付けて描画するため、案件が変わると状態はリセットされる
@@ -81,6 +87,7 @@ export function DealDetailModal({
   if (!deal) return null;
 
   const overdue = isOpenStage(deal.stage) && deal.expected_close < today;
+  const currentColumnKey = columnKeyOf(deal);
 
   const submitActivity = async (e: FormEvent) => {
     e.preventDefault();
@@ -97,30 +104,36 @@ export function DealDetailModal({
   return (
     <Modal open onClose={onClose} title={deal.name} wide>
       <div className="space-y-5">
-        {/* ステージ変更 */}
+        {/* 商談ステージ（1階）。後追いは確度ランクごとに分かれている */}
         <div>
           <p className="mb-2 text-xs font-semibold text-slate-500 dark:text-slate-400">
-            ステージ（クリックで変更）
+            商談ステージ（クリックで変更）
           </p>
           <div className="flex flex-wrap items-center gap-1.5">
-            {STAGE_KEYS.map((s) => (
+            {PIPELINE_COLUMNS.map((col) => (
               <button
-                key={s}
-                onClick={() => onStageChange(deal, s)}
+                key={col.key}
+                onClick={() => onColumnChange(deal, col.key)}
                 className={cn(
                   "cursor-pointer rounded-full px-3 py-1.5 text-xs font-semibold transition-all",
-                  s === deal.stage
-                    ? cn(
-                        DEAL_STAGES[s].color,
-                        "ring-2 ring-cyan-400/60 dark:ring-cyan-500/50"
-                      )
+                  col.key === currentColumnKey
+                    ? cn(col.color, "ring-2 ring-cyan-400/60 dark:ring-cyan-500/50")
                     : "bg-slate-50 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:bg-slate-800/60 dark:text-slate-500 dark:hover:bg-slate-800 dark:hover:text-slate-300"
                 )}
               >
-                {DEAL_STAGES[s].label}
+                {col.label}
               </button>
             ))}
           </div>
+          {deal.stage === "won" && (
+            <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+              受注後フェーズ：
+              <span className="ml-1 font-semibold text-slate-700 dark:text-slate-200">
+                {fulfillmentLabel(deal.fulfillment_status)}
+              </span>
+              <span className="ml-1 text-slate-400">（「受注後」タブで変更できます）</span>
+            </p>
+          )}
         </div>
 
         {/* 基本情報 */}
@@ -372,6 +385,36 @@ export function DealFormModal({
               ))}
             </Select>
           </Field>
+          {/* 後追い中のみ確度ランク。カンバンの列はこの値で決まる */}
+          {values.stage === "follow_up" && (
+            <Field label="確度ランク">
+              <Select
+                value={values.confidence_rank}
+                onChange={(e) => set("confidence_rank", e.target.value)}
+              >
+                <option value="">未判定（C 扱い）</option>
+                <option value="C">C</option>
+                <option value="B">B</option>
+                <option value="A">A</option>
+              </Select>
+            </Field>
+          )}
+          {/* 受注後のみ完工フェーズ */}
+          {values.stage === "won" && (
+            <Field label="受注後フェーズ">
+              <Select
+                value={values.fulfillment_status}
+                onChange={(e) => set("fulfillment_status", e.target.value)}
+              >
+                <option value="">未設定</option>
+                {FULFILLMENT_STAGES.map((f) => (
+                  <option key={f.key} value={f.key}>
+                    {f.label}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+          )}
           <Field label="担当者">
             <Select
               value={values.owner_name}

@@ -63,6 +63,7 @@ export const DEMO_DATA: { [K in TableName]: TableMap[K][] } = {
   branch_activities: DEMO_BRANCH_ACTIVITIES,
   // 設定は「未保存 = 既定値」として扱うため、シードは置かない（settings.ts 参照）
   app_settings: [],
+  user_invites: [],
 };
 
 export { DEMO_TEAM };
