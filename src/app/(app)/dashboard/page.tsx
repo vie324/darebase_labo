@@ -65,6 +65,7 @@ import {
 } from "@/components/ui";
 import { CountUp } from "@/components/ui/count-up";
 import { FounderQuote } from "./founder-quote";
+import { SetupGuide } from "./setup-guide";
 import { BranchActivitySection } from "./branch-activity-section";
 
 // ---------- セクション共通のカード枠 ----------
@@ -300,35 +301,46 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* ---------- 代表 岡崎 佑真 の今日の一言 ---------- */}
-      <FounderQuote />
+      {/* ---------- はじめかた（データが揃うまでの導線） ---------- */}
+      <SetupGuide />
 
-      {/* ---------- サマリー ---------- */}
-      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-        <StatCard
-          label="進行中案件"
-          value={<CountUp value={activeDeals.length} format={(n) => `${n}件`} />}
-          sub={`総額 ${formatYenShort(activeAmount)}`}
-          icon={<Briefcase className="h-5 w-5" />}
-          accent="cyan"
-        />
-        <StatCard
-          label="今日の予定"
-          value={<CountUp value={todayEvents.length} format={(n) => `${n}件`} />}
-          sub={
+      {/*
+        代表の一言とサマリーは、スマホでは順序を入れ替える。
+        画面が狭いと一言カードだけで1画面近く占め、数字にたどり着けないため
+        （デスクトップは横幅に余裕があるので従来どおり一言を先に出す）。
+      */}
+      <div className="flex flex-col">
+        {/* ---------- 代表 岡崎 佑真 の今日の一言 ---------- */}
+        <div className="order-2 lg:order-1">
+          <FounderQuote />
+        </div>
+
+        {/* ---------- サマリー ---------- */}
+        <div className="order-1 mb-6 grid grid-cols-2 gap-3 sm:gap-4 lg:order-2 lg:mb-0 lg:grid-cols-4">
+          <StatCard
+            label="進行中案件"
+            value={<CountUp value={activeDeals.length} format={(n) => `${n}件`} />}
+            sub={`総額 ${formatYenShort(activeAmount)}`}
+            icon={<Briefcase className="h-5 w-5" />}
+            accent="cyan"
+          />
+          <StatCard
+            label="今日の予定"
+            value={<CountUp value={todayEvents.length} format={(n) => `${n}件`} />}
+            sub={
             nextEvent
               ? `次は ${formatTime(nextEvent.start_at)}〜`
               : todayEvents.length > 0
                 ? "本日の予定は終了しました"
                 : "予定はありません"
-          }
-          icon={<CalendarDays className="h-5 w-5" />}
-          accent="sky"
-        />
-        <StatCard
-          label="自分の未完了タスク"
-          value={<CountUp value={myOpenTasks.length} format={(n) => `${n}件`} />}
-          sub={
+            }
+            icon={<CalendarDays className="h-5 w-5" />}
+            accent="sky"
+          />
+          <StatCard
+            label="自分の未完了タスク"
+            value={<CountUp value={myOpenTasks.length} format={(n) => `${n}件`} />}
+            sub={
             overdueCount > 0 ? (
               <span className="font-semibold text-rose-500">
                 期限切れ {overdueCount}件
@@ -336,17 +348,18 @@ export default function DashboardPage() {
             ) : (
               "期限切れなし"
             )
-          }
-          icon={<CheckSquare className="h-5 w-5" />}
-          accent="amber"
-        />
-        <StatCard
-          label="受注済み金額"
-          value={<CountUp value={wonAmount} format={formatYenShort} />}
-          sub={`${wonDeals.length}件を受注`}
-          icon={<Trophy className="h-5 w-5" />}
-          accent="emerald"
-        />
+            }
+            icon={<CheckSquare className="h-5 w-5" />}
+            accent="amber"
+          />
+          <StatCard
+            label="受注済み金額"
+            value={<CountUp value={wonAmount} format={formatYenShort} />}
+            sub={`${wonDeals.length}件を受注`}
+            icon={<Trophy className="h-5 w-5" />}
+            accent="emerald"
+            />
+        </div>
       </div>
 
       {/* ---------- 支店稼働（銀行営業） ---------- */}

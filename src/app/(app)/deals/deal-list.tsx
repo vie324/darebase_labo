@@ -9,6 +9,7 @@ import { cn, formatDate, formatYen } from "@/lib/utils";
 import type { Deal } from "@/lib/types";
 import { Avatar, Badge, EmptyState, ProgressBar } from "@/components/ui";
 import { isOpenStage } from "./shared";
+import { useDensity } from "@/lib/use-density";
 
 type SortKey =
   | "name"
@@ -30,6 +31,8 @@ export function DealList({
   colorOf: (name: string) => string;
   onRowClick: (deal: Deal) => void;
 }) {
+  const { isCompact } = useDensity();
+  const cellPad = isCompact ? "px-4 py-1.5" : "px-4 py-3";
   const [sortKey, setSortKey] = useState<SortKey>("expected_close");
   const [asc, setAsc] = useState(true);
 
@@ -67,7 +70,7 @@ export function DealList({
   });
 
   const th = (k: SortKey, label: string, align: "left" | "right" = "left") => (
-    <th className={cn("px-4 py-3", align === "right" && "text-right")}>
+    <th className={cn(cellPad, align === "right" && "text-right")}>
       <button
         onClick={() => toggle(k)}
         className="inline-flex cursor-pointer items-center gap-1 text-xs font-bold whitespace-nowrap text-slate-500 transition-colors hover:text-cyan-600 dark:text-slate-400 dark:hover:text-cyan-400"
@@ -118,18 +121,18 @@ export function DealList({
                       </p>
                     )}
                   </td>
-                  <td className="px-4 py-3 whitespace-nowrap text-slate-600 dark:text-slate-300">
+                  <td className={cn(cellPad, "whitespace-nowrap text-slate-600 dark:text-slate-300")}>
                     {d.company}
                   </td>
-                  <td className="px-4 py-3">
+                  <td className={cellPad}>
                     <Badge className={DEAL_STAGES[d.stage].color}>
                       {DEAL_STAGES[d.stage].label}
                     </Badge>
                   </td>
-                  <td className="px-4 py-3 text-right font-semibold whitespace-nowrap tabular-nums">
+                  <td className={cn(cellPad, "text-right font-semibold whitespace-nowrap tabular-nums")}>
                     {formatYen(d.amount)}
                   </td>
-                  <td className="px-4 py-3">
+                  <td className={cellPad}>
                     <div className="flex items-center gap-2">
                       <ProgressBar
                         value={d.probability}
@@ -141,7 +144,7 @@ export function DealList({
                       </span>
                     </div>
                   </td>
-                  <td className="px-4 py-3">
+                  <td className={cellPad}>
                     <span
                       className={cn(
                         "inline-flex items-center gap-1 text-xs whitespace-nowrap",
@@ -154,7 +157,7 @@ export function DealList({
                       {formatDate(d.expected_close)}
                     </span>
                   </td>
-                  <td className="px-4 py-3">
+                  <td className={cellPad}>
                     <span className="flex items-center gap-2">
                       <Avatar name={d.owner_name} color={colorOf(d.owner_name)} size="xs" />
                       <span className="text-xs whitespace-nowrap text-slate-600 dark:text-slate-300">

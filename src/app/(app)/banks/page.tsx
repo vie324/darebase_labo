@@ -58,6 +58,7 @@ import {
   type BranchSortKey,
 } from "./shared";
 import { useAccess } from "@/lib/use-access";
+import { DensityToggle } from "@/components/ui/density-toggle";
 
 type DormancyFilter = "all" | "dormant" | "never" | "unassigned";
 
@@ -572,6 +573,8 @@ export default function BanksPage() {
                 </span>
               </h2>
               <div className="flex flex-wrap items-center gap-2">
+                {/* 支店は100件規模になるので、行の高さを選べるようにする（設定はブラウザに保存） */}
+                <DensityToggle className="hidden lg:inline-flex" />
                 {selectedBank && (
                   <Button
                     size="sm"
