@@ -79,6 +79,8 @@ export type Capability =
   | "settings_admin" // 判定基準などの設定変更
   | "role_admin" // ロール付与・招待の発行
   | "recruiting" // 採用（履歴書・面接ログ＝応募者の個人情報）
+  | "hr_self" // 自分の勤怠・経費・評価（本部社員のみ。代理店スタッフは対象外）
+  | "hr_admin" // 全員分の勤怠・経費の承認と、評価の作成・確定
   | "all_sales_data"; // 本部の営業データを全件見られる
 
 // 本部ロール共通。content_edit は DB 側の shared_write_*（is_hq）と対応する
@@ -88,6 +90,9 @@ const HQ_BASE: Capability[] = [
   "scheduling_poll",
   "content_edit",
   "all_sales_data",
+  // 勤怠・経費・自分の評価は本部社員全員が使う。
+  // 代理店スタッフの勤怠・経費・評価は管理しない方針なので partner_* には付けない。
+  "hr_self",
 ];
 
 export const ROLE_CAPABILITIES: Record<RoleKey, Capability[]> = {
@@ -99,8 +104,16 @@ export const ROLE_CAPABILITIES: Record<RoleKey, Capability[]> = {
     "settings_admin",
     "role_admin",
     "recruiting",
+    "hr_admin",
   ],
-  backoffice: [...HQ_BASE, "billing", "master_edit", "settings_admin", "recruiting"],
+  backoffice: [
+    ...HQ_BASE,
+    "billing",
+    "master_edit",
+    "settings_admin",
+    "recruiting",
+    "hr_admin",
+  ],
   manager: [...HQ_BASE, "master_edit"],
   member: [...HQ_BASE],
   partner_admin: [],

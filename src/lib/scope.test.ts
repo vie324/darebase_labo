@@ -10,6 +10,7 @@ import assert from "node:assert/strict";
 import {
   BACKOFFICE_ONLY_TABLES,
   HQ_ONLY_TABLES,
+  SELF_OR_BACKOFFICE_TABLES,
   OWN_SCOPE_TABLES,
   idSet,
   scopeRows,
@@ -85,6 +86,44 @@ test("応募者データは経営・管理部にしか見えない（本部の�
   for (const role of ["manager", "member", "partner_admin", "partner_member"] as RoleKey[]) {
     assert.deepEqual(scopeRows("candidates", rows, ctx(role)), [], role);
   }
+});
+
+test("勤怠・経費は本人と管理部だけ。代理店は0行", () => {
+  const rows = [
+    { id: "r-1", owner_id: ME },
+    { id: "r-2", owner_id: OTHER },
+  ];
+  for (const table of SELF_OR_BACKOFFICE_TABLES) {
+    // 管理部・経営は全員分
+    for (const role of ["executive", "backoffice"] as RoleKey[]) {
+      assert.equal(scopeRows(table, rows, ctx(role)).length, 2, `${table}/${role}`);
+    }
+    // 本部の営業ロールは自分の行だけ
+    for (const role of ["manager", "member"] as RoleKey[]) {
+      assert.deepEqual(
+        scopeRows(table, rows, ctx(role)).map((r) => r.id),
+        ["r-1"],
+        `${table}/${role}`
+      );
+    }
+    // 代理店スタッフの勤怠・経費は管理しないので、自分の行でも見せない
+    for (const role of ["partner_admin", "partner_member"] as RoleKey[]) {
+      assert.deepEqual(scopeRows(table, rows, ctx(role)), [], `${table}/${role}`);
+    }
+  }
+});
+
+test("人事評価は本人（target_id）と管理部だけ", () => {
+  const rows = [
+    { id: "e-1", target_id: ME },
+    { id: "e-2", target_id: OTHER },
+  ];
+  assert.equal(scopeRows("evaluations", rows, ctx("backoffice")).length, 2);
+  assert.deepEqual(
+    scopeRows("evaluations", rows, ctx("member")).map((r) => r.id),
+    ["e-1"]
+  );
+  assert.deepEqual(scopeRows("evaluations", rows, ctx("partner_admin")), []);
 });
 
 // ---------- 代理店ロール: 組織スコープ ----------

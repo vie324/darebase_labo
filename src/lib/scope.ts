@@ -52,6 +52,16 @@ export const HQ_ONLY_TABLES: readonly TableName[] = [
  */
 export const BACKOFFICE_ONLY_TABLES: readonly TableName[] = ["candidates"];
 
+/**
+ * 本人の行だけが見え、管理部（＋経営）だけが全員分を見られるテーブル
+ * （RLS の attendance_self_or_backoffice / expenses_self_or_backoffice と対応）。
+ * 代理店ユーザーは対象外なので、どのロールでも1行も返さない。
+ */
+export const SELF_OR_BACKOFFICE_TABLES: readonly TableName[] = [
+  "attendance_records",
+  "expenses",
+];
+
 /** 本人の行だけが見えるテーブル（RLS の own_scope_* と対応） */
 export const OWN_SCOPE_TABLES: readonly TableName[] = [
   "events",
@@ -94,9 +104,23 @@ export function scopeRows<T>(
   // ユーザー未確定のときは絞らない（デモの初期表示。RLS 側は逆に全遮断）
   if (!ctx) return rows;
 
+  const canBackoffice = ctx.role === "executive" || ctx.role === "backoffice";
+
   // 本部ロールでも、採用担当以外には応募者データを見せない
   if (BACKOFFICE_ONLY_TABLES.includes(table)) {
-    return ctx.role === "executive" || ctx.role === "backoffice" ? rows : [];
+    return canBackoffice ? rows : [];
+  }
+
+  // 勤怠・経費は本人と管理部だけ。代理店スタッフは対象外なので0行
+  if (SELF_OR_BACKOFFICE_TABLES.includes(table)) {
+    if (!isHqRole(ctx.role)) return [];
+    return canBackoffice ? rows : rows.filter((r) => str(r, "owner_id") === ctx.userId);
+  }
+
+  // 人事評価は本人と管理部だけ（本人の行は target_id で判定する）
+  if (table === "evaluations") {
+    if (!isHqRole(ctx.role)) return [];
+    return canBackoffice ? rows : rows.filter((r) => str(r, "target_id") === ctx.userId);
   }
 
   if (isHqRole(ctx.role)) return rows;

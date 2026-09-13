@@ -150,3 +150,72 @@ export function useConfidenceCriteria(): ConfidenceCriteriaHandle {
 
   return { criteria, loading: rows.loading, isDefault: !row, save };
 }
+
+// =============================================================
+// 勤怠の基準値
+//
+// 所定労働時間や時間外の警告ラインは就業規則で決まる値なので、
+// ここも既定値は仮とし、設定画面から変更できるようにする。
+// 給与計算（社会保険料・源泉徴収）は雇用形態の内訳が決まってから作るため、
+// ここでは金額に関わる値は持たない。
+// =============================================================
+
+export interface WorkSettings {
+  /** 1日の所定労働時間（分）。これを超えた分を時間外として集計する */
+  scheduledMinutes: number;
+  /** 1日あたり、この分数を超えた残業は一覧で目立たせる */
+  longDayMinutes: number;
+  /** 月の時間外がこの分数を超えたら警告（36協定の月45時間を既定に） */
+  monthlyOvertimeLimitMinutes: number;
+}
+
+export const DEFAULT_WORK_SETTINGS: WorkSettings = {
+  scheduledMinutes: 480, // 8時間
+  longDayMinutes: 180, // 3時間
+  monthlyOvertimeLimitMinutes: 2700, // 45時間
+};
+
+export const WORK_SETTINGS_KEY = "work_hours";
+
+export interface WorkSettingsHandle {
+  settings: WorkSettings;
+  loading: boolean;
+  /** 未保存（仮の既定値のまま）かどうか */
+  isDefault: boolean;
+  save: (next: WorkSettings) => Promise<void>;
+}
+
+function coerceWork(raw: Record<string, unknown> | undefined): WorkSettings {
+  const num = (key: keyof WorkSettings) => {
+    const v = raw?.[key];
+    return typeof v === "number" && Number.isFinite(v) && v > 0
+      ? v
+      : DEFAULT_WORK_SETTINGS[key];
+  };
+  return {
+    scheduledMinutes: num("scheduledMinutes"),
+    longDayMinutes: num("longDayMinutes"),
+    monthlyOvertimeLimitMinutes: num("monthlyOvertimeLimitMinutes"),
+  };
+}
+
+export function useWorkSettings(): WorkSettingsHandle {
+  const rows = useCollection("app_settings");
+  const row = rows.items.find((r) => r.key === WORK_SETTINGS_KEY);
+  const raw = row?.value;
+
+  const settings = useMemo(() => coerceWork(raw), [raw]);
+
+  const save = async (next: WorkSettings) => {
+    const value = { ...next } as unknown as Record<string, unknown>;
+    const updated_at = new Date().toISOString();
+    const existing = rows.items.find((r) => r.key === WORK_SETTINGS_KEY);
+    if (existing) {
+      await rows.update(existing.id, { value, updated_at });
+    } else {
+      await rows.add({ key: WORK_SETTINGS_KEY, value, updated_at });
+    }
+  };
+
+  return { settings, loading: rows.loading, isDefault: !row, save };
+}

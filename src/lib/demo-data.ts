@@ -16,6 +16,7 @@ import { DEMO_POSTS } from "./demo/posts";
 import { DEMO_POLLS } from "./demo/polls";
 import { DEMO_MEETING_LOGS } from "./demo/meetings";
 import { DEMO_CANDIDATES } from "./demo/recruiting";
+import { DEMO_ATTENDANCE, DEMO_EVALUATIONS, DEMO_EXPENSES } from "./demo/backoffice";
 import {
   DEMO_COMMISSION_RATES,
   DEMO_INVOICES,
@@ -68,6 +69,9 @@ export const DEMO_DATA: { [K in TableName]: TableMap[K][] } = {
   user_invites: [],
   meeting_logs: DEMO_MEETING_LOGS,
   candidates: DEMO_CANDIDATES,
+  attendance_records: DEMO_ATTENDANCE,
+  expenses: DEMO_EXPENSES,
+  evaluations: DEMO_EVALUATIONS,
 };
 
 export { DEMO_TEAM };

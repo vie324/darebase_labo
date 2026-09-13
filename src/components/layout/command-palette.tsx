@@ -11,8 +11,10 @@ import {
   Bot,
   Briefcase,
   Calendar,
+  CalendarCheck,
   CalendarClock,
   CheckSquare,
+  ClipboardCheck,
   CornerDownLeft,
   Contact as ContactIcon,
   FileText,
@@ -31,6 +33,7 @@ import {
   Sun,
   TrendingUp,
   UserRoundSearch,
+  Wallet,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCollection } from "@/lib/use-collection";
@@ -137,6 +140,9 @@ export function CommandPalette() {
       ...(can("recruiting")
         ? [{ id: "n-recruit", group: "移動", label: "採用", icon: <UserRoundSearch className={IC} />, keywords: "recruit 採用 応募 候補者 履歴書 職務経歴書 面接 質問", run: () => go("/recruit") } satisfies CmdItem]
         : []),
+      { id: "n-attendance", group: "移動", label: "勤怠", icon: <CalendarCheck className={IC} />, keywords: "attendance 勤怠 打刻 出勤 退勤 残業 有給", run: () => go("/attendance") },
+      { id: "n-expense", group: "移動", label: "経費精算", icon: <Wallet className={IC} />, keywords: "expenses 経費 精算 申請 承認 領収書 立替", run: () => go("/expenses") },
+      { id: "n-hr", group: "移動", label: "人事評価", icon: <ClipboardCheck className={IC} />, keywords: "hr 人事 評価 目標 面談 自己評価", run: () => go("/hr") },
       { id: "n-know", group: "移動", label: "ナレッジ", icon: <BookOpen className={IC} />, keywords: "knowledge ナレッジ 記事", run: () => go("/knowledge") },
       { id: "n-doc", group: "移動", label: "営業資料", icon: <FileText className={IC} />, keywords: "documents 資料 ファイル", run: () => go("/documents") },
       { id: "n-role", group: "移動", label: "ロープレ練習", icon: <Mic className={IC} />, keywords: "roleplay ロープレ 練習", run: () => go("/roleplay") },
