@@ -56,7 +56,8 @@ npm run dev
    `0004_billing.sql` で請求・支払、`0005_banking_sales.sql` で銀行営業、
    **`0006_roles_rls.sql` でロールと RLS（ここで全ポリシーが入れ替わります）**、
    `0007_deal_stages.sql` で案件ステージの移行、
-   `0008_private_attachments.sql` で添付ファイルの非公開化が行われます）
+   `0008_private_attachments.sql` で添付ファイルの非公開化、
+   `0009_public_booking.sql` で公開予約リンクの匿名アクセスの最小化が行われます）
 3. **Project Settings → API** から URL と anon key を取得
 4. **Authentication → Providers → Email** で「Allow new users to sign up」を **OFF**（招待制）にする
    （代理店にアカウントを配るため。招待していない人がサインアップできる状態にしないこと）
@@ -80,13 +81,20 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
 2. Environment Variables に上記 2 つを設定
 3. Deploy
 
-### 4. Google カレンダー連携について
+### 4. 公開予約リンクについて
+
+顧客向けの予約ページ `/invite/[id]` はログイン不要で動きます。匿名に開いているのは
+`get_customer_poll` と `book_customer_slot` の**2つの関数だけ**で、`schedule_polls`
+テーブルへの匿名アクセスはありません（0009 で廃止）。予約リンクの URL は UUID なので、
+リンクを知っている人だけが到達できます。
+
+### 5. Google カレンダー連携について
 
 「日程調整」モジュールは、確定した予定を **Google カレンダーの予定作成画面へワンクリックで引き継ぐ** 方式（認証不要）と **ICS ダウンロード**（Outlook 等）に対応しています。
 
 組織全体での双方向同期（空き時間の自動取得・自動予定作成）を行いたい場合は、Google Cloud Console で OAuth 2.0 クライアントを作成し、Google Calendar API を有効化した上でサーバーサイド連携を追加実装してください（このリポジトリの日程調整データモデルはそのまま流用できます）。
 
-### 5. LINE連携（請求書の受け取り・送付）
+### 6. LINE連携（請求書の受け取り・送付）
 
 公式LINEアカウントを「担当者＋クライアント＋公式アカウント」の三者グループに招待すると、グループに届いた請求書（画像・PDF）が **請求・支払 > 受領ボックス** に自動で取り込まれます。アプリからのLINE送付にも対応します。
 
@@ -189,6 +197,9 @@ npm run check   # lint → typecheck → test をまとめて
 | `partner_member` 代理店メンバー | 上記のうち **自分が担当するもの** のみ |
 
 - 代理店ユーザーには **チャット・掲示板・日程調整が 1行も返りません**（`hq_only_*` ポリシー）
+- **公開予約リンク（`/invite/[id]`）はテーブルに直接触りません**。`get_customer_poll` /
+  `book_customer_slot` の2つの関数だけを匿名に公開しており、顧客用（`kind='customer'`）の
+  ポーリング以外は取得も予約もできず、他の回答者の氏名・連絡先（`responses`）も返しません（0009）
 - **お金のマスタ**（取引先・手数料率・メーカー明細・入出金・LINEグループ）は **経営と管理部だけ**が読み書きできます（`backoffice_only_*` ポリシー。マネージャー・一般社員も対象外）
 - 営業資料・ナレッジ・トークスクリプト・勉強会は **代理店も閲覧可**（編集は本部のみ）
 - 予定・タスク・名刺・ロープレは `owner_id`（`default auth.uid()`）で本人のみ
