@@ -41,6 +41,7 @@ import { FulfillmentBoard } from "./fulfillment-board";
 import { DealList } from "./deal-list";
 import { DealReport } from "./deal-report";
 import { DealDetailModal, DealFormModal } from "./deal-modals";
+import { DensityToggle } from "@/components/ui/density-toggle";
 
 type ViewKey = "board" | "fulfillment" | "list" | "report";
 
@@ -258,6 +259,7 @@ export default function DealsPage() {
         />
         {view !== "report" && (
           <div className="flex flex-1 flex-wrap items-center justify-end gap-2">
+            {view === "list" && <DensityToggle className="hidden lg:inline-flex" />}
             <SearchInput
               value={query}
               onChange={setQuery}

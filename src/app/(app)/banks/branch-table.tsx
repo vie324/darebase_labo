@@ -17,6 +17,7 @@ import {
   formatRate,
   type BranchSortKey,
 } from "./shared";
+import { rowPadding, useDensity } from "@/lib/use-density";
 
 export function BranchTable({
   stats,
@@ -47,6 +48,10 @@ export function BranchTable({
   onLogActivity: (branch: Branch) => void;
   showBankColumn: boolean;
 }) {
+  // フック規則のため、早期 return より前で読む
+  const { isCompact } = useDensity();
+  const cellPad = rowPadding(isCompact);
+
   if (stats.length === 0) {
     return (
       <EmptyState
@@ -61,7 +66,7 @@ export function BranchTable({
   const allSelected = allIds.length > 0 && allIds.every((id) => selected.has(id));
 
   const th = (key: BranchSortKey, label: string, align: "left" | "right" = "left") => (
-    <th className={cn("px-3 py-3", align === "right" && "text-right")}>
+    <th className={cn(cellPad, align === "right" && "text-right")}>
       <button
         onClick={() => onSort(key)}
         className="inline-flex cursor-pointer items-center gap-1 text-xs font-bold whitespace-nowrap text-slate-500 transition-colors hover:text-cyan-600 dark:text-slate-400 dark:hover:text-cyan-400"
@@ -88,7 +93,7 @@ export function BranchTable({
           <table className="w-full min-w-[980px] text-left text-sm">
             <thead className="border-b border-slate-100 bg-slate-50/70 dark:border-slate-800 dark:bg-slate-800/40">
               <tr>
-                <th className="w-10 px-3 py-3">
+                <th className={cn("w-10", cellPad)}>
                   <input
                     type="checkbox"
                     checked={allSelected}
@@ -100,14 +105,14 @@ export function BranchTable({
                 {showBankColumn && th("name", "銀行 / 支店")}
                 {!showBankColumn && th("name", "支店名")}
                 {th("assigned", "担当者")}
-                <th className="px-3 py-3 text-xs font-bold whitespace-nowrap text-slate-500 dark:text-slate-400">
+                <th className={cn(cellPad, "text-xs font-bold whitespace-nowrap text-slate-500 dark:text-slate-400")}>
                   担当代理店
                 </th>
                 {th("lastContact", "最終接点")}
                 {th("recentAppointments", "直近アポ", "right")}
                 {th("wonCount", "累計成約", "right")}
                 {th("winRate", "成約率", "right")}
-                <th className="px-3 py-3" />
+                <th className={cellPad} />
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -122,7 +127,7 @@ export function BranchTable({
                       selected.has(b.id) && "bg-cyan-50/60 dark:bg-cyan-500/10"
                     )}
                   >
-                    <td className="px-3 py-3">
+                    <td className={cellPad}>
                       <input
                         type="checkbox"
                         checked={selected.has(b.id)}
@@ -131,7 +136,7 @@ export function BranchTable({
                         className="h-4 w-4 cursor-pointer accent-cyan-500"
                       />
                     </td>
-                    <td className="px-3 py-3">
+                    <td className={cellPad}>
                       <div className="flex items-center gap-2">
                         <span className={cn("h-2 w-2 shrink-0 rounded-full", style.dot)} />
                         <div className="min-w-0">
@@ -156,7 +161,7 @@ export function BranchTable({
                         )}
                       </div>
                     </td>
-                    <td className="px-3 py-3">
+                    <td className={cellPad}>
                       {b.assigned_name ? (
                         <span className="flex items-center gap-2">
                           <Avatar
@@ -172,10 +177,10 @@ export function BranchTable({
                         <span className="text-xs font-semibold text-rose-500">未割当</span>
                       )}
                     </td>
-                    <td className="px-3 py-3 text-xs whitespace-nowrap text-slate-500 dark:text-slate-400">
+                    <td className={cn(cellPad, "text-xs whitespace-nowrap text-slate-500 dark:text-slate-400")}>
                       {orgNameOf(b.assigned_org_id) || "—"}
                     </td>
-                    <td className="px-3 py-3">
+                    <td className={cellPad}>
                       <div className="flex items-center gap-2 whitespace-nowrap">
                         <Badge className={style.badge}>
                           {formatDormancyBadge(s.daysSinceContact, s.dormancyLevel)}
@@ -185,16 +190,16 @@ export function BranchTable({
                         </span>
                       </div>
                     </td>
-                    <td className="px-3 py-3 text-right font-semibold tabular-nums">
+                    <td className={cn(cellPad, "text-right font-semibold tabular-nums")}>
                       {s.recentAppointments > 0 ? s.recentAppointments : "—"}
                     </td>
-                    <td className="px-3 py-3 text-right font-semibold tabular-nums">
+                    <td className={cn(cellPad, "text-right font-semibold tabular-nums")}>
                       {s.wonCount > 0 ? s.wonCount : "—"}
                     </td>
-                    <td className="px-3 py-3 text-right font-semibold tabular-nums">
+                    <td className={cn(cellPad, "text-right font-semibold tabular-nums")}>
                       {formatRate(s.winRate)}
                     </td>
-                    <td className="px-2 py-3 text-right whitespace-nowrap">
+                    <td className={cn(cellPad, "text-right whitespace-nowrap")}>
                       <button
                         onClick={() => onLogActivity(b)}
                         aria-label={`${b.name}に活動を記録`}
