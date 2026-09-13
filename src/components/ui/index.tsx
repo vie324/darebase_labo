@@ -38,7 +38,8 @@ const buttonVariants: Record<ButtonVariant, string> = {
 };
 
 const buttonSizes: Record<ButtonSize, string> = {
-  sm: "h-8 px-3 text-xs gap-1.5",
+  // モバイルではタップ領域を確保するため一段大きくする
+  sm: "h-9 px-3 text-xs gap-1.5 sm:h-8",
   md: "h-10 px-4 text-sm gap-2",
   lg: "h-12 px-6 text-base gap-2",
 };
@@ -310,17 +311,21 @@ export function Tabs<T extends string>({
 }) {
   return (
     <div
+      role="tablist"
       className={cn(
-        "scrollbar-thin flex gap-1 overflow-x-auto rounded-xl bg-slate-100 p-1 dark:bg-slate-800/60",
+        // 端まで詰めず、最後のタブが見切れても指でたぐれるようにする
+        "scrollbar-thin flex snap-x gap-1 overflow-x-auto rounded-xl bg-slate-100 p-1 dark:bg-slate-800/60",
         className
       )}
     >
       {tabs.map((t) => (
         <button
           key={t.key}
+          role="tab"
+          aria-selected={active === t.key}
           onClick={() => onChange(t.key)}
           className={cn(
-            "flex cursor-pointer items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-sm font-medium whitespace-nowrap transition-all",
+            "flex shrink-0 cursor-pointer snap-start items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium whitespace-nowrap transition-all sm:px-3.5",
             active === t.key
               ? "bg-white text-slate-900 shadow-sm dark:bg-slate-900 dark:text-white"
               : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
@@ -464,18 +469,30 @@ export function StatCard({
     indigo: "bg-cyan-50 text-cyan-600 dark:bg-cyan-500/15 dark:text-cyan-400",
     violet: "bg-sky-50 text-sky-600 dark:bg-sky-500/15 dark:text-sky-400",
   };
+  // モバイルでは KPI が縦に積み上がって本文が押し下げられるため、
+  // 余白・文字サイズ・アイコンを一段小さくして2列に収まるようにしている。
   return (
-    <Card className="p-5">
-      <div className="flex items-start justify-between gap-3">
+    <Card className="p-4 sm:p-5">
+      <div className="flex items-start justify-between gap-2 sm:gap-3">
         <div className="min-w-0">
-          <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">{label}</p>
-          <p className="mt-1.5 truncate text-2xl font-bold tracking-tight">{value}</p>
-          {sub && <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">{sub}</p>}
+          <p className="text-[11px] font-semibold text-slate-500 sm:text-xs dark:text-slate-400">
+            {label}
+          </p>
+          {/* 金額は途中で切れると意味が変わるので truncate せず、
+              狭い画面では文字サイズを落として収める */}
+          <p className="mt-1 text-lg font-bold tracking-tight break-words sm:mt-1.5 sm:text-2xl">
+            {value}
+          </p>
+          {sub && (
+            <p className="mt-1 text-[11px] leading-snug text-slate-400 sm:text-xs dark:text-slate-500">
+              {sub}
+            </p>
+          )}
         </div>
         {icon && (
           <div
             className={cn(
-              "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl",
+              "flex h-8 w-8 shrink-0 items-center justify-center rounded-xl sm:h-10 sm:w-10",
               accents[accent]
             )}
           >

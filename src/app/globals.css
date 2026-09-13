@@ -161,6 +161,15 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* ---- keyboard focus ----
+   キーボード操作（Tab）でどこにいるか分かるように、共通のフォーカスリングを当てる。
+   マウス操作では出ない（:focus-visible）。 */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--color-cyan-500, #06b6d4);
+  outline-offset: 2px;
+  border-radius: 0.5rem;
+}
+
 /* ---- shared visual utilities ---- */
 
 .glass {

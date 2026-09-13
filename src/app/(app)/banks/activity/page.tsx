@@ -51,11 +51,13 @@ import {
 import {
   DORMANCY_STYLE,
   formatDaysSince,
+  formatDormancyDetail,
   formatRate,
   rateBarClass,
   rateTextClass,
 } from "../shared";
 import { useAccess } from "@/lib/use-access";
+import { HScroll } from "@/components/ui/h-scroll";
 
 const HEATMAP_MONTHS = 12;
 
@@ -167,7 +169,8 @@ export default function BranchActivityPage() {
       />
 
       {/* ---------- 銀行フィルタ ---------- */}
-      <div className="scrollbar-thin mb-5 flex gap-1.5 overflow-x-auto pb-1">
+      {/* 銀行が増えると右に見切れるので、端のフェードと送りボタンを出す */}
+      <HScroll className="mb-5 flex gap-1.5 pb-1" label="銀行で絞り込み" step={240}>
         <button
           onClick={() => setBankFilter("all")}
           className={cn(
@@ -193,10 +196,10 @@ export default function BranchActivityPage() {
             {b.name}
           </button>
         ))}
-      </div>
+      </HScroll>
 
       {/* ---------- サマリー ---------- */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 2xl:grid-cols-6">
         <StatCard
           label="総支店数"
           value={`${summary.totalBranches}`}
@@ -399,7 +402,7 @@ export default function BranchActivityPage() {
                     </p>
                   </div>
                   <Badge className={style.badge}>
-                    {style.label} · {formatDaysSince(s.daysSinceContact)}
+                    {formatDormancyDetail(s.daysSinceContact, s.dormancyLevel)}
                   </Badge>
                 </li>
               );

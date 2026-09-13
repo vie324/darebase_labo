@@ -43,6 +43,23 @@ export function formatDaysSince(days: number | null): string {
   return `${days}日`;
 }
 
+/**
+ * 休眠バッジの文言。
+ * 接点が一度もない支店は日数が出せず、"—" だけの黒いバッジになって
+ * 何を意味するのか伝わらないため、状態そのもの（接点なし）を出す。
+ */
+export function formatDormancyBadge(days: number | null, level: DormancyLevel): string {
+  if (level === "never" || days === null) return DORMANCY_STYLE.never.label;
+  return formatDaysSince(days);
+}
+
+/** 「状態 · 経過日数」形式の表示（接点なしのときは日数を付けない） */
+export function formatDormancyDetail(days: number | null, level: DormancyLevel): string {
+  const label = DORMANCY_STYLE[level].label;
+  if (level === "never" || days === null) return label;
+  return `${label} · ${formatDaysSince(days)}`;
+}
+
 /** 稼働率の表示（母数0は "—"） */
 export function formatRate(rate: number | null): string {
   return rate === null ? "—" : `${rate}%`;

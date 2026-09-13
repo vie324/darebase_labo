@@ -304,7 +304,7 @@ export default function DashboardPage() {
       <FounderQuote />
 
       {/* ---------- サマリー ---------- */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         <StatCard
           label="進行中案件"
           value={<CountUp value={activeDeals.length} format={(n) => `${n}件`} />}

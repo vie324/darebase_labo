@@ -60,9 +60,16 @@ export function SplashScreen() {
 
     const leaveTimer = setTimeout(() => setPhase("leaving"), 1900);
     const hideTimer = setTimeout(() => setPhase("hidden"), 2500);
+
+    // 毎日使うツールなので、待たされたくない人はタップ/キー操作で飛ばせるようにする
+    const skip = () => setPhase("leaving");
+    window.addEventListener("pointerdown", skip);
+    window.addEventListener("keydown", skip);
     return () => {
       clearTimeout(leaveTimer);
       clearTimeout(hideTimer);
+      window.removeEventListener("pointerdown", skip);
+      window.removeEventListener("keydown", skip);
     };
   }, []);
 
@@ -113,6 +120,9 @@ export function SplashScreen() {
 
         <p className="mt-4 animate-fade-up text-sm font-medium text-slate-400 [animation-delay:1s] dark:text-slate-500">
           {APP_TAGLINE}
+        </p>
+        <p className="mt-2 animate-fade-up text-[11px] text-slate-300 [animation-delay:1.4s] dark:text-slate-600">
+          画面をタップするとスキップできます
         </p>
       </div>
 
