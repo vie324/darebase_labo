@@ -8,6 +8,7 @@ import { useState, type DragEvent } from "react";
 import { AlertTriangle, Briefcase, CalendarDays, Flag, HelpCircle } from "lucide-react";
 import { PIPELINE_COLUMNS } from "@/lib/constants";
 import { columnKeyOf, needsConfidenceRank } from "@/lib/pipeline";
+import { useConfidenceCriteria } from "@/lib/settings";
 import { cn, formatDate, formatYenShort } from "@/lib/utils";
 import type { Deal } from "@/lib/types";
 import { Avatar, Badge, EmptyState, ProgressBar } from "@/components/ui";
@@ -29,6 +30,8 @@ export function DealBoard({
 }) {
   const [dragId, setDragId] = useState<string | null>(null);
   const [dropKey, setDropKey] = useState<string | null>(null);
+  // 後追い列の見出しに、設定画面で決めた確度の判定基準を出す
+  const { criteria } = useConfidenceCriteria();
 
   if (deals.length === 0) {
     return (
@@ -74,7 +77,10 @@ export function DealBoard({
                 : "border-slate-200/70 bg-slate-100/60 dark:border-slate-800 dark:bg-slate-900/50"
             )}
           >
-            <header className="mb-3 flex items-center gap-2 px-1">
+            <header
+              className="mb-3 flex items-center gap-2 px-1"
+              title={col.rank ? `${col.label}: ${criteria[col.rank]}` : col.label}
+            >
               <span className={cn("h-2.5 w-2.5 shrink-0 rounded-full", col.bar)} />
               <h2 className="text-sm font-bold">{col.label}</h2>
               <span className="rounded-full bg-white px-2 text-xs leading-5 font-semibold text-slate-500 shadow-sm dark:bg-slate-800 dark:text-slate-400">

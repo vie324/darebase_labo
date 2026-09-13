@@ -19,6 +19,7 @@ import {
   PIPELINE_COLUMNS,
 } from "@/lib/constants";
 import { columnKeyOf, fulfillmentLabel } from "@/lib/pipeline";
+import { useConfidenceCriteria } from "@/lib/settings";
 import { cn, formatDate, formatYen, formatYenShort, timeAgo } from "@/lib/utils";
 import type { ActivityType, Deal, DealActivity, DealStage } from "@/lib/types";
 import {
@@ -311,6 +312,8 @@ export function DealFormModal({
   onClose: () => void;
   onSubmit: (values: DealFormValues) => Promise<void>;
 }) {
+  // 確度の判定基準は設定画面から変更できる（未設定なら提案の暫定値）
+  const { criteria } = useConfidenceCriteria();
   // 親側で open のときだけマウントされるため、初期値は useState の初期化子で確定する
   const [values, setValues] = useState<DealFormValues>(() =>
     initial ? toFormValues(initial) : emptyFormValues(defaultOwner)
@@ -397,6 +400,12 @@ export function DealFormModal({
                 <option value="B">B</option>
                 <option value="A">A</option>
               </Select>
+              {/* 判定基準は設定画面で編集できる（app_settings） */}
+              <span className="mt-1 block text-[11px] leading-relaxed text-slate-400">
+                {values.confidence_rank === "A" || values.confidence_rank === "B"
+                  ? criteria[values.confidence_rank]
+                  : criteria.C}
+              </span>
             </Field>
           )}
           {/* 受注後のみ完工フェーズ */}

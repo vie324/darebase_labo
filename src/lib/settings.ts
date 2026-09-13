@@ -90,3 +90,63 @@ export function useBranchSettings(): BranchSettingsHandle {
 
   return { settings, loading: rows.loading, isDefault: !row, save };
 }
+
+// =============================================================
+// 確度ランク A/B/C の判定基準
+//
+// 「A とは何か」は先方の運用で決まる値なので、コードに直書きせず
+// app_settings に置いて設定画面から編集できるようにする。
+// 既定値はこちらの提案（暫定）で、確定版が届いたら画面から上書きすれば足りる。
+// この文言は将来、商談ログから確度を自動判定する際の判定条件にもそのまま使う。
+// =============================================================
+
+export interface ConfidenceCriteria {
+  A: string;
+  B: string;
+  C: string;
+}
+
+export const DEFAULT_CONFIDENCE_CRITERIA: ConfidenceCriteria = {
+  A: "決裁者が同席し、導入時期と予算の両方が出ている（見積提出済み）",
+  B: "反応は前向きだが、決裁者・導入時期・予算のいずれかが未確定",
+  C: "情報収集の段階。次のアクションの日程が決まっていない",
+};
+
+export const CONFIDENCE_SETTINGS_KEY = "confidence_ranks";
+
+export interface ConfidenceCriteriaHandle {
+  criteria: ConfidenceCriteria;
+  loading: boolean;
+  /** 未保存（提案のままの暫定値）かどうか */
+  isDefault: boolean;
+  save: (next: ConfidenceCriteria) => Promise<void>;
+}
+
+function coerceCriteria(raw: Record<string, unknown> | undefined): ConfidenceCriteria {
+  const pick = (key: keyof ConfidenceCriteria) => {
+    const v = raw?.[key];
+    return typeof v === "string" && v.trim() !== "" ? v : DEFAULT_CONFIDENCE_CRITERIA[key];
+  };
+  return { A: pick("A"), B: pick("B"), C: pick("C") };
+}
+
+export function useConfidenceCriteria(): ConfidenceCriteriaHandle {
+  const rows = useCollection("app_settings");
+  const row = rows.items.find((r) => r.key === CONFIDENCE_SETTINGS_KEY);
+  const raw = row?.value;
+
+  const criteria = useMemo(() => coerceCriteria(raw), [raw]);
+
+  const save = async (next: ConfidenceCriteria) => {
+    const value = { ...next } as unknown as Record<string, unknown>;
+    const updated_at = new Date().toISOString();
+    const existing = rows.items.find((r) => r.key === CONFIDENCE_SETTINGS_KEY);
+    if (existing) {
+      await rows.update(existing.id, { value, updated_at });
+    } else {
+      await rows.add({ key: CONFIDENCE_SETTINGS_KEY, value, updated_at });
+    }
+  };
+
+  return { criteria, loading: rows.loading, isDefault: !row, save };
+}

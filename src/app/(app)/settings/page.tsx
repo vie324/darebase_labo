@@ -17,6 +17,7 @@ import { Badge, Button, Card, PageHeader } from "@/components/ui";
 import { fetchLineStatus } from "../billing/line-client";
 import { BranchSettingsCard } from "./branch-settings-card";
 import { RoleSettingsCard } from "./role-settings-card";
+import { ConfidenceSettingsCard } from "./confidence-settings-card";
 
 export default function SettingsPage() {
   const configured = isSupabaseConfigured();
@@ -60,6 +61,7 @@ export default function SettingsPage() {
         {/* 銀行営業の判定基準 */}
         {/* 判定基準の保存は app_settings への書き込み（経営・管理部のみ許可） */}
         {can("settings_admin") && <BranchSettingsCard />}
+        {can("settings_admin") && <ConfidenceSettingsCard />}
 
         {/* データベース接続 */}
         <Card className="p-6">
