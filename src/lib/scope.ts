@@ -114,6 +114,8 @@ export function scopeRows<T>(
       );
 
     case "deals":
+    // 商談ログは文字起こしに相手の発言が入るため、案件と同じスコープで扱う
+    case "meeting_logs":
       return rows.filter(
         (r) =>
           org !== null &&

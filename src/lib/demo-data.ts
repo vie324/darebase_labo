@@ -14,6 +14,7 @@ import { DEMO_TRAININGS } from "./demo/trainings";
 import { DEMO_CHANNELS, DEMO_MESSAGES } from "./demo/chat";
 import { DEMO_POSTS } from "./demo/posts";
 import { DEMO_POLLS } from "./demo/polls";
+import { DEMO_MEETING_LOGS } from "./demo/meetings";
 import {
   DEMO_COMMISSION_RATES,
   DEMO_INVOICES,
@@ -64,6 +65,7 @@ export const DEMO_DATA: { [K in TableName]: TableMap[K][] } = {
   // 設定は「未保存 = 既定値」として扱うため、シードは置かない（settings.ts 参照）
   app_settings: [],
   user_invites: [],
+  meeting_logs: DEMO_MEETING_LOGS,
 };
 
 export { DEMO_TEAM };

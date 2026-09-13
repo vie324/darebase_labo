@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import {
   Activity,
   BookOpen,
+  Bot,
   Briefcase,
   CalendarClock,
   CalendarDays,
@@ -82,6 +83,7 @@ const NAV_SECTIONS: {
     heading: "営業活動",
     items: [
       { href: "/deals", label: "案件管理", icon: <Briefcase className="h-[18px] w-[18px]" /> },
+      { href: "/meetings", label: "商談ログ", icon: <Bot className="h-[18px] w-[18px]" /> },
       { href: "/tasks", label: "タスク", icon: <CheckSquare className="h-[18px] w-[18px]" /> },
       { href: "/contacts", label: "名刺管理", icon: <Contact className="h-[18px] w-[18px]" /> },
     ],
