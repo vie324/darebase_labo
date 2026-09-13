@@ -53,6 +53,8 @@ export default function DealsPage() {
   const deals = useCollection("deals");
   const activities = useCollection("deal_activities");
   const profiles = useCollection("profiles");
+  // 失注分析で要因を拾うために商談ログを読む
+  const meetingLogs = useCollection("meeting_logs");
 
   const [view, setView] = useState<ViewKey>("board");
   const [query, setQuery] = useState("");
@@ -61,7 +63,14 @@ export default function DealsPage() {
   const [formOpen, setFormOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Deal | null>(null);
 
-  if (!user || accessLoading || deals.loading || activities.loading || profiles.loading) {
+  if (
+    !user ||
+    accessLoading ||
+    deals.loading ||
+    activities.loading ||
+    profiles.loading ||
+    meetingLogs.loading
+  ) {
     return <PageSkeleton />;
   }
 
@@ -312,7 +321,9 @@ export default function DealsPage() {
             onRowClick={(d) => setDetailId(d.id)}
           />
         )}
-        {view === "report" && <DealReport deals={deals.items} colorOf={colorOf} />}
+        {view === "report" && (
+          <DealReport deals={deals.items} logs={meetingLogs.items} colorOf={colorOf} />
+        )}
       </div>
 
       {/* ---------- モーダル ---------- */}

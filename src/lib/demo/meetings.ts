@@ -70,6 +70,27 @@ const SAMPLE_ANALYSIS: MeetingAnalysis = {
   },
 };
 
+/** 失注案件（deal-6）のログ。失注分析に要因が出るようにしてある */
+const LOST_ANALYSIS: MeetingAnalysis = {
+  segments: [],
+  summary:
+    "Web広告運用の提案でしたが、最終的に競合B社に決定しました。運用体制の評価は高かったものの、初期費用の差を社内で説明しきれなかったとのことです。決裁は取締役会に上がっており、面談相手だけでは押し切れませんでした。",
+  decisions: ["今回は見送り", "半年後に運用状況を見て再提案の余地あり"],
+  concerns: ["面談相手に決裁権がなかった", "初期費用の差を説明する材料が足りなかった"],
+  next_actions: [
+    { title: "半年後の再アプローチをリマインダーに設定する", owner: "自社", due_hint: "今週中", priority: "low" },
+  ],
+  confidence: { rank: "C", reason: "失注のため確度なし。", evidence: [] },
+  lost_risk: {
+    level: "high",
+    reasons: [
+      "価格面で競合B社に決定した",
+      "決裁者が同席せず、取締役会で押し切れなかった",
+      "初期費用の差を説明する費用対効果の資料が不足していた",
+    ],
+  },
+};
+
 export const DEMO_MEETING_LOGS: MeetingLog[] = [
   {
     id: "meeting-1",
@@ -92,6 +113,29 @@ export const DEMO_MEETING_LOGS: MeetingLog[] = [
     business_unit_id: "bu-banking",
     updated_at: daysFromNow(-2, 18, 30),
     created_at: daysFromNow(-2, 18, 0),
+  },
+  {
+    id: "meeting-2",
+    title: "アオバ企画 最終提案（失注）",
+    held_at: dateFromNow(-14),
+    kind: "meeting",
+    deal_id: "deal-6",
+    appointment_id: null,
+    bank_id: null,
+    branch_id: null,
+    company_name: "株式会社アオバ企画",
+    transcript:
+      "（前略）ご検討ありがとうございました。今回はB社さんにお願いすることになりまして。運用の体制はお宅の方が良かったんですが、初期費用の差を取締役会で説明しきれませんでした。（後略）",
+    media_url: "",
+    analysis: LOST_ANALYSIS,
+    analyzed_at: daysFromNow(-14, 17, 0),
+    analysis_model: "claude-opus-5",
+    owner_id: "member-ito",
+    owner_name: "伊藤 翔",
+    organization_id: null,
+    business_unit_id: "bu-banking",
+    updated_at: daysFromNow(-14, 17, 0),
+    created_at: daysFromNow(-14, 16, 30),
   },
 ];
 

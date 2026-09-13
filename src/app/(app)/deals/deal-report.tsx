@@ -5,15 +5,19 @@
 import { BarChart3, Briefcase, Crown, Users } from "lucide-react";
 import { DEAL_STAGES } from "@/lib/constants";
 import { cn, formatYenShort } from "@/lib/utils";
-import type { Deal } from "@/lib/types";
+import type { Deal, MeetingLog } from "@/lib/types";
 import { Avatar, Card, EmptyState, ProgressBar } from "@/components/ui";
 import { STAGE_KEYS, isOpenStage, sumAmount, weightedAmount } from "./shared";
+import { LossReport } from "./loss-report";
 
 export function DealReport({
   deals,
+  logs,
   colorOf,
 }: {
   deals: Deal[];
+  /** 失注要因を拾うための商談ログ */
+  logs: MeetingLog[];
   colorOf: (name: string) => string;
 }) {
   if (deals.length === 0) {
@@ -182,6 +186,9 @@ export function DealReport({
           </table>
         </div>
       </Card>
+
+      {/* ---------- 失注分析 ---------- */}
+      <LossReport deals={deals} logs={logs} />
     </div>
   );
 }
