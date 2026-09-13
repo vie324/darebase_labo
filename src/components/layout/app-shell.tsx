@@ -8,9 +8,11 @@ import {
   BookOpen,
   Bot,
   Briefcase,
+  CalendarCheck,
   CalendarClock,
   CalendarDays,
   CheckSquare,
+  ClipboardCheck,
   Contact,
   FolderOpen,
   GraduationCap,
@@ -28,6 +30,8 @@ import {
   Settings,
   Sun,
   TrendingUp,
+  UserRoundSearch,
+  Wallet,
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -102,6 +106,35 @@ const NAV_SECTIONS: {
         label: "経営ダッシュボード",
         icon: <TrendingUp className="h-[18px] w-[18px]" />,
         cap: "executive_dashboard",
+      },
+      {
+        href: "/recruit",
+        label: "採用",
+        icon: <UserRoundSearch className="h-[18px] w-[18px]" />,
+        cap: "recruiting",
+      },
+    ],
+  },
+  {
+    heading: "バックオフィス",
+    items: [
+      {
+        href: "/attendance",
+        label: "勤怠",
+        icon: <CalendarCheck className="h-[18px] w-[18px]" />,
+        cap: "hr_self",
+      },
+      {
+        href: "/expenses",
+        label: "経費精算",
+        icon: <Wallet className="h-[18px] w-[18px]" />,
+        cap: "hr_self",
+      },
+      {
+        href: "/hr",
+        label: "人事評価",
+        icon: <ClipboardCheck className="h-[18px] w-[18px]" />,
+        cap: "hr_self",
       },
     ],
   },

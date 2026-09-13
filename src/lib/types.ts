@@ -525,6 +525,90 @@ export interface MeetingLog extends BaseRow {
   updated_at: string;
 }
 
+// ---------- 採用（0011） ----------
+/**
+ * 応募者。履歴書・面接ログは個人情報のため、RLS で経営・管理部のみに絞っている。
+ * AI の解析結果（resume_analysis / questions / crosscheck）は jsonb で受け、
+ * 形は lib/recruiting.ts が持つ。
+ */
+export interface Candidate extends BaseRow {
+  name: string;
+  name_kana: string;
+  email: string;
+  phone: string;
+  position: string;
+  /** 値の一覧は lib/recruiting.ts の CandidateStatus に集約 */
+  status: string;
+  source: string;
+  applied_at: string; // YYYY-MM-DD
+  /** 履歴書・職務経歴書の本文 */
+  resume_text: string;
+  /** 添付（非公開バケット attachments のパス。"" = なし） */
+  resume_file: string;
+  resume_analysis: unknown;
+  questions: unknown;
+  interview_transcript: string;
+  crosscheck: unknown;
+  note: string;
+  owner_id?: string | null;
+  owner_name: string;
+  business_unit_id: string | null;
+  updated_at: string;
+}
+
+// ---------- バックオフィス（0012） ----------
+/** 勤怠。1人1日1行（owner_id + work_date で一意） */
+export interface AttendanceRecord extends BaseRow {
+  owner_id?: string | null;
+  owner_name: string;
+  work_date: string; // YYYY-MM-DD
+  /** 値の一覧は lib/attendance.ts の AttendanceKind に集約 */
+  kind: string;
+  start_at: string; // HH:MM（"" = 未打刻）
+  end_at: string; // HH:MM
+  break_minutes: number;
+  note: string;
+  updated_at: string;
+}
+
+/** 経費申請。ワークフローは lib/expenses.ts に集約 */
+export interface Expense extends BaseRow {
+  owner_id?: string | null;
+  owner_name: string;
+  spent_on: string; // YYYY-MM-DD
+  category: string;
+  amount: number;
+  purpose: string;
+  counterparty: string;
+  payment_method: string; // self（自己立替） | corporate（法人カード）
+  /** 領収書（非公開バケット attachments のパス） */
+  receipt_file: string;
+  status: string;
+  submitted_at: string; // ISO
+  approver_name: string;
+  approved_at: string; // ISO
+  reject_reason: string;
+  paid_on: string; // YYYY-MM-DD
+  deal_id: string | null;
+  note: string;
+  updated_at: string;
+}
+
+/** 人事評価。評価項目は jsonb（形は lib/evaluation.ts の EvaluationItem） */
+export interface Evaluation extends BaseRow {
+  target_id: string | null;
+  target_name: string;
+  period: string; // 例: 2026-H1
+  status: string;
+  items: unknown;
+  self_comment: string;
+  reviewer_name: string;
+  reviewer_comment: string;
+  total_score: number;
+  finalized_at: string; // ISO
+  updated_at: string;
+}
+
 // ---------- 招待（サインアップは招待制。0006） ----------
 /**
  * 招待レコード。同じメールで Supabase Auth のアカウントが作られたときに
@@ -580,6 +664,10 @@ export interface TableMap {
   app_settings: AppSetting;
   user_invites: UserInvite;
   meeting_logs: MeetingLog;
+  candidates: Candidate;
+  attendance_records: AttendanceRecord;
+  expenses: Expense;
+  evaluations: Evaluation;
 }
 
 export type TableName = keyof TableMap;
