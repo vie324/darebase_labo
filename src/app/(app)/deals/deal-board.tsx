@@ -12,6 +12,7 @@ import { useConfidenceCriteria } from "@/lib/settings";
 import { cn, formatDate, formatYenShort } from "@/lib/utils";
 import type { Deal } from "@/lib/types";
 import { Avatar, Badge, EmptyState, ProgressBar } from "@/components/ui";
+import { HScroll } from "@/components/ui/h-scroll";
 import { isOpenStage, probabilityClass, sumAmount } from "./shared";
 
 export function DealBoard({
@@ -53,7 +54,7 @@ export function DealBoard({
   };
 
   return (
-    <div className="scrollbar-thin flex items-start gap-3 overflow-x-auto pb-4">
+    <HScroll className="flex items-start gap-3 pb-4" label="商談ステージ" step={276}>
       {PIPELINE_COLUMNS.map((col) => {
         const cards = deals
           .filter((d) => columnKeyOf(d) === col.key)
@@ -71,7 +72,7 @@ export function DealBoard({
             }}
             onDrop={(e) => handleDrop(e, col.key)}
             className={cn(
-              "flex min-h-48 w-72 shrink-0 flex-col rounded-2xl border p-3 transition-colors duration-150",
+              "flex min-h-48 w-64 shrink-0 flex-col rounded-2xl border p-3 transition-colors duration-150",
               highlighted
                 ? "border-cyan-400 bg-cyan-50/70 dark:border-cyan-500/60 dark:bg-cyan-500/10"
                 : "border-slate-200/70 bg-slate-100/60 dark:border-slate-800 dark:bg-slate-900/50"
@@ -178,6 +179,6 @@ export function DealBoard({
           </section>
         );
       })}
-    </div>
+    </HScroll>
   );
 }

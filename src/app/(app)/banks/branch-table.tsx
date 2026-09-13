@@ -10,7 +10,13 @@ import { BRANCH_STATUSES } from "@/lib/constants";
 import { cn, formatDate } from "@/lib/utils";
 import type { Branch } from "@/lib/types";
 import { Avatar, Badge, Button, EmptyState } from "@/components/ui";
-import { DORMANCY_STYLE, formatDaysSince, formatRate, type BranchSortKey } from "./shared";
+import {
+  DORMANCY_STYLE,
+  formatDormancyBadge,
+  formatDormancyDetail,
+  formatRate,
+  type BranchSortKey,
+} from "./shared";
 
 export function BranchTable({
   stats,
@@ -171,7 +177,9 @@ export function BranchTable({
                     </td>
                     <td className="px-3 py-3">
                       <div className="flex items-center gap-2 whitespace-nowrap">
-                        <Badge className={style.badge}>{formatDaysSince(s.daysSinceContact)}</Badge>
+                        <Badge className={style.badge}>
+                          {formatDormancyBadge(s.daysSinceContact, s.dormancyLevel)}
+                        </Badge>
                         <span className="text-xs text-slate-400">
                           {s.lastContactAt ? formatDate(s.lastContactAt) : "接点記録なし"}
                         </span>
@@ -247,7 +255,7 @@ export function BranchTable({
                   <p className="truncate font-semibold">{b.name}</p>
                   <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                     <Badge className={style.badge}>
-                      {style.label} · {formatDaysSince(s.daysSinceContact)}
+                      {formatDormancyDetail(s.daysSinceContact, s.dormancyLevel)}
                     </Badge>
                     {b.status !== "active" && (
                       <Badge className={BRANCH_STATUSES[b.status].color}>

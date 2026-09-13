@@ -10,7 +10,7 @@ import { useBranchSettings } from "@/lib/settings";
 import { buildBranchStats, summarizeBranches } from "@/lib/branch-metrics";
 import { cn, formatDate, todayStr } from "@/lib/utils";
 import { Badge, Card, ProgressBar, Skeleton } from "@/components/ui";
-import { DORMANCY_STYLE, formatDaysSince, formatRate } from "../banks/shared";
+import { DORMANCY_STYLE, formatDormancyBadge, formatRate } from "../banks/shared";
 
 const TOP_N = 5;
 
@@ -129,7 +129,9 @@ export function BranchActivitySection() {
                         {s.lastContactAt && ` ・ 最終接点 ${formatDate(s.lastContactAt)}`}
                       </p>
                     </div>
-                    <Badge className={style.badge}>{formatDaysSince(s.daysSinceContact)}</Badge>
+                    <Badge className={style.badge}>
+                      {formatDormancyBadge(s.daysSinceContact, s.dormancyLevel)}
+                    </Badge>
                   </li>
                 );
               })}
