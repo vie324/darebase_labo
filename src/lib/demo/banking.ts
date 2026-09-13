@@ -152,8 +152,11 @@ export const DEMO_BANKS: Bank[] = BANK_SEEDS.map((b, i) => ({
 // 担当者（DEMO_TEAM と id / 氏名を合わせる）
 const OWNERS = [
   { id: "member-tanaka", name: "田中 美咲", org: ORG_HQ },
-  { id: "member-yamada", name: "山田 花子", org: ORG_A },
-  { id: "member-ito", name: "伊藤 翔", org: ORG_B },
+  // 代理店ユーザー（ロール partner_*）。この2人に割り当てた支店だけが
+  // 代理店ログイン時に見える ＝ 権限分離の動作確認用
+  { id: "member-partner-admin", name: "村上 亮", org: ORG_A },
+  { id: "member-ito", name: "伊藤 翔", org: ORG_HQ },
+  { id: "member-partner-member", name: "小林 彩", org: ORG_A },
 ];
 
 /** 決定的な擬似乱数（シード固定。読み込みのたびに結果が変わらない） */

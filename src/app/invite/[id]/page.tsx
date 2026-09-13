@@ -3,7 +3,9 @@
 // =============================================================
 // 公開予約ページ /invite/[id]
 //  顧客がログイン不要で候補から1つ選び、Web会議を予約できる独立ページ。
-//  - Supabase接続時: schedule_polls を直接 select / update
+//  - Supabase接続時: RPC（get_customer_poll / book_customer_slot）を呼ぶ。
+//    テーブルへの匿名アクセスは 0009 で廃止した。RPC は顧客用ポーリングの
+//    公開項目だけを返し、他の回答者の氏名・連絡先は返さない。
 //  - デモモード: localStorage 'dbl:data:schedule_polls' を直接読み書き
 // =============================================================
 
@@ -37,6 +39,31 @@ import {
 } from "@/app/(app)/booking/shared";
 
 const LS_KEY = "dbl:data:schedule_polls";
+
+/** get_customer_poll が返す公開項目（responses / created_at は返らない） */
+type PublicPoll = Omit<SchedulePoll, "responses" | "created_at" | "kind">;
+
+interface BookResult {
+  ok: boolean;
+  error?: string;
+  confirmed_index?: number;
+}
+
+/** RPC が返すエラーコードを利用者向けの文言にする */
+function bookErrorMessage(code: string | undefined): string {
+  switch (code) {
+    case "already_confirmed":
+      return "この日程はすでに確定済みです。主催者にご連絡ください。";
+    case "invalid_slot":
+      return "選択された候補が無効です。ページを再読み込みしてお試しください。";
+    case "name_required":
+      return "お名前を入力してください。";
+    case "not_found":
+      return "この予約リンクは無効です。主催者にご確認ください。";
+    default:
+      return "予約の確定に失敗しました。時間をおいて再度お試しください。";
+  }
+}
 
 /** デモモード: localStorage から poll 一覧を読む（未シードなら DEMO_POLLS で初期化） */
 function readLocalPolls(): SchedulePoll[] {
@@ -83,13 +110,13 @@ export default function InvitePage({
       if (isSupabaseConfigured()) {
         const sb = getSupabase();
         if (sb) {
-          const { data } = await sb
-            .from("schedule_polls")
-            .select("*")
-            .eq("id", id)
-            .maybeSingle();
+          // 公開してよい項目だけを返す RPC。responses は返らないので空で補う
+          const { data } = await sb.rpc("get_customer_poll", { p_id: id });
+          const row = Array.isArray(data) ? (data[0] as PublicPoll | undefined) : undefined;
           if (active) {
-            setPoll((data as SchedulePoll | null) ?? null);
+            setPoll(
+              row ? { ...row, responses: [], kind: "customer", created_at: "" } : null
+            );
             setLoading(false);
           }
           return;
@@ -126,11 +153,16 @@ export default function InvitePage({
       if (isSupabaseConfigured()) {
         const sb = getSupabase();
         if (sb) {
-          const { error: upErr } = await sb
-            .from("schedule_polls")
-            .update(patch)
-            .eq("id", poll.id);
+          // 予約の確定はサーバー側の RPC が検証して書き込む
+          const { data, error: upErr } = await sb.rpc("book_customer_slot", {
+            p_id: poll.id,
+            p_name: name.trim(),
+            p_email: email.trim(),
+            p_index: selectedIndex,
+          });
           if (upErr) throw upErr;
+          const result = data as BookResult | null;
+          if (!result?.ok) throw new Error(bookErrorMessage(result?.error));
         }
       } else {
         const next = readLocalPolls().map((p) =>

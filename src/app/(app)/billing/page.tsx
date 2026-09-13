@@ -22,10 +22,11 @@ import { InvoiceDetailModal, InvoiceFormModal } from "./invoice-modals";
 import { fetchLineStatus, pushInvoiceToLine } from "./line-client";
 import { isOverdue, type InvoiceFormValues } from "./shared";
 import type { PaymentEntry } from "./reconcile-tab";
+import { RequireCapability } from "@/components/layout/require-capability";
 
 type TabKey = "inbox" | "invoices" | "reconcile" | "statements" | "masters";
 
-export default function BillingPage() {
+function BillingPageInner() {
   const { user, isDemo } = useUser();
   const { toast } = useToast();
 
@@ -346,5 +347,15 @@ export default function BillingPage() {
         />
       )}
     </div>
+  );
+}
+
+// 権限のないロール（代理店ユーザーなど）が URL 直打ちで到達した場合に閉じる。
+// データ自体は RLS 側でも遮断される。
+export default function BillingPage() {
+  return (
+    <RequireCapability cap="billing" title="請求・支払は経営層と管理部のみ利用できます">
+      <BillingPageInner />
+    </RequireCapability>
   );
 }

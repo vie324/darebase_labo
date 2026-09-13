@@ -1,30 +1,37 @@
 "use client";
 
-// ステージ別カンバンボード（HTML5ドラッグ&ドロップでステージ移動）
+// 商談カンバン（1階）。列は PIPELINE_COLUMNS＝ステージ×確度ランク。
+// 後追いの列にドロップすると確度ランクもまとめて更新される
+// （判定は lib/pipeline.ts に集約。HTML5ドラッグ&ドロップ）。
 
 import { useState, type DragEvent } from "react";
-import { AlertTriangle, Briefcase, CalendarDays, Flag } from "lucide-react";
-import { DEAL_STAGES } from "@/lib/constants";
+import { AlertTriangle, Briefcase, CalendarDays, Flag, HelpCircle } from "lucide-react";
+import { PIPELINE_COLUMNS } from "@/lib/constants";
+import { columnKeyOf, needsConfidenceRank } from "@/lib/pipeline";
+import { useConfidenceCriteria } from "@/lib/settings";
 import { cn, formatDate, formatYenShort } from "@/lib/utils";
-import type { Deal, DealStage } from "@/lib/types";
+import type { Deal } from "@/lib/types";
 import { Avatar, Badge, EmptyState, ProgressBar } from "@/components/ui";
-import { STAGE_KEYS, isOpenStage, probabilityClass, sumAmount } from "./shared";
+import { isOpenStage, probabilityClass, sumAmount } from "./shared";
 
 export function DealBoard({
   deals,
   today,
   colorOf,
   onCardClick,
-  onStageChange,
+  onColumnChange,
 }: {
   deals: Deal[];
   today: string;
   colorOf: (name: string) => string;
   onCardClick: (deal: Deal) => void;
-  onStageChange: (deal: Deal, to: DealStage) => void;
+  /** カードを別の列に落としたとき（列キーは PIPELINE_COLUMNS.key） */
+  onColumnChange: (deal: Deal, toColumnKey: string) => void;
 }) {
   const [dragId, setDragId] = useState<string | null>(null);
-  const [dropStage, setDropStage] = useState<DealStage | null>(null);
+  const [dropKey, setDropKey] = useState<string | null>(null);
+  // 後追い列の見出しに、設定画面で決めた確度の判定基準を出す
+  const { criteria } = useConfidenceCriteria();
 
   if (deals.length === 0) {
     return (
@@ -36,34 +43,33 @@ export function DealBoard({
     );
   }
 
-  const handleDrop = (e: DragEvent, stage: DealStage) => {
+  const handleDrop = (e: DragEvent, columnKey: string) => {
     e.preventDefault();
     const id = e.dataTransfer.getData("text/plain") || dragId;
     setDragId(null);
-    setDropStage(null);
+    setDropKey(null);
     const deal = deals.find((d) => d.id === id);
-    if (deal && deal.stage !== stage) onStageChange(deal, stage);
+    if (deal && columnKeyOf(deal) !== columnKey) onColumnChange(deal, columnKey);
   };
 
   return (
     <div className="scrollbar-thin flex items-start gap-3 overflow-x-auto pb-4">
-      {STAGE_KEYS.map((stage) => {
-        const meta = DEAL_STAGES[stage];
+      {PIPELINE_COLUMNS.map((col) => {
         const cards = deals
-          .filter((d) => d.stage === stage)
+          .filter((d) => columnKeyOf(d) === col.key)
           .sort((a, b) => b.updated_at.localeCompare(a.updated_at));
         const total = sumAmount(cards);
-        const highlighted = dragId !== null && dropStage === stage;
+        const highlighted = dragId !== null && dropKey === col.key;
 
         return (
           <section
-            key={stage}
+            key={col.key}
             onDragOver={(e) => {
               e.preventDefault();
               e.dataTransfer.dropEffect = "move";
-              if (dropStage !== stage) setDropStage(stage);
+              if (dropKey !== col.key) setDropKey(col.key);
             }}
-            onDrop={(e) => handleDrop(e, stage)}
+            onDrop={(e) => handleDrop(e, col.key)}
             className={cn(
               "flex min-h-48 w-72 shrink-0 flex-col rounded-2xl border p-3 transition-colors duration-150",
               highlighted
@@ -71,9 +77,12 @@ export function DealBoard({
                 : "border-slate-200/70 bg-slate-100/60 dark:border-slate-800 dark:bg-slate-900/50"
             )}
           >
-            <header className="mb-3 flex items-center gap-2 px-1">
-              <span className={cn("h-2.5 w-2.5 shrink-0 rounded-full", meta.bar)} />
-              <h2 className="text-sm font-bold">{meta.label}</h2>
+            <header
+              className="mb-3 flex items-center gap-2 px-1"
+              title={col.rank ? `${col.label}: ${criteria[col.rank]}` : col.label}
+            >
+              <span className={cn("h-2.5 w-2.5 shrink-0 rounded-full", col.bar)} />
+              <h2 className="text-sm font-bold">{col.label}</h2>
               <span className="rounded-full bg-white px-2 text-xs leading-5 font-semibold text-slate-500 shadow-sm dark:bg-slate-800 dark:text-slate-400">
                 {cards.length}
               </span>
@@ -92,6 +101,7 @@ export function DealBoard({
               ) : (
                 cards.map((d) => {
                   const overdue = isOpenStage(d.stage) && d.expected_close < today;
+                  const unranked = needsConfidenceRank(d);
                   return (
                     <article
                       key={d.id}
@@ -103,7 +113,7 @@ export function DealBoard({
                       }}
                       onDragEnd={() => {
                         setDragId(null);
-                        setDropStage(null);
+                        setDropKey(null);
                       }}
                       onClick={() => onCardClick(d)}
                       className={cn(
@@ -128,8 +138,14 @@ export function DealBoard({
                       <ProgressBar
                         value={d.probability}
                         className="mt-1.5 h-1"
-                        barClassName={meta.bar}
+                        barClassName={col.bar}
                       />
+                      {unranked && (
+                        <p className="mt-2 inline-flex items-center gap-1 rounded-lg bg-amber-50 px-2 py-1 text-[11px] font-semibold text-amber-700 dark:bg-amber-500/10 dark:text-amber-400">
+                          <HelpCircle className="h-3 w-3" />
+                          確度未判定
+                        </p>
+                      )}
                       {d.next_action && (
                         <p className="mt-2.5 flex items-start gap-1.5 rounded-lg bg-slate-50 px-2 py-1.5 text-xs leading-relaxed text-slate-500 dark:bg-slate-800/70 dark:text-slate-400">
                           <Flag className="mt-0.5 h-3 w-3 shrink-0 text-cyan-400" />

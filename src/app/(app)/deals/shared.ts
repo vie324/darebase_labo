@@ -4,7 +4,7 @@ import { DEAL_STAGES } from "@/lib/constants";
 import { dateFromNow } from "@/lib/utils";
 import type { Deal, DealStage } from "@/lib/types";
 
-/** ステージを order 順（lead → lost）に並べた配列 */
+/** ステージを order 順（商談予定 → 失注）に並べた配列 */
 export const STAGE_KEYS: DealStage[] = (Object.keys(DEAL_STAGES) as DealStage[]).sort(
   (a, b) => DEAL_STAGES[a].order - DEAL_STAGES[b].order
 );
@@ -37,12 +37,16 @@ export interface DealFormValues {
   company: string;
   contact_name: string;
   stage: DealStage;
+  /** 確度ランク A/B/C（"" = 未判定）。後追いステージのみ意味を持つ */
+  confidence_rank: string;
   amount: number;
   probability: number;
   expected_close: string;
   owner_name: string;
   next_action: string;
   memo: string;
+  /** 受注後フェーズ（FULFILLMENT_STAGES のキー。"" = 未設定） */
+  fulfillment_status: string;
 }
 
 export function toFormValues(d: Deal): DealFormValues {
@@ -51,12 +55,14 @@ export function toFormValues(d: Deal): DealFormValues {
     company: d.company,
     contact_name: d.contact_name,
     stage: d.stage,
+    confidence_rank: d.confidence_rank ?? "",
     amount: d.amount,
     probability: d.probability,
     expected_close: d.expected_close,
     owner_name: d.owner_name,
     next_action: d.next_action,
     memo: d.memo,
+    fulfillment_status: d.fulfillment_status ?? "",
   };
 }
 
@@ -65,12 +71,14 @@ export function emptyFormValues(owner: string): DealFormValues {
     name: "",
     company: "",
     contact_name: "",
-    stage: "lead",
+    stage: "appointment",
+    confidence_rank: "",
     amount: 0,
     probability: 10,
     expected_close: dateFromNow(30),
     owner_name: owner,
     next_action: "",
     memo: "",
+    fulfillment_status: "",
   };
 }

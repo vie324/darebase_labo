@@ -1,18 +1,31 @@
 "use client";
 
 // =============================================================
-// 案件管理 — ボード（カンバン）/ リスト / レポートの3ビュー。
-// ステージ移動は deal_activities に履歴を自動記録し、
-// updated_at を更新する。
+// 案件管理 — 商談カンバン（1階）/ 受注後カンバン（2階）/ リスト / レポート。
+//
+// 1階は「商談予定 → 後追い C/B/A → 発注書待ち → 受注／失注」。
+// 受注（発注書受領）した案件は2階に移り、契約・見積 → リース審査 →
+// 設置調整中 → 設置待ち → 開通済み で完工まで追う。
+// 列の定義と遷移ルールは lib/constants.ts と lib/pipeline.ts に集約。
+// ステージ移動は deal_activities に履歴を自動記録し、updated_at を更新する。
 // =============================================================
 
 import { useState } from "react";
 import { Briefcase, Percent, Plus, Target, TrendingUp, Trophy } from "lucide-react";
 import { useCollection } from "@/lib/use-collection";
 import { useUser } from "@/lib/use-user";
-import { DEAL_STAGES } from "@/lib/constants";
+import { useAccess } from "@/lib/use-access";
+import { DEAL_STAGES, FULFILLMENT_GROUPS } from "@/lib/constants";
+import {
+  columnByKey,
+  columnKeyOf,
+  fulfillmentGroupOf,
+  fulfillmentLabel,
+  fulfillmentTransition,
+  pipelineTransition,
+} from "@/lib/pipeline";
 import { formatYenShort, todayStr } from "@/lib/utils";
-import type { ActivityType, Deal, DealStage } from "@/lib/types";
+import type { ActivityType, Deal } from "@/lib/types";
 import {
   Button,
   PageHeader,
@@ -24,14 +37,18 @@ import {
 } from "@/components/ui";
 import { isOpenStage, sumAmount, weightedAmount, type DealFormValues } from "./shared";
 import { DealBoard } from "./deal-board";
+import { FulfillmentBoard } from "./fulfillment-board";
 import { DealList } from "./deal-list";
 import { DealReport } from "./deal-report";
 import { DealDetailModal, DealFormModal } from "./deal-modals";
 
-type ViewKey = "board" | "list" | "report";
+type ViewKey = "board" | "fulfillment" | "list" | "report";
 
 export default function DealsPage() {
   const { user } = useUser();
+  // 代理店ユーザーが登録した案件は自社（organization）に紐づける。
+  // これが無いと RLS のスコープ外になり保存できない（本部ユーザーは null）。
+  const { organizationId, loading: accessLoading } = useAccess();
   const deals = useCollection("deals");
   const activities = useCollection("deal_activities");
   const profiles = useCollection("profiles");
@@ -43,7 +60,7 @@ export default function DealsPage() {
   const [formOpen, setFormOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Deal | null>(null);
 
-  if (!user || deals.loading || activities.loading || profiles.loading) {
+  if (!user || accessLoading || deals.loading || activities.loading || profiles.loading) {
     return <PageSkeleton />;
   }
 
@@ -76,6 +93,13 @@ export default function DealsPage() {
       ? Math.round((wonDeals.length / (wonDeals.length + lostCount)) * 100)
       : null;
 
+  // 受注後（2階）の案件と、まだ開通していない件数
+  const fulfillmentDeals = deals.items.filter((d) => d.stage === "won");
+  const activatedKey = FULFILLMENT_GROUPS[FULFILLMENT_GROUPS.length - 1].key;
+  const inProgressCount = fulfillmentDeals.filter(
+    (d) => fulfillmentGroupOf(d.fulfillment_status) !== activatedKey
+  ).length;
+
   const detailDeal = detailId ? (deals.items.find((d) => d.id === detailId) ?? null) : null;
   const detailActivities = detailDeal
     ? activities.items
@@ -84,16 +108,46 @@ export default function DealsPage() {
     : [];
 
   // ---------- 操作 ----------
-  const changeStage = async (deal: Deal, to: DealStage) => {
-    if (deal.stage === to) return;
-    const patch: Partial<Deal> = { stage: to, updated_at: new Date().toISOString() };
-    if (to === "won") patch.probability = 100;
-    if (to === "lost") patch.probability = 0;
+
+  /** 商談カンバン（1階）の列移動。確度ランクと確度(%)もまとめて更新される */
+  const changeColumn = async (deal: Deal, toColumnKey: string) => {
+    const from = columnByKey(columnKeyOf(deal));
+    const to = columnByKey(toColumnKey);
+    if (!to || from?.key === to.key) return;
+    await deals.update(deal.id, pipelineTransition(deal, toColumnKey, today));
+    await activities.add({
+      deal_id: deal.id,
+      type: "stage_change",
+      note: `${from?.label ?? DEAL_STAGES[deal.stage].label} → ${to.label} に変更`,
+      author_name: user.name,
+    });
+  };
+
+  /** 受注後カンバン（2階）の列移動。その列の先頭フェーズに設定する */
+  const changeFulfillmentGroup = async (deal: Deal, toGroupKey: string) => {
+    const patch = fulfillmentTransition(toGroupKey, today);
+    if (!patch.fulfillment_status) return;
     await deals.update(deal.id, patch);
     await activities.add({
       deal_id: deal.id,
       type: "stage_change",
-      note: `${DEAL_STAGES[deal.stage].label} → ${DEAL_STAGES[to].label} に変更`,
+      note: `受注後フェーズを「${fulfillmentLabel(patch.fulfillment_status)}」に変更`,
+      author_name: user.name,
+    });
+  };
+
+  /** 受注後の詳細フェーズ（11段）を直接指定する */
+  const changeFulfillmentStage = async (deal: Deal, toStageKey: string) => {
+    if (deal.fulfillment_status === toStageKey) return;
+    await deals.update(deal.id, {
+      fulfillment_status: toStageKey,
+      fulfillment_updated_at: today,
+      updated_at: new Date().toISOString(),
+    });
+    await activities.add({
+      deal_id: deal.id,
+      type: "stage_change",
+      note: `受注後フェーズを「${fulfillmentLabel(toStageKey)}」に変更`,
       author_name: user.name,
     });
   };
@@ -121,7 +175,12 @@ export default function DealsPage() {
     if (editTarget) {
       await deals.update(editTarget.id, { ...values, updated_at: now });
     } else {
-      const row = await deals.add({ ...values, updated_at: now });
+      const row = await deals.add({
+        ...values,
+        updated_at: now,
+        organization_id: organizationId,
+        owner_id: user.id,
+      });
       await activities.add({
         deal_id: row.id,
         type: "note",
@@ -172,7 +231,7 @@ export default function DealsPage() {
         <StatCard
           label="受注額"
           value={formatYenShort(wonAmount)}
-          sub={`${wonDeals.length}件を受注`}
+          sub={`${wonDeals.length}件を受注 / 完工待ち ${inProgressCount}件`}
           icon={<Trophy className="h-5 w-5" />}
           accent="emerald"
         />
@@ -189,7 +248,8 @@ export default function DealsPage() {
       <div className="mt-6 flex flex-wrap items-center gap-3">
         <Tabs<ViewKey>
           tabs={[
-            { key: "board", label: "ボード", count: filtered.length },
+            { key: "board", label: "商談", count: filtered.length },
+            { key: "fulfillment", label: "受注後", count: fulfillmentDeals.length },
             { key: "list", label: "リスト", count: filtered.length },
             { key: "report", label: "レポート" },
           ]}
@@ -229,7 +289,17 @@ export default function DealsPage() {
             today={today}
             colorOf={colorOf}
             onCardClick={(d) => setDetailId(d.id)}
-            onStageChange={changeStage}
+            onColumnChange={changeColumn}
+          />
+        )}
+        {view === "fulfillment" && (
+          <FulfillmentBoard
+            deals={filtered.filter((d) => d.stage === "won")}
+            today={today}
+            colorOf={colorOf}
+            onCardClick={(d) => setDetailId(d.id)}
+            onGroupChange={changeFulfillmentGroup}
+            onStageChange={changeFulfillmentStage}
           />
         )}
         {view === "list" && (
@@ -257,7 +327,7 @@ export default function DealsPage() {
             setFormOpen(true);
           }}
           onDelete={removeDeal}
-          onStageChange={changeStage}
+          onColumnChange={changeColumn}
           onAddActivity={addActivity}
         />
       )}

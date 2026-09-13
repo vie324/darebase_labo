@@ -50,10 +50,11 @@ import {
   CustomerLinkModal,
   type CustomerLinkPayload,
 } from "./customer-link-modal";
+import { RequireCapability } from "@/components/layout/require-capability";
 
 type FilterKey = "all" | "open" | "confirmed";
 
-export default function BookingPage() {
+function BookingPageInner() {
   const { user } = useUser();
   const polls = useCollection("schedule_polls");
   const events = useCollection("events");
@@ -441,5 +442,15 @@ function PollCard({
         </span>
       </div>
     </Card>
+  );
+}
+
+// 権限のないロール（代理店ユーザーなど）が URL 直打ちで到達した場合に閉じる。
+// データ自体は RLS 側でも遮断される。
+export default function BookingPage() {
+  return (
+    <RequireCapability cap="scheduling_poll" title="日程調整は本部メンバーのみ利用できます">
+      <BookingPageInner />
+    </RequireCapability>
   );
 }

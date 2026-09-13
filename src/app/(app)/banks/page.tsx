@@ -57,12 +57,14 @@ import {
   type BranchFormValues,
   type BranchSortKey,
 } from "./shared";
+import { useAccess } from "@/lib/use-access";
 
 type DormancyFilter = "all" | "dormant" | "never" | "unassigned";
 
 export default function BanksPage() {
   const { user } = useUser();
   const { toast } = useToast();
+  const { can } = useAccess();
   const banks = useCollection("banks");
   const branches = useCollection("branches");
   const appointments = useCollection("appointments");
@@ -393,6 +395,9 @@ export default function BanksPage() {
   const members = profiles.items;
   const activeOrgs = organizations.items.filter((o) => o.is_active);
   const hasData = banks.items.length > 0;
+  // マスタの追加・取込・担当振り替えは本部のみ（DB 側も banks_write / branches_insert
+  // が is_hq のため、代理店には操作させない）
+  const canEditMaster = can("master_edit");
 
   return (
     <div>
@@ -401,28 +406,30 @@ export default function BanksPage() {
         description="支店ごとの稼働状況を可視化し、放置支店の担当を振り替える"
         icon={<Landmark className="h-5 w-5" />}
         actions={
-          <>
-            <Button size="sm" variant="secondary" onClick={() => setImportOpen(true)}>
-              <Upload className="h-4 w-4" />
-              CSV取込
-            </Button>
-            <Button
-              size="sm"
-              variant="secondary"
-              onClick={() => setBankForm({ initial: null })}
-            >
-              <Plus className="h-4 w-4" />
-              銀行
-            </Button>
-            <Button
-              size="sm"
-              onClick={() => setBranchForm({ initial: null })}
-              disabled={banks.items.length === 0}
-            >
-              <Plus className="h-4 w-4" />
-              支店
-            </Button>
-          </>
+          canEditMaster ? (
+            <>
+              <Button size="sm" variant="secondary" onClick={() => setImportOpen(true)}>
+                <Upload className="h-4 w-4" />
+                CSV取込
+              </Button>
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => setBankForm({ initial: null })}
+              >
+                <Plus className="h-4 w-4" />
+                銀行
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => setBranchForm({ initial: null })}
+                disabled={banks.items.length === 0}
+              >
+                <Plus className="h-4 w-4" />
+                支店
+              </Button>
+            </>
+          ) : undefined
         }
       />
 
@@ -430,12 +437,18 @@ export default function BanksPage() {
         <EmptyState
           icon={<Landmark className="h-10 w-10" />}
           title="銀行が登録されていません"
-          description="提供された銀行・支店リストをCSVで取り込むか、手動で登録してください"
+          description={
+            canEditMaster
+              ? "提供された銀行・支店リストをCSVで取り込むか、手動で登録してください"
+              : "自社に割り当てられた支店がまだありません。本部にお問い合わせください"
+          }
           action={
-            <Button onClick={() => setImportOpen(true)}>
-              <Upload className="h-4 w-4" />
-              CSVを取り込む
-            </Button>
+            canEditMaster ? (
+              <Button onClick={() => setImportOpen(true)}>
+                <Upload className="h-4 w-4" />
+                CSVを取り込む
+              </Button>
+            ) : undefined
           }
         />
       ) : (

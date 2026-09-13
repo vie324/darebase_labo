@@ -18,9 +18,18 @@ export interface Profile extends BaseRow {
   color: string; // アバター用のtailwind色名 例: "indigo" | "emerald"
   /**
    * 経営層区分（任意・後方互換）。未設定は "member" 扱い。
-   * "executive" のみ経営ダッシュボード・権限管理にアクセスできる（UI上のゲート）。
+   * 0006 以降は role_key が正で、これは旧UIとの互換のために残している。
    */
   access_level?: "executive" | "member";
+  /**
+   * ロール（0006 で追加）。値の一覧は lib/roles.ts の RoleKey に集約。
+   * DB のポリシー（RLS）もこのキーで判定するので、必ず roles.ts と揃えること。
+   */
+  role_key?: string;
+  /** 所属組織。代理店ユーザーのみ設定される（本部社員は null） */
+  organization_id?: string | null;
+  /** 無効化されたアカウント（false のユーザーは RLS 上どのデータにも到達できない） */
+  is_active?: boolean;
 }
 
 // ---------- スケジュール ----------
@@ -35,16 +44,23 @@ export interface CalendarEvent extends BaseRow {
   category: EventCategory;
   location: string;
   owner_name: string;
+  /** 作成者（0006）。DB 側で default auth.uid() が入るためアプリからは省略可 */
+  owner_id?: string | null;
 }
 
 // ---------- 案件管理 ----------
+/**
+ * 商談ステージ（1階）。
+ * 「商談後追い C/B/A」は follow_up + confidence_rank の組み合わせで表す
+ * （カンバンの列定義は constants.ts の PIPELINE_COLUMNS）。
+ * 受注後の進捗は fulfillment_status（2階）で管理する。
+ */
 export type DealStage =
-  | "lead"
-  | "qualified"
-  | "proposal"
-  | "negotiation"
-  | "won"
-  | "lost";
+  | "appointment" // 商談予定
+  | "follow_up" // 商談後追い（確度 A/B/C）
+  | "po_wait" // 発注書待ち
+  | "won" // 受注（発注書を受領）
+  | "lost"; // 失注
 
 export interface Deal extends BaseRow {
   name: string; // 案件名
@@ -58,6 +74,8 @@ export interface Deal extends BaseRow {
   next_action: string;
   memo: string;
   updated_at: string;
+  /** 担当者のユーザーID（0006）。代理店メンバーのスコープ判定に使う */
+  owner_id?: string | null;
 
   // ---- 銀行営業の拡張（0005 で追加・すべて任意 / 後方互換） ----
   // Phase 1 では「アポイントの案件化」で bank_id / branch_id / appointment_id のみ設定する。
@@ -101,6 +119,7 @@ export interface TaskItem extends BaseRow {
   assignee_name: string;
   related_deal: string; // 案件名 ("" = なし)
   completed_at: string | null;
+  owner_id?: string | null; // 作成者（0006・RLSの個人スコープ用）
 }
 
 // ---------- 名刺管理 ----------
@@ -120,6 +139,7 @@ export interface Contact extends BaseRow {
   card_image_url: string; // 名刺画像 (dataURL or Supabase Storage URL)
   exchanged_at: string; // YYYY-MM-DD 名刺交換日
   owner_name: string; // 登録者
+  owner_id?: string | null; // 登録者のユーザーID（0006・RLSの個人スコープ用）
 }
 
 // ---------- ナレッジ共有 ----------
@@ -185,6 +205,7 @@ export interface RoleplaySession extends BaseRow {
   self_note: string; // 振り返りメモ
   feedbacks: RoleplayFeedback[]; // jsonb
   media_url: string; // 録音/録画データ (objectURL or Storage URL)
+  owner_id?: string | null; // 実施者のユーザーID（0006・RLSの個人スコープ用）
 }
 
 // ---------- 勉強会（営業代理業のツール勉強会など） ----------
@@ -400,6 +421,11 @@ export interface Organization extends BaseRow {
   commission_rate: number; // % （Phase 3 の報酬計算で使用。Phase 1 では表示のみ）
   is_active: boolean;
   business_unit_id: string | null;
+  /**
+   * 請求先（partners.kind='agency'）への紐付け（0006）。
+   * 代理店ユーザーに「自社宛の支払・自社取り分の明細」だけを見せるために使う。
+   */
+  partner_id?: string | null;
 }
 
 // ---------- 銀行営業: 銀行・支店マスタ ----------
@@ -469,6 +495,21 @@ export interface BranchActivity extends BaseRow {
   business_unit_id: string | null;
 }
 
+// ---------- 招待（サインアップは招待制。0006） ----------
+/**
+ * 招待レコード。同じメールで Supabase Auth のアカウントが作られたときに
+ * handle_new_user トリガーが role_key / organization_id を profiles へ適用する。
+ */
+export interface UserInvite extends BaseRow {
+  email: string;
+  role_key: string; // lib/roles.ts の RoleKey
+  organization_id: string | null; // 代理店を招待する場合のみ
+  invited_by: string; // 招待者の表示名
+  note: string;
+  accepted_at: string | null; // ISO（null = 未使用）
+  expires_at: string; // ISO
+}
+
 // ---------- アプリ設定（休眠判定日数など「先方未確定の値」の受け皿） ----------
 export interface AppSetting extends BaseRow {
   key: string; // 例: "branch_activity"
@@ -507,6 +548,7 @@ export interface TableMap {
   appointments: Appointment;
   branch_activities: BranchActivity;
   app_settings: AppSetting;
+  user_invites: UserInvite;
 }
 
 export type TableName = keyof TableMap;

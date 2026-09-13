@@ -57,6 +57,7 @@ import {
   type ContactFormValues,
 } from "./shared";
 import { parseBusinessCard, runOcr, type ParsedCardFields } from "./ocr";
+import { useFileUrl } from "@/lib/use-file-url";
 
 function InfoRow({
   icon,
@@ -134,19 +135,13 @@ export function ContactDetailModal({
           )}
         </div>
 
-        {/* 名刺画像 */}
+        {/* 名刺画像（非公開バケットのパスは署名URLに解決してから表示する） */}
         {contact.card_image_url && (
           <div>
             <p className="mb-1.5 text-xs font-semibold text-slate-500 dark:text-slate-400">
               名刺画像
             </p>
-            {/* dataURL / objectURL を扱うため next/image ではなく img を使う */}
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={contact.card_image_url}
-              alt={`${contact.name}の名刺`}
-              className="max-h-64 w-full rounded-xl border border-slate-200 bg-slate-50 object-contain dark:border-slate-800 dark:bg-slate-800/50"
-            />
+            <CardImage src={contact.card_image_url} alt={`${contact.name}の名刺`} />
           </div>
         )}
 
@@ -327,8 +322,8 @@ export function ContactFormModal({
     setUploading(true);
     try {
       const ext = (file.name.split(".").pop() || "png").toLowerCase();
-      const { url, persistent } = await storeFile(file, `cards/${uid()}.${ext}`);
-      set("card_image_url", url);
+      const { ref, persistent } = await storeFile(file, `cards/${uid()}.${ext}`);
+      set("card_image_url", ref);
       setTransientImage(!persistent);
     } catch {
       alert("画像のアップロードに失敗しました。時間をおいて再度お試しください。");
@@ -384,9 +379,9 @@ export function ContactFormModal({
       // 認識に使った画像を名刺画像としても保存する（空欄のときのみ）
       try {
         const ext = (file.name.split(".").pop() || "png").toLowerCase();
-        const { url, persistent } = await storeFile(file, `cards/${uid()}.${ext}`);
+        const { ref, persistent } = await storeFile(file, `cards/${uid()}.${ext}`);
         setValues((prev) =>
-          prev.card_image_url ? prev : { ...prev, card_image_url: url }
+          prev.card_image_url ? prev : { ...prev, card_image_url: ref }
         );
         setTransientImage((prev) => prev || !persistent);
       } catch {
@@ -700,8 +695,7 @@ export function ContactFormModal({
             </p>
             {values.card_image_url ? (
               <div className="relative inline-block">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
+                <CardImage
                   src={values.card_image_url}
                   alt="名刺画像プレビュー"
                   className="max-h-44 rounded-xl border border-slate-200 bg-slate-50 object-contain dark:border-slate-700 dark:bg-slate-800/50"
@@ -755,4 +749,33 @@ export function ContactFormModal({
       </form>
     </Modal>
   );
+}
+
+/**
+ * 名刺画像。DB に入っているのは非公開バケットのパスなので、
+ * 署名URLに解決してから表示する（dataURL / objectURL はそのまま）。
+ */
+function CardImage({
+  src,
+  alt,
+  className = "max-h-64 w-full rounded-xl border border-slate-200 bg-slate-50 object-contain dark:border-slate-800 dark:bg-slate-800/50",
+}: {
+  src: string;
+  alt: string;
+  className?: string;
+}) {
+  const { url, loading } = useFileUrl(src);
+  if (loading) {
+    return <div className={cn(className, "h-32 animate-pulse bg-slate-100 dark:bg-slate-800")} />;
+  }
+  if (!url) {
+    return (
+      <div className="rounded-xl border border-dashed border-slate-200 px-4 py-6 text-center text-xs text-slate-400 dark:border-slate-700 dark:text-slate-500">
+        画像を読み込めませんでした
+      </div>
+    );
+  }
+  // dataURL / 署名URL を扱うため next/image ではなく img を使う
+  // eslint-disable-next-line @next/next/no-img-element
+  return <img src={url} alt={alt} className={className} />;
 }

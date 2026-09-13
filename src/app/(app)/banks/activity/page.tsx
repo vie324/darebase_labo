@@ -55,11 +55,15 @@ import {
   rateBarClass,
   rateTextClass,
 } from "../shared";
+import { useAccess } from "@/lib/use-access";
 
 const HEATMAP_MONTHS = 12;
 
 export default function BranchActivityPage() {
   const banks = useCollection("banks");
+  // 担当振り替えの導線は本部のみ（DB 側も branches の担当変更は本部前提）
+  const { can } = useAccess();
+  const canEditMaster = can("master_edit");
   const branches = useCollection("branches");
   const appointments = useCollection("appointments");
   const activities = useCollection("branch_activities");
@@ -349,16 +353,20 @@ export default function BranchActivityPage() {
               </span>
             </h2>
             <p className="mt-0.5 text-xs text-slate-400">
-              放置期間が長い順。担当の振り替えは銀行・支店マスタから行えます
+              {canEditMaster
+                ? "放置期間が長い順。担当の振り替えは銀行・支店マスタから行えます"
+                : "放置期間が長い順。接点を作って稼働に戻しましょう"}
             </p>
           </div>
-          <Link
-            href="/banks"
-            className="group inline-flex items-center gap-1 text-xs font-semibold text-cyan-600 hover:text-cyan-500 dark:text-cyan-400"
-          >
-            担当を振り替える
-            <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
-          </Link>
+          {canEditMaster && (
+            <Link
+              href="/banks"
+              className="group inline-flex items-center gap-1 text-xs font-semibold text-cyan-600 hover:text-cyan-500 dark:text-cyan-400"
+            >
+              担当を振り替える
+              <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+            </Link>
+          )}
         </div>
         {dormant.length === 0 ? (
           <EmptyState

@@ -36,7 +36,6 @@ const T: BranchActivityThresholds = {
 
 function branch(over: Partial<Branch> & { id: string }): Branch {
   return {
-    id: over.id,
     bank_id: "bank-1",
     name: "支店",
     code: "",
@@ -57,7 +56,6 @@ function branch(over: Partial<Branch> & { id: string }): Branch {
 
 function appointment(over: Partial<Appointment> & { id: string }): Appointment {
   return {
-    id: over.id,
     bank_id: "bank-1",
     branch_id: "br-1",
     assigned_to: null,
@@ -82,7 +80,6 @@ function appointment(over: Partial<Appointment> & { id: string }): Appointment {
 
 function activity(over: Partial<BranchActivity> & { id: string }): BranchActivity {
   return {
-    id: over.id,
     branch_id: "br-1",
     bank_id: "bank-1",
     user_id: null,

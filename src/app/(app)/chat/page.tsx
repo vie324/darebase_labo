@@ -14,8 +14,9 @@ import { cn } from "@/lib/utils";
 import { ChannelSidebar } from "./channel-sidebar";
 import { MessageArea } from "./message-area";
 import { ChannelFormModal, type ChannelFormValues } from "./channel-form-modal";
+import { RequireCapability } from "@/components/layout/require-capability";
 
-export default function ChatPage() {
+function ChatPageInner() {
   const {
     items: channels,
     loading: channelsLoading,
@@ -136,5 +137,15 @@ export default function ChatPage() {
         onSubmit={handleCreateChannel}
       />
     </div>
+  );
+}
+
+// 権限のないロール（代理店ユーザーなど）が URL 直打ちで到達した場合に閉じる。
+// データ自体は RLS 側でも遮断される。
+export default function ChatPage() {
+  return (
+    <RequireCapability cap="internal_comms" title="社内チャットは本部メンバーのみ利用できます">
+      <ChatPageInner />
+    </RequireCapability>
   );
 }

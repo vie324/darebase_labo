@@ -31,6 +31,7 @@ import type { RoleplayFeedback, RoleplaySession } from "@/lib/types";
 import { averageRating, bySessionNewest, MODE_META } from "./helpers";
 import { StarRating, StarRatingInput } from "./star-rating";
 import { AnalysisGrid } from "./practice-panel";
+import { useFileUrl } from "@/lib/use-file-url";
 
 export function HistoryPanel({
   sessions,
@@ -206,15 +207,7 @@ function SessionDetailModal({
             )}
             録音再生
           </p>
-          {session.mode === "screen" ? (
-            <video
-              src={session.media_url}
-              controls
-              className="w-full rounded-xl border border-slate-200 bg-black dark:border-slate-700"
-            />
-          ) : (
-            <audio src={session.media_url} controls className="w-full" />
-          )}
+          <MediaPlayer src={session.media_url} mode={session.mode} />
         </div>
       ) : (
         <div className="mb-4 rounded-xl bg-slate-50 px-4 py-3 text-xs text-slate-400 dark:bg-slate-800/50 dark:text-slate-500">
@@ -332,4 +325,34 @@ function SessionDetailModal({
       )}
     </Modal>
   );
+}
+
+/**
+ * 録音/録画の再生。DB に入っているのは非公開バケットのパスなので、
+ * 署名URLに解決してから <video> / <audio> に渡す。
+ */
+function MediaPlayer({ src, mode }: { src: string; mode: "audio" | "screen" }) {
+  const { url, loading } = useFileUrl(src);
+  if (loading) {
+    return (
+      <div className="h-10 animate-pulse rounded-xl bg-slate-100 dark:bg-slate-800" />
+    );
+  }
+  if (!url) {
+    return (
+      <div className="rounded-xl bg-slate-50 px-4 py-3 text-xs text-slate-400 dark:bg-slate-800/50 dark:text-slate-500">
+        録音データを取得できませんでした。
+      </div>
+    );
+  }
+  if (mode === "screen") {
+    return (
+      <video
+        src={url}
+        controls
+        className="w-full rounded-xl border border-slate-200 bg-black dark:border-slate-700"
+      />
+    );
+  }
+  return <audio src={url} controls className="w-full" />;
 }

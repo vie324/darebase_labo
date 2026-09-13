@@ -38,6 +38,7 @@ import {
 import { fileTypeStyle, formatSize, type DocFormValues } from "./shared";
 import { DocGridCard, DocListRow } from "./doc-card";
 import { DocDetailModal, DocFormModal } from "./doc-modals";
+import { useAccess } from "@/lib/use-access";
 
 type ViewKey = "grid" | "list";
 type SortKey = "recent" | "name" | "downloads";
@@ -53,6 +54,9 @@ const RANK_STYLES = [
 export default function DocumentsPage() {
   const { user } = useUser();
   const docs = useCollection("documents");
+  // 資料の追加は本部のみ（代理店は閲覧のみ。DB 側も shared_write_documents で拒否）
+  const { can } = useAccess();
+  const canEdit = can("content_edit");
   const profiles = useCollection("profiles");
 
   const [view, setView] = useState<ViewKey>("grid");
@@ -153,10 +157,12 @@ export default function DocumentsPage() {
         description="提案書・料金表・事例集をチームで共有するライブラリ"
         icon={<FolderOpen className="h-5 w-5" />}
         actions={
-          <Button size="sm" onClick={openCreate}>
-            <FileUp className="h-4 w-4" />
-            資料をアップロード
-          </Button>
+          canEdit ? (
+            <Button size="sm" onClick={openCreate}>
+              <FileUp className="h-4 w-4" />
+              資料をアップロード
+            </Button>
+          ) : undefined
         }
       />
 
@@ -310,7 +316,7 @@ export default function DocumentsPage() {
                 : "検索キーワードやカテゴリを変更してみてください"
             }
             action={
-              total === 0 ? (
+              total === 0 && canEdit ? (
                 <Button size="sm" onClick={openCreate}>
                   <FileUp className="h-4 w-4" />
                   資料をアップロード

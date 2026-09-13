@@ -15,7 +15,6 @@ import type { Bank, Branch } from "./types.ts";
 
 function bank(over: Partial<Bank> & { id: string }): Bank {
   return {
-    id: over.id,
     name: "テスト銀行",
     code: "",
     is_active: true,
@@ -27,7 +26,6 @@ function bank(over: Partial<Bank> & { id: string }): Bank {
 
 function branch(over: Partial<Branch> & { id: string }): Branch {
   return {
-    id: over.id,
     bank_id: "bank-1",
     name: "支店",
     code: "",
