@@ -411,7 +411,7 @@ export default function BanksPage() {
             <>
               <Button size="sm" variant="secondary" onClick={() => setImportOpen(true)}>
                 <Upload className="h-4 w-4" />
-                CSV取込
+                まとめて登録
               </Button>
               <Button
                 size="sm"
@@ -440,14 +440,14 @@ export default function BanksPage() {
           title="銀行が登録されていません"
           description={
             canEditMaster
-              ? "提供された銀行・支店リストをCSVで取り込むか、手動で登録してください"
+              ? "支店名を1行ずつ貼り付けるだけで登録できます。CSV・スプレッドシートからの取込にも対応しています"
               : "自社に割り当てられた支店がまだありません。本部にお問い合わせください"
           }
           action={
             canEditMaster ? (
               <Button onClick={() => setImportOpen(true)}>
                 <Upload className="h-4 w-4" />
-                CSVを取り込む
+                銀行・支店を登録
               </Button>
             ) : undefined
           }

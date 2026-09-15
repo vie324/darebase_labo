@@ -136,7 +136,7 @@ export default function BranchActivityPage() {
         <EmptyState
           icon={<Building2 className="h-10 w-10" />}
           title="支店が登録されていません"
-          description="銀行・支店マスタでCSVを取り込むと、ここに稼働状況が表示されます"
+          description="銀行・支店マスタで支店を登録すると、ここに稼働状況が表示されます"
           action={
             <Link
               href="/banks"

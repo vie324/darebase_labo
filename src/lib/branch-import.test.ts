@@ -207,7 +207,7 @@ test("buildImportPlan: 銀行名の空白差は同一とみなす", () => {
   assert.equal(plan.rows[0].existingBankId, "bank-1");
 });
 
-test("buildImportPlan: 同一CSV内の重複行はスキップする", () => {
+test("buildImportPlan: 同一の取込内にある重複行はスキップする", () => {
   const plan = buildImportPlan(
     [
       ["みらい銀行", "0001", "渋谷支店", "001"],
@@ -219,7 +219,7 @@ test("buildImportPlan: 同一CSV内の重複行はスキップする", () => {
   );
   assert.equal(plan.createCount, 1);
   assert.equal(plan.skipCount, 1);
-  assert.equal(plan.rows[1].reason, "同じCSV内に同一の支店が複数あります");
+  assert.equal(plan.rows[1].reason, "同じ支店が複数行にあります");
 });
 
 test("buildImportPlan: 銀行名・支店名が欠けた行はエラーとして数える", () => {

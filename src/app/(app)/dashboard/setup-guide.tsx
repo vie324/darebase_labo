@@ -71,8 +71,8 @@ export function SetupGuide() {
   const candidates: (Step | false)[] = [
     can("master_edit") && {
       key: "branches",
-      title: "銀行・支店リストを取り込む",
-      description: "CSVを取り込むと、支店ごとの稼働状況を追えるようになります",
+      title: "銀行・支店リストを登録する",
+      description: "支店名を貼り付けるだけで登録できます。支店ごとの稼働状況を追えるようになります",
       href: "/banks",
       icon: <Landmark className="h-4 w-4" />,
       done: branches.items.length > 0,
