@@ -75,7 +75,8 @@ export type Capability =
   | "internal_comms" // チャット・掲示板（社内向け）
   | "scheduling_poll" // 日程調整
   | "content_edit" // ナレッジ・営業資料・トークスクリプト・勉強会の作成/編集
-  | "master_edit" // 銀行・支店マスタの編集／CSV取込／担当振り替え
+  | "master_add" // 銀行・支店の登録（自分が回る支店を自分で足せるように全社員へ）
+  | "master_edit" // 銀行・支店マスタの削除・担当の一括振り替え
   | "settings_admin" // 判定基準などの設定変更
   | "role_admin" // ロール付与・招待の発行
   | "recruiting" // 採用（履歴書・面接ログ＝応募者の個人情報）
@@ -93,6 +94,9 @@ const HQ_BASE: Capability[] = [
   // 勤怠・経費・自分の評価は本部社員全員が使う。
   // 代理店スタッフの勤怠・経費・評価は管理しない方針なので partner_* には付けない。
   "hr_self",
+  // 銀行・支店の登録は本部社員全員。訪問先を自分で足せないと現場が止まるため。
+  // 削除と担当の一括振り替えは master_edit 側に残す（取り返しがつかないため）。
+  "master_add",
 ];
 
 export const ROLE_CAPABILITIES: Record<RoleKey, Capability[]> = {

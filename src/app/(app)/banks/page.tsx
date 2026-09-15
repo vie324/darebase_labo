@@ -398,6 +398,8 @@ export default function BanksPage() {
   const hasData = banks.items.length > 0;
   // マスタの追加・取込・担当振り替えは本部のみ（DB 側も banks_write / branches_insert
   // が is_hq のため、代理店には操作させない）
+  // 登録は本部社員全員。削除と担当の一括振り替えだけマネージャー以上に絞る。
+  const canAddMaster = can("master_add");
   const canEditMaster = can("master_edit");
 
   return (
@@ -407,7 +409,7 @@ export default function BanksPage() {
         description="支店ごとの稼働状況を可視化し、放置支店の担当を振り替える"
         icon={<Landmark className="h-5 w-5" />}
         actions={
-          canEditMaster ? (
+          canAddMaster ? (
             <>
               <Button size="sm" variant="secondary" onClick={() => setImportOpen(true)}>
                 <Upload className="h-4 w-4" />
@@ -439,12 +441,12 @@ export default function BanksPage() {
           icon={<Landmark className="h-10 w-10" />}
           title="銀行が登録されていません"
           description={
-            canEditMaster
+            canAddMaster
               ? "支店名を1行ずつ貼り付けるだけで登録できます。CSV・スプレッドシートからの取込にも対応しています"
               : "自社に割り当てられた支店がまだありません。本部にお問い合わせください"
           }
           action={
-            canEditMaster ? (
+            canAddMaster ? (
               <Button onClick={() => setImportOpen(true)}>
                 <Upload className="h-4 w-4" />
                 銀行・支店を登録
@@ -575,7 +577,7 @@ export default function BanksPage() {
               <div className="flex flex-wrap items-center gap-2">
                 {/* 支店は100件規模になるので、行の高さを選べるようにする（設定はブラウザに保存） */}
                 <DensityToggle className="hidden lg:inline-flex" />
-                {selectedBank && (
+                {selectedBank && canAddMaster && (
                   <Button
                     size="sm"
                     variant="ghost"
@@ -637,8 +639,8 @@ export default function BanksPage() {
               </div>
             </div>
 
-            {/* 一括操作バー */}
-            {selected.size > 0 && (
+            {/* 一括操作バー（担当の振り替えはマネージャー以上） */}
+            {canEditMaster && selected.size > 0 && (
               <div className="mb-3 flex flex-wrap items-center gap-3 rounded-xl border border-cyan-200 bg-cyan-50/70 px-4 py-2.5 dark:border-cyan-500/30 dark:bg-cyan-500/10">
                 <p className="text-sm font-semibold">{selected.size}支店を選択中</p>
                 <Button size="sm" onClick={() => setBulkOpen(true)}>
@@ -657,12 +659,13 @@ export default function BanksPage() {
               orgNameOf={orgNameOf}
               colorOf={colorOf}
               selected={selected}
+              selectable={canEditMaster}
               onToggle={toggleSelect}
               onToggleAll={toggleSelectAll}
               sortKey={sortKey}
               asc={asc}
               onSort={toggleSort}
-              onEdit={(b) => setBranchForm({ initial: b })}
+              onEdit={canAddMaster ? (b) => setBranchForm({ initial: b }) : undefined}
               onLogActivity={setActivityTarget}
               showBankColumn={!selectedBank}
             />
@@ -694,7 +697,7 @@ export default function BanksPage() {
           initial={bankForm.initial}
           onClose={() => setBankForm(null)}
           onSubmit={saveBank}
-          onDelete={removeBank}
+          onDelete={canEditMaster ? removeBank : undefined}
         />
       )}
       {branchForm && (
@@ -707,7 +710,7 @@ export default function BanksPage() {
           organizations={activeOrgs}
           onClose={() => setBranchForm(null)}
           onSubmit={saveBranch}
-          onDelete={removeBranch}
+          onDelete={canEditMaster ? removeBranch : undefined}
         />
       )}
       {activityTarget && (
