@@ -167,7 +167,7 @@ export function buildImportPlan(
     branchByName.set(`${b.bank_id}::${normalizeName(b.name)}`, b);
   }
 
-  // 同一CSV内での重複検出用
+  // 同一の取込内での重複検出用（CSV・貼り付け・かんたん入力に共通）
   const seen = new Set<string>();
   const newBanks: { name: string; code: string }[] = [];
   const newBankKeys = new Set<string>();
@@ -204,7 +204,7 @@ export function buildImportPlan(
       (bankCode ? bankByCode.get(normalizeCode(bankCode)) : undefined) ??
       bankByName.get(normalizeName(bankName));
 
-    // 同一CSV内の重複行（同じ銀行×支店が2回出てくる）は後勝ちにせずスキップする
+    // 同じ銀行×支店が2回出てくる行は、後勝ちにせずスキップする
     const dedupeKey = `${normalizeName(bankName)}::${
       branchCode ? normalizeCode(branchCode) : normalizeName(branchName)
     }`;
@@ -213,7 +213,7 @@ export function buildImportPlan(
         ...base,
         action: "skip" as const,
         existingBankId: existingBank?.id,
-        reason: "同じCSV内に同一の支店が複数あります",
+        reason: "同じ支店が複数行にあります",
       };
     }
     seen.add(dedupeKey);

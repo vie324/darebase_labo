@@ -72,7 +72,7 @@ export function BankFormModal({
           <Input
             value={values.code}
             onChange={(e) => setValues({ ...values, code: e.target.value })}
-            placeholder="例: 0011（CSV取込の重複判定に使用）"
+            placeholder="例: 0011（まとめて登録するときの重複判定に使用）"
             inputMode="numeric"
           />
         </Field>
