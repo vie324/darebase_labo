@@ -25,6 +25,7 @@ export function BranchTable({
   orgNameOf,
   colorOf,
   selected,
+  selectable,
   onToggle,
   onToggleAll,
   sortKey,
@@ -39,12 +40,15 @@ export function BranchTable({
   orgNameOf: (id: string | null) => string;
   colorOf: (name: string) => string;
   selected: Set<string>;
+  /** 一括操作のチェックボックスを出すか（担当の振り替えはマネージャー以上） */
+  selectable: boolean;
   onToggle: (id: string) => void;
   onToggleAll: (ids: string[]) => void;
   sortKey: BranchSortKey;
   asc: boolean;
   onSort: (key: BranchSortKey) => void;
-  onEdit: (branch: Branch) => void;
+  /** 未指定なら編集ボタンを出さない（登録権限が無いロール） */
+  onEdit?: (branch: Branch) => void;
   onLogActivity: (branch: Branch) => void;
   showBankColumn: boolean;
 }) {
@@ -57,7 +61,7 @@ export function BranchTable({
       <EmptyState
         icon={<Building2 className="h-10 w-10" />}
         title="該当する支店がありません"
-        description="絞り込み条件を変えるか、CSVで支店リストを取り込んでください"
+        description="絞り込み条件を変えるか、支店を登録してください"
       />
     );
   }
@@ -93,15 +97,17 @@ export function BranchTable({
           <table className="w-full min-w-[980px] text-left text-sm">
             <thead className="border-b border-slate-100 bg-slate-50/70 dark:border-slate-800 dark:bg-slate-800/40">
               <tr>
-                <th className={cn("w-10", cellPad)}>
-                  <input
-                    type="checkbox"
-                    checked={allSelected}
-                    onChange={() => onToggleAll(allIds)}
-                    aria-label="表示中の支店をすべて選択"
-                    className="h-4 w-4 cursor-pointer accent-cyan-500"
-                  />
-                </th>
+                {selectable && (
+                  <th className={cn("w-10", cellPad)}>
+                    <input
+                      type="checkbox"
+                      checked={allSelected}
+                      onChange={() => onToggleAll(allIds)}
+                      aria-label="表示中の支店をすべて選択"
+                      className="h-4 w-4 cursor-pointer accent-cyan-500"
+                    />
+                  </th>
+                )}
                 {showBankColumn && th("name", "銀行 / 支店")}
                 {!showBankColumn && th("name", "支店名")}
                 {th("assigned", "担当者")}
@@ -127,15 +133,17 @@ export function BranchTable({
                       selected.has(b.id) && "bg-cyan-50/60 dark:bg-cyan-500/10"
                     )}
                   >
-                    <td className={cellPad}>
-                      <input
-                        type="checkbox"
-                        checked={selected.has(b.id)}
-                        onChange={() => onToggle(b.id)}
-                        aria-label={`${b.name}を選択`}
-                        className="h-4 w-4 cursor-pointer accent-cyan-500"
-                      />
-                    </td>
+                    {selectable && (
+                      <td className={cellPad}>
+                        <input
+                          type="checkbox"
+                          checked={selected.has(b.id)}
+                          onChange={() => onToggle(b.id)}
+                          aria-label={`${b.name}を選択`}
+                          className="h-4 w-4 cursor-pointer accent-cyan-500"
+                        />
+                      </td>
+                    )}
                     <td className={cellPad}>
                       <div className="flex items-center gap-2">
                         <span className={cn("h-2 w-2 shrink-0 rounded-full", style.dot)} />
@@ -208,14 +216,16 @@ export function BranchTable({
                       >
                         <Plus className="h-4 w-4" />
                       </button>
-                      <button
-                        onClick={() => onEdit(b)}
-                        aria-label={`${b.name}を編集`}
-                        title="編集"
-                        className="cursor-pointer rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800"
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </button>
+                      {onEdit && (
+                        <button
+                          onClick={() => onEdit(b)}
+                          aria-label={`${b.name}を編集`}
+                          title="編集"
+                          className="cursor-pointer rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </button>
+                      )}
                     </td>
                   </tr>
                 );
@@ -227,15 +237,17 @@ export function BranchTable({
 
       {/* ---------- モバイル: カード ---------- */}
       <div className="space-y-2 lg:hidden">
-        <label className="flex cursor-pointer items-center gap-2 px-1 text-xs font-medium text-slate-500 dark:text-slate-400">
-          <input
-            type="checkbox"
-            checked={allSelected}
-            onChange={() => onToggleAll(allIds)}
-            className="h-4 w-4 cursor-pointer accent-cyan-500"
-          />
-          表示中の {stats.length} 件をすべて選択
-        </label>
+        {selectable && (
+          <label className="flex cursor-pointer items-center gap-2 px-1 text-xs font-medium text-slate-500 dark:text-slate-400">
+            <input
+              type="checkbox"
+              checked={allSelected}
+              onChange={() => onToggleAll(allIds)}
+              className="h-4 w-4 cursor-pointer accent-cyan-500"
+            />
+            表示中の {stats.length} 件をすべて選択
+          </label>
+        )}
         {stats.map((s) => {
           const style = DORMANCY_STYLE[s.dormancyLevel];
           const b = s.branch;
@@ -248,13 +260,15 @@ export function BranchTable({
               )}
             >
               <div className="flex items-start gap-3">
-                <input
-                  type="checkbox"
-                  checked={selected.has(b.id)}
-                  onChange={() => onToggle(b.id)}
-                  aria-label={`${b.name}を選択`}
-                  className="mt-1 h-4 w-4 shrink-0 cursor-pointer accent-cyan-500"
-                />
+                {selectable && (
+                  <input
+                    type="checkbox"
+                    checked={selected.has(b.id)}
+                    onChange={() => onToggle(b.id)}
+                    aria-label={`${b.name}を選択`}
+                    className="mt-1 h-4 w-4 shrink-0 cursor-pointer accent-cyan-500"
+                  />
+                )}
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-[11px] text-slate-400">{bankNameOf(b.bank_id)}</p>
                   <p className="truncate font-semibold">{b.name}</p>
@@ -281,9 +295,11 @@ export function BranchTable({
                   <Button size="sm" variant="secondary" onClick={() => onLogActivity(b)}>
                     活動
                   </Button>
-                  <Button size="sm" variant="ghost" onClick={() => onEdit(b)}>
-                    編集
-                  </Button>
+                  {onEdit && (
+                    <Button size="sm" variant="ghost" onClick={() => onEdit(b)}>
+                      編集
+                    </Button>
+                  )}
                 </div>
               </div>
             </div>

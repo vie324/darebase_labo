@@ -69,7 +69,7 @@ export function SetupGuide() {
   if (loading || dismissed) return null;
 
   const candidates: (Step | false)[] = [
-    can("master_edit") && {
+    can("master_add") && {
       key: "branches",
       title: "銀行・支店リストを登録する",
       description: "支店名を貼り付けるだけで登録できます。支店ごとの稼働状況を追えるようになります",
