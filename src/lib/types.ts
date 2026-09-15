@@ -525,6 +525,41 @@ export interface MeetingLog extends BaseRow {
   updated_at: string;
 }
 
+// ---------- 商材（0014） ----------
+/**
+ * 商材マスタ。DDS を入口に AI などのクロスセルを載せていくため、
+ * コードに固定せず画面から追加できるようにする。
+ */
+export interface Product extends BaseRow {
+  name: string;
+  /** 英字の識別子。並び替えや外部連携の突き合わせに使う（"" 可） */
+  slug: string;
+  /** バッジの配色。値の一覧は lib/products.ts の PRODUCT_COLORS */
+  color: string;
+  /** 標準単価（円）。0 = 都度見積 */
+  unit_price: number;
+  /** 表示順。小さいほど先 */
+  sort_order: number;
+  is_active: boolean;
+  memo: string;
+  /** null = 全事業部で使える商材 */
+  business_unit_id: string | null;
+  updated_at: string;
+}
+
+/**
+ * 案件に載せた商材（明細）。1案件に複数の商材が乗る。
+ * 商材名はマスタ改名の影響を受けないよう、登録時点の名前を控えておく。
+ */
+export interface DealProduct extends BaseRow {
+  deal_id: string;
+  product_id: string;
+  product_name: string;
+  amount: number; // 円
+  quantity: number;
+  memo: string;
+}
+
 // ---------- 採用（0011） ----------
 /**
  * 応募者。履歴書・面接ログは個人情報のため、RLS で経営・管理部のみに絞っている。
@@ -668,6 +703,8 @@ export interface TableMap {
   attendance_records: AttendanceRecord;
   expenses: Expense;
   evaluations: Evaluation;
+  products: Product;
+  deal_products: DealProduct;
 }
 
 export type TableName = keyof TableMap;

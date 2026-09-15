@@ -18,6 +18,7 @@ import {
   type BranchSortKey,
 } from "./shared";
 import { rowPadding, useDensity } from "@/lib/use-density";
+import type { UnitTerms } from "@/lib/business-units";
 
 export function BranchTable({
   stats,
@@ -34,6 +35,7 @@ export function BranchTable({
   onEdit,
   onLogActivity,
   showBankColumn,
+  terms,
 }: {
   stats: BranchStat[];
   bankNameOf: (id: string) => string;
@@ -51,6 +53,8 @@ export function BranchTable({
   onEdit?: (branch: Branch) => void;
   onLogActivity: (branch: Branch) => void;
   showBankColumn: boolean;
+  /** 事業部ごとの呼び名（銀行/支店 か 1次代理店/2次代理店） */
+  terms: UnitTerms;
 }) {
   // フック規則のため、早期 return より前で読む
   const { isCompact } = useDensity();
@@ -60,8 +64,8 @@ export function BranchTable({
     return (
       <EmptyState
         icon={<Building2 className="h-10 w-10" />}
-        title="該当する支店がありません"
-        description="絞り込み条件を変えるか、支店を登録してください"
+        title={`該当する${terms.child}がありません`}
+        description={`絞り込み条件を変えるか、${terms.child}を登録してください`}
       />
     );
   }
@@ -108,8 +112,8 @@ export function BranchTable({
                     />
                   </th>
                 )}
-                {showBankColumn && th("name", "銀行 / 支店")}
-                {!showBankColumn && th("name", "支店名")}
+                {showBankColumn && th("name", `${terms.parent} / ${terms.child}`)}
+                {!showBankColumn && th("name", `${terms.child}名`)}
                 {th("assigned", "担当者")}
                 <th className={cn(cellPad, "text-xs font-bold whitespace-nowrap text-slate-500 dark:text-slate-400")}>
                   担当代理店

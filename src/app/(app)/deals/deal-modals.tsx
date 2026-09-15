@@ -69,6 +69,7 @@ export function DealDetailModal({
   onDelete,
   onColumnChange,
   onAddActivity,
+  productsPanel,
 }: {
   deal: Deal | null;
   activities: DealActivity[];
@@ -79,6 +80,8 @@ export function DealDetailModal({
   onDelete: (deal: Deal) => void;
   onColumnChange: (deal: Deal, toColumnKey: string) => void;
   onAddActivity: (dealId: string, type: ActivityType, note: string) => Promise<void>;
+  /** 案件に載せた商材（明細）。親から渡して、この画面は表示位置だけを決める */
+  productsPanel?: React.ReactNode;
 }) {
   // 親側で key={deal.id} を付けて描画するため、案件が変わると状態はリセットされる
   const [actType, setActType] = useState<ActivityType>("call");
@@ -175,6 +178,9 @@ export function DealDetailModal({
           <Info label="登録日">{formatDate(deal.created_at)}</Info>
           <Info label="最終更新">{timeAgo(deal.updated_at)}</Info>
         </div>
+
+        {/* 案件に載せた商材 */}
+        {productsPanel}
 
         {/* 次のアクション */}
         {deal.next_action && (

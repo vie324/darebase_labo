@@ -58,6 +58,9 @@ import {
   type BranchSortKey,
 } from "./shared";
 import { useAccess } from "@/lib/use-access";
+import { useBusinessUnit } from "@/lib/use-business-unit";
+import { filterByUnit } from "@/lib/business-units";
+import { UnitSwitch } from "@/components/ui/unit-switch";
 import { DensityToggle } from "@/components/ui/density-toggle";
 
 type DormancyFilter = "all" | "dormant" | "never" | "unassigned";
@@ -72,8 +75,10 @@ export default function BanksPage() {
   const activities = useCollection("branch_activities");
   const organizations = useCollection("organizations");
   const profiles = useCollection("profiles");
-  const businessUnits = useCollection("business_units");
   const { settings } = useBranchSettings();
+  // 事業部で銀行・支店を出し分ける。呼び名も事業部で変わる（lib/business-units.ts）
+  const { slug, unitId, defaultUnitId, terms, setSlug } = useBusinessUnit();
+  const defaultBusinessUnitId = unitId ?? defaultUnitId;
 
   const [selectedBankId, setSelectedBankId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
@@ -101,10 +106,22 @@ export default function BanksPage() {
 
   // ---------- 派生データ（loading 後のみ計算するのでハイドレーション安全） ----------
   const today = todayStr();
+  // 事業部で絞ってから集計する。business_unit_id が空の既存行は銀行営業扱い
+  const unitBanks = filterByUnit(banks.items, unitId, defaultUnitId);
+  const unitBankIds = new Set(unitBanks.map((b) => b.id));
+  const unitBranches = filterByUnit(branches.items, unitId, defaultUnitId).filter((b) =>
+    unitBankIds.has(b.bank_id)
+  );
+  const unitBranchIds = new Set(unitBranches.map((b) => b.id));
+  const unitAppointments = appointments.items.filter(
+    (a) => a.branch_id !== null && unitBranchIds.has(a.branch_id)
+  );
+  const unitActivities = activities.items.filter((a) => unitBranchIds.has(a.branch_id));
+
   const stats = buildBranchStats(
-    branches.items,
-    appointments.items,
-    activities.items,
+    unitBranches,
+    unitAppointments,
+    unitActivities,
     today,
     settings
   );
@@ -115,17 +132,13 @@ export default function BanksPage() {
     id ? (organizations.items.find((o) => o.id === id)?.name ?? "") : "";
   const colorOf = (name: string) =>
     profiles.items.find((p) => p.name === name)?.color ?? "cyan";
-  const defaultBusinessUnitId =
-    businessUnits.items.find((b) => b.slug === "banking")?.id ??
-    businessUnits.items[0]?.id ??
-    null;
 
   const selectedBank = selectedBankId
     ? (banks.items.find((b) => b.id === selectedBankId) ?? null)
     : null;
 
   // ---------- 銀行別の集計（一覧に出す） ----------
-  const bankRows = banks.items
+  const bankRows = unitBanks
     .map((bank) => {
       const rows = stats.filter((s) => s.branch.bank_id === bank.id);
       const s = summarizeBranches(rows);
@@ -189,10 +202,10 @@ export default function BanksPage() {
   const saveBank = async (values: BankFormValues) => {
     if (bankForm?.initial) {
       await banks.update(bankForm.initial.id, values);
-      toast("銀行を更新しました", "success");
+      toast(`${terms.parent}を更新しました`, "success");
     } else {
       await banks.add({ ...values, business_unit_id: defaultBusinessUnitId });
-      toast("銀行を登録しました", "success");
+      toast(`${terms.parent}を登録しました`, "success");
     }
     setBankForm(null);
   };
@@ -201,7 +214,7 @@ export default function BanksPage() {
     const count = branches.items.filter((b) => b.bank_id === bank.id).length;
     if (
       !confirm(
-        `「${bank.name}」を削除しますか？\n紐づく ${count} 支店とその活動ログも削除されます。`
+        `「${bank.name}」を削除しますか？\n紐づく ${count} ${terms.countUnit}とその活動ログも削除されます。`
       )
     ) {
       return;
@@ -215,7 +228,7 @@ export default function BanksPage() {
     await banks.remove(bank.id);
     if (selectedBankId === bank.id) setSelectedBankId(null);
     setBankForm(null);
-    toast("銀行を削除しました", "info");
+    toast(`${terms.parent}を削除しました`, "info");
   };
 
   const saveBranch = async (values: BranchFormValues) => {
@@ -237,14 +250,14 @@ export default function BanksPage() {
     };
     if (branchForm?.initial) {
       await branches.update(branchForm.initial.id, patch);
-      toast("支店を更新しました", "success");
+      toast(`${terms.child}を更新しました`, "success");
     } else {
       await branches.add({
         ...patch,
         last_contact_at: "",
         business_unit_id: defaultBusinessUnitId,
       });
-      toast("支店を登録しました", "success");
+      toast(`${terms.child}を登録しました`, "success");
     }
     setBranchForm(null);
   };
@@ -256,7 +269,7 @@ export default function BanksPage() {
     }
     await branches.remove(branch.id);
     setBranchForm(null);
-    toast("支店を削除しました", "info");
+    toast(`${terms.child}を削除しました`, "info");
   };
 
   const logActivity = async (branch: Branch, values: BranchActivityFormValues) => {
@@ -294,7 +307,7 @@ export default function BanksPage() {
         updated_at: now,
       });
     }
-    toast(`${selected.size}支店の担当を変更しました`, "success");
+    toast(`${selected.size}${terms.child}の担当を変更しました`, "success");
     setSelected(new Set());
     setBulkOpen(false);
   };
@@ -302,7 +315,7 @@ export default function BanksPage() {
   const applyImport = async (plan: ImportPlan) => {
     // 銀行を先に作り、生成された id を支店行に配る
     const bankIdByName = new Map<string, string>();
-    for (const b of banks.items) bankIdByName.set(normalize(b.name), b.id);
+    for (const b of unitBanks) bankIdByName.set(normalize(b.name), b.id);
 
     for (const nb of plan.newBanks) {
       const created = await banks.add({
@@ -361,10 +374,10 @@ export default function BanksPage() {
 
   const exportCsv = () => {
     const headers = [
-      "銀行名",
-      "銀行コード",
-      "支店名",
-      "支店コード",
+      `${terms.parent}名`,
+      terms.parentCode,
+      `${terms.child}名`,
+      terms.childCode,
       "都道府県",
       "担当者",
       "担当代理店",
@@ -395,7 +408,7 @@ export default function BanksPage() {
 
   const members = profiles.items;
   const activeOrgs = organizations.items.filter((o) => o.is_active);
-  const hasData = banks.items.length > 0;
+  const hasData = unitBanks.length > 0;
   // マスタの追加・取込・担当振り替えは本部のみ（DB 側も banks_write / branches_insert
   // が is_hq のため、代理店には操作させない）
   // 登録は本部社員全員。削除と担当の一括振り替えだけマネージャー以上に絞る。
@@ -405,8 +418,8 @@ export default function BanksPage() {
   return (
     <div>
       <PageHeader
-        title="銀行・支店"
-        description="支店ごとの稼働状況を可視化し、放置支店の担当を振り替える"
+        title={`${terms.parent}・${terms.child}`}
+        description={terms.description}
         icon={<Landmark className="h-5 w-5" />}
         actions={
           canAddMaster ? (
@@ -421,35 +434,38 @@ export default function BanksPage() {
                 onClick={() => setBankForm({ initial: null })}
               >
                 <Plus className="h-4 w-4" />
-                銀行
+                {terms.parent}
               </Button>
               <Button
                 size="sm"
                 onClick={() => setBranchForm({ initial: null })}
-                disabled={banks.items.length === 0}
+                disabled={unitBanks.length === 0}
               >
                 <Plus className="h-4 w-4" />
-                支店
+                {terms.child}
               </Button>
             </>
           ) : undefined
         }
       />
 
+      {/* 事業部の切り替え。銀行営業とアライアンス営業で同じ画面を出し分ける */}
+      <UnitSwitch slug={slug} onChange={setSlug} className="mb-5 w-full sm:w-auto sm:self-start" />
+
       {!hasData ? (
         <EmptyState
           icon={<Landmark className="h-10 w-10" />}
-          title="銀行が登録されていません"
+          title={`${terms.parent}が登録されていません`}
           description={
             canAddMaster
-              ? "支店名を1行ずつ貼り付けるだけで登録できます。CSV・スプレッドシートからの取込にも対応しています"
-              : "自社に割り当てられた支店がまだありません。本部にお問い合わせください"
+              ? `${terms.child}名を1行ずつ貼り付けるだけで登録できます。CSV・スプレッドシートからの取込にも対応しています`
+              : `自社に割り当てられた${terms.child}がまだありません。本部にお問い合わせください`
           }
           action={
             canAddMaster ? (
               <Button onClick={() => setImportOpen(true)}>
                 <Upload className="h-4 w-4" />
-                銀行・支店を登録
+                {terms.parent}・{terms.child}を登録
               </Button>
             ) : undefined
           }
@@ -459,19 +475,19 @@ export default function BanksPage() {
           {/* ---------- サマリー ---------- */}
           <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
             <StatCard
-              label={selectedBank ? `${selectedBank.name} の支店数` : "総支店数"}
-              value={`${summary.totalBranches}支店`}
+              label={selectedBank ? `${selectedBank.name} の${terms.child}数` : `総${terms.child}数`}
+              value={`${summary.totalBranches}${terms.countUnit}`}
               sub={
                 summary.suspendedBranches > 0
-                  ? `取引停止 ${summary.suspendedBranches}支店を除く`
-                  : `銀行 ${selectedBank ? 1 : banks.items.length}行`
+                  ? `取引停止 ${summary.suspendedBranches}${terms.countUnit}を除く`
+                  : `${terms.parent} ${selectedBank ? 1 : unitBanks.length}社`
               }
               icon={<Building2 className="h-5 w-5" />}
               accent="cyan"
             />
             <StatCard
-              label="稼働支店"
-              value={`${summary.activeBranches}支店`}
+              label={`稼働${terms.child}`}
+              value={`${summary.activeBranches}${terms.countUnit}`}
               sub={`直近${settings.activeWindowDays}日に接点あり`}
               icon={<Users className="h-5 w-5" />}
               accent="emerald"
@@ -481,16 +497,16 @@ export default function BanksPage() {
               value={formatRate(summary.activeRate)}
               sub={
                 summary.activeRate === null
-                  ? "対象支店がありません"
-                  : `休眠 ${summary.dormantBranches}支店`
+                  ? `対象${terms.child}がありません`
+                  : `休眠 ${summary.dormantBranches}${terms.countUnit}`
               }
               icon={<ArrowRight className="h-5 w-5" />}
               accent="sky"
             />
             <StatCard
               label="一度も接点なし"
-              value={`${summary.neverContacted}支店`}
-              sub="最優先で着手すべき支店"
+              value={`${summary.neverContacted}${terms.countUnit}`}
+              sub={`最優先で着手すべき${terms.child}`}
               icon={<Building2 className="h-5 w-5" />}
               accent="rose"
             />
@@ -512,7 +528,7 @@ export default function BanksPage() {
             ) : (
               <>
                 <div className="mb-3 flex items-center justify-between gap-3">
-                  <h2 className="font-bold">銀行別の稼働率</h2>
+                  <h2 className="font-bold">{terms.parent}別の稼働率</h2>
                   <Link
                     href="/banks/activity"
                     className="group inline-flex items-center gap-1 text-xs font-semibold text-cyan-600 hover:text-cyan-500 dark:text-cyan-400"
@@ -569,7 +585,7 @@ export default function BanksPage() {
           <div className="mt-6">
             <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
               <h2 className="font-bold">
-                {selectedBank ? `${selectedBank.name} の支店` : "全支店"}
+                {selectedBank ? `${selectedBank.name} の${terms.child}` : `全${terms.child}`}
                 <span className="ml-2 text-xs font-normal text-slate-400">
                   {visible.length}件
                 </span>
@@ -583,7 +599,7 @@ export default function BanksPage() {
                     variant="ghost"
                     onClick={() => setBankForm({ initial: selectedBank })}
                   >
-                    銀行を編集
+                    {terms.parent}を編集
                   </Button>
                 )}
                 <Button size="sm" variant="ghost" onClick={exportCsv} disabled={visible.length === 0}>
@@ -597,7 +613,7 @@ export default function BanksPage() {
               <SearchInput
                 value={query}
                 onChange={setQuery}
-                placeholder="支店名・コード・都道府県で検索…"
+                placeholder={`${terms.child}名・コード・都道府県で検索…`}
                 className="w-full sm:w-64"
               />
               <Select
@@ -642,7 +658,10 @@ export default function BanksPage() {
             {/* 一括操作バー（担当の振り替えはマネージャー以上） */}
             {canEditMaster && selected.size > 0 && (
               <div className="mb-3 flex flex-wrap items-center gap-3 rounded-xl border border-cyan-200 bg-cyan-50/70 px-4 py-2.5 dark:border-cyan-500/30 dark:bg-cyan-500/10">
-                <p className="text-sm font-semibold">{selected.size}支店を選択中</p>
+                <p className="text-sm font-semibold">
+                  {selected.size}
+                  {terms.child}を選択中
+                </p>
                 <Button size="sm" onClick={() => setBulkOpen(true)}>
                   <Users className="h-4 w-4" />
                   担当者を変更
@@ -668,6 +687,7 @@ export default function BanksPage() {
               onEdit={canAddMaster ? (b) => setBranchForm({ initial: b }) : undefined}
               onLogActivity={setActivityTarget}
               showBankColumn={!selectedBank}
+              terms={terms}
             />
 
             {/* 凡例 */}
@@ -704,8 +724,8 @@ export default function BanksPage() {
         <BranchFormModal
           key={branchForm.initial?.id ?? "new-branch"}
           initial={branchForm.initial}
-          defaultBankId={selectedBankId ?? banks.items[0]?.id ?? ""}
-          banks={banks.items}
+          defaultBankId={selectedBankId ?? unitBanks[0]?.id ?? ""}
+          banks={unitBanks}
           members={members}
           organizations={activeOrgs}
           onClose={() => setBranchForm(null)}
@@ -724,8 +744,8 @@ export default function BanksPage() {
       )}
       {importOpen && (
         <BranchImportModal
-          banks={banks.items}
-          branches={branches.items}
+          banks={unitBanks}
+          branches={unitBranches}
           onClose={() => setImportOpen(false)}
           onConfirm={applyImport}
         />
