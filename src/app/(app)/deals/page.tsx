@@ -13,6 +13,10 @@
 import { useState } from "react";
 import { Briefcase, Percent, Plus, Target, TrendingUp, Trophy } from "lucide-react";
 import { useCollection } from "@/lib/use-collection";
+import { useBusinessUnit } from "@/lib/use-business-unit";
+import { filterByUnit } from "@/lib/business-units";
+import { dealHasProduct } from "@/lib/products";
+import { UnitSwitch } from "@/components/ui/unit-switch";
 import { useUser } from "@/lib/use-user";
 import { useAccess } from "@/lib/use-access";
 import { DEAL_STAGES, FULFILLMENT_GROUPS } from "@/lib/constants";
@@ -41,6 +45,7 @@ import { FulfillmentBoard } from "./fulfillment-board";
 import { DealList } from "./deal-list";
 import { DealReport } from "./deal-report";
 import { DealDetailModal, DealFormModal } from "./deal-modals";
+import { DealProductsPanel } from "./deal-products";
 import { DensityToggle } from "@/components/ui/density-toggle";
 
 type ViewKey = "board" | "fulfillment" | "list" | "report";
@@ -55,10 +60,16 @@ export default function DealsPage() {
   const profiles = useCollection("profiles");
   // 失注分析で要因を拾うために商談ログを読む
   const meetingLogs = useCollection("meeting_logs");
+  // 案件に載せた商材（1案件に複数載る）
+  const dealProducts = useCollection("deal_products");
+  const products = useCollection("products");
+  // 事業部で商談を出し分ける
+  const { slug, unitId, defaultUnitId, setSlug } = useBusinessUnit();
 
   const [view, setView] = useState<ViewKey>("board");
   const [query, setQuery] = useState("");
   const [ownerFilter, setOwnerFilter] = useState("all");
+  const [productFilter, setProductFilter] = useState("all");
   const [detailId, setDetailId] = useState<string | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Deal | null>(null);
@@ -69,7 +80,9 @@ export default function DealsPage() {
     deals.loading ||
     activities.loading ||
     profiles.loading ||
-    meetingLogs.loading
+    meetingLogs.loading ||
+    dealProducts.loading ||
+    products.loading
   ) {
     return <PageSkeleton />;
   }
@@ -79,22 +92,28 @@ export default function DealsPage() {
   const colorOf = (name: string) =>
     profiles.items.find((p) => p.name === name)?.color ?? "cyan";
 
+  // 事業部で絞る。business_unit_id が空の既存案件は銀行営業として扱う
+  const unitDeals = filterByUnit(deals.items, unitId, defaultUnitId);
+
   const owners = Array.from(
-    new Set([...profiles.items.map((p) => p.name), ...deals.items.map((d) => d.owner_name)])
+    new Set([...profiles.items.map((p) => p.name), ...unitDeals.map((d) => d.owner_name)])
   ).filter(Boolean);
 
   const q = query.trim().toLowerCase();
-  const filtered = deals.items.filter((d) => {
+  const filtered = unitDeals.filter((d) => {
     if (ownerFilter !== "all" && d.owner_name !== ownerFilter) return false;
+    if (productFilter !== "all" && !dealHasProduct(dealProducts.items, d.id, productFilter)) {
+      return false;
+    }
     if (q && !d.name.toLowerCase().includes(q) && !d.company.toLowerCase().includes(q)) {
       return false;
     }
     return true;
   });
 
-  const openDeals = deals.items.filter((d) => isOpenStage(d.stage));
-  const wonDeals = deals.items.filter((d) => d.stage === "won");
-  const lostCount = deals.items.filter((d) => d.stage === "lost").length;
+  const openDeals = unitDeals.filter((d) => isOpenStage(d.stage));
+  const wonDeals = unitDeals.filter((d) => d.stage === "won");
+  const lostCount = unitDeals.filter((d) => d.stage === "lost").length;
   const pipelineTotal = sumAmount(openDeals);
   const weighted = Math.round(weightedAmount(openDeals));
   const wonAmount = sumAmount(wonDeals);
@@ -104,11 +123,15 @@ export default function DealsPage() {
       : null;
 
   // 受注後（2階）の案件と、まだ開通していない件数
-  const fulfillmentDeals = deals.items.filter((d) => d.stage === "won");
+  const fulfillmentDeals = unitDeals.filter((d) => d.stage === "won");
   const activatedKey = FULFILLMENT_GROUPS[FULFILLMENT_GROUPS.length - 1].key;
   const inProgressCount = fulfillmentDeals.filter(
     (d) => fulfillmentGroupOf(d.fulfillment_status) !== activatedKey
   ).length;
+
+  const activeProducts = products.items
+    .filter((p) => p.is_active)
+    .sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name, "ja"));
 
   const detailDeal = detailId ? (deals.items.find((d) => d.id === detailId) ?? null) : null;
   const detailActivities = detailDeal
@@ -160,6 +183,42 @@ export default function DealsPage() {
       note: `受注後フェーズを「${fulfillmentLabel(toStageKey)}」に変更`,
       author_name: user.name,
     });
+  };
+
+  /**
+   * 案件に商材を1つ載せる。
+   * 案件の金額は明細の合計を正とするので、追加のたびに deals.amount も揃えておく
+   * （明細を読まない既存の集計・CSV出力とも数字がずれないようにするため）。
+   */
+  const addDealProduct = async (deal: Deal, productId: string, amount: number) => {
+    const master = activeProducts.find((p) => p.id === productId);
+    if (!master) return;
+    await dealProducts.add({
+      deal_id: deal.id,
+      product_id: master.id,
+      // マスタを改名しても当時の名前が残るようスナップショットする
+      product_name: master.name,
+      amount,
+      quantity: 1,
+      memo: "",
+    });
+    const nextTotal =
+      dealProducts.items
+        .filter((l) => l.deal_id === deal.id)
+        .reduce((sum, l) => sum + l.amount, 0) + amount;
+    await deals.update(deal.id, { amount: nextTotal, updated_at: new Date().toISOString() });
+  };
+
+  const removeDealProduct = async (deal: Deal, lineId: string) => {
+    await dealProducts.remove(lineId);
+    const rest = dealProducts.items.filter((l) => l.deal_id === deal.id && l.id !== lineId);
+    // 明細が全部無くなったら案件の金額は触らない（元の金額をそのまま残す）
+    if (rest.length > 0) {
+      await deals.update(deal.id, {
+        amount: rest.reduce((sum, l) => sum + l.amount, 0),
+        updated_at: new Date().toISOString(),
+      });
+    }
   };
 
   const addActivity = async (dealId: string, type: ActivityType, note: string) => {
@@ -222,6 +281,9 @@ export default function DealsPage() {
         }
       />
 
+      {/* 事業部の切り替え。銀行営業とアライアンス営業の商談を混ぜない */}
+      <UnitSwitch slug={slug} onChange={setSlug} className="mb-5 w-full sm:w-auto" />
+
       {/* ---------- サマリー ---------- */}
       <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         <StatCard
@@ -276,6 +338,19 @@ export default function DealsPage() {
               className="w-full sm:w-64"
             />
             <Select
+              value={productFilter}
+              onChange={(e) => setProductFilter(e.target.value)}
+              className="w-full sm:w-40"
+              aria-label="商材で絞り込み"
+            >
+              <option value="all">すべての商材</option>
+              {activeProducts.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+            </Select>
+            <Select
               value={ownerFilter}
               onChange={(e) => setOwnerFilter(e.target.value)}
               className="w-full sm:w-44"
@@ -322,7 +397,7 @@ export default function DealsPage() {
           />
         )}
         {view === "report" && (
-          <DealReport deals={deals.items} logs={meetingLogs.items} colorOf={colorOf} />
+          <DealReport deals={unitDeals} logs={meetingLogs.items} colorOf={colorOf} />
         )}
       </div>
 
@@ -342,6 +417,17 @@ export default function DealsPage() {
           onDelete={removeDeal}
           onColumnChange={changeColumn}
           onAddActivity={addActivity}
+          productsPanel={
+            <DealProductsPanel
+              dealId={detailDeal.id}
+              dealAmountFallback={detailDeal.amount}
+              products={activeProducts}
+              lines={dealProducts.items}
+              canEdit
+              onAdd={(productId, amount) => addDealProduct(detailDeal, productId, amount)}
+              onRemove={(lineId) => removeDealProduct(detailDeal, lineId)}
+            />
+          }
         />
       )}
 

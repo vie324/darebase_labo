@@ -21,6 +21,9 @@ import {
   Trophy,
 } from "lucide-react";
 import { useCollection } from "@/lib/use-collection";
+import { useBusinessUnit } from "@/lib/use-business-unit";
+import { filterByUnit } from "@/lib/business-units";
+import { UnitSwitch } from "@/components/ui/unit-switch";
 import { useUser } from "@/lib/use-user";
 import { useBranchSettings } from "@/lib/settings";
 import { monthlyAppointmentCounts, toMonth } from "@/lib/branch-metrics";
@@ -63,7 +66,8 @@ export default function AppointmentsPage() {
   const events = useCollection("events");
   const deals = useCollection("deals");
   const profiles = useCollection("profiles");
-  const businessUnits = useCollection("business_units");
+  // 事業部で出し分ける。アライアンス営業では「1次代理店 / 2次代理店」になる
+  const { slug, unitId, defaultUnitId, terms, setSlug } = useBusinessUnit();
   const { settings } = useBranchSettings();
 
   const [tab, setTab] = useState<TabKey>("all");
@@ -89,16 +93,21 @@ export default function AppointmentsPage() {
     id ? (banks.items.find((b) => b.id === id)?.name ?? "") : "";
   const branchNameOf = (id: string | null) =>
     id ? (branches.items.find((b) => b.id === id)?.name ?? "") : "";
-  const defaultBusinessUnitId =
-    businessUnits.items.find((b) => b.slug === "banking")?.id ??
-    businessUnits.items[0]?.id ??
-    null;
+  const defaultBusinessUnitId = unitId ?? defaultUnitId;
 
-  const month = monthlyAppointmentCounts(appointments.items, toMonth(today));
-  const upcoming = appointments.items.filter((a) => isUpcoming(a, today));
+  // 事業部で絞る。銀行営業とアライアンスの紹介を混ぜない
+  const unitBanks = filterByUnit(banks.items, unitId, defaultUnitId);
+  const unitBankIds = new Set(unitBanks.map((b) => b.id));
+  const unitBranches = filterByUnit(branches.items, unitId, defaultUnitId).filter((b) =>
+    unitBankIds.has(b.bank_id)
+  );
+  const unitAppointments = filterByUnit(appointments.items, unitId, defaultUnitId);
+
+  const month = monthlyAppointmentCounts(unitAppointments, toMonth(today));
+  const upcoming = unitAppointments.filter((a) => isUpcoming(a, today));
 
   const q = query.trim().toLowerCase();
-  const filtered = appointments.items
+  const filtered = unitAppointments
     .filter((a) => {
       if (tab === "upcoming" && !isUpcoming(a, today)) return false;
       if (tab === "followup" && !needsFollowUp(a, today, settings.followUpDays)) return false;
@@ -205,7 +214,7 @@ export default function AppointmentsPage() {
   ): Promise<string> => {
     const row = await events.add({
       title,
-      description: "銀行支店からの紹介アポイント",
+      description: `${terms.parent}からの紹介アポイント`,
       start_at: startIso,
       end_at: addMinutesIso(startIso, 60),
       all_day: false,
@@ -264,13 +273,13 @@ export default function AppointmentsPage() {
     toast("案件を作成しました。案件管理から進捗を更新できます", "success");
   };
 
-  const hasBranches = branches.items.length > 0;
+  const hasBranches = unitBranches.length > 0;
 
   return (
     <div>
       <PageHeader
         title="アポイント"
-        description="銀行支店からの紹介を最小入力で登録し、支店の稼働に反映する"
+        description={`${terms.parent}からの紹介を最小入力で登録し、${terms.child}の稼働に反映する`}
         icon={<Phone className="h-5 w-5" />}
         actions={
           <Button size="sm" onClick={() => setFormState({ initial: null })} disabled={!hasBranches}>
@@ -280,11 +289,13 @@ export default function AppointmentsPage() {
         }
       />
 
+      <UnitSwitch slug={slug} onChange={setSlug} className="mb-5 w-full sm:w-auto" />
+
       {!hasBranches ? (
         <EmptyState
           icon={<Phone className="h-10 w-10" />}
-          title="先に銀行・支店を登録してください"
-          description="アポイントは銀行の支店に紐づけて登録します"
+          title={`先に${terms.parent}・${terms.child}を登録してください`}
+          description={`アポイントは${terms.child}に紐づけて登録します`}
           action={
             <Link
               href="/banks"
@@ -352,13 +363,13 @@ export default function AppointmentsPage() {
           <div className="mt-6 flex flex-wrap items-center gap-3">
             <Tabs<TabKey>
               tabs={[
-                { key: "all", label: "すべて", count: appointments.items.length },
+                { key: "all", label: "すべて", count: unitAppointments.length },
                 { key: "upcoming", label: "これから", count: upcoming.length },
                 { key: "followup", label: "要フォロー", count: followUps.length },
                 {
                   key: "won",
                   label: "受注",
-                  count: appointments.items.filter((a) => a.status === "won").length,
+                  count: unitAppointments.filter((a) => a.status === "won").length,
                 },
               ]}
               active={tab}
@@ -368,17 +379,17 @@ export default function AppointmentsPage() {
               <SearchInput
                 value={query}
                 onChange={setQuery}
-                placeholder="企業名・支店名で検索…"
+                placeholder={`企業名・${terms.child}名で検索…`}
                 className="w-full sm:w-56"
               />
               <Select
                 value={bankFilter}
                 onChange={(e) => setBankFilter(e.target.value)}
                 className="w-full sm:w-40"
-                aria-label="銀行で絞り込み"
+                aria-label={`${terms.parent}で絞り込み`}
               >
-                <option value="all">すべての銀行</option>
-                {banks.items.map((b) => (
+                <option value="all">すべての{terms.parent}</option>
+                {unitBanks.map((b) => (
                   <option key={b.id} value={b.id}>
                     {b.name}
                   </option>
@@ -406,17 +417,17 @@ export default function AppointmentsPage() {
               <EmptyState
                 icon={<Phone className="h-10 w-10" />}
                 title={
-                  appointments.items.length === 0
+                  unitAppointments.length === 0
                     ? "アポイントがまだありません"
                     : "条件に一致するアポイントがありません"
                 }
                 description={
-                  appointments.items.length === 0
-                    ? "銀行から紹介の電話が来たら、その場で登録してください"
+                  unitAppointments.length === 0
+                    ? `${terms.parent}から紹介が来たら、その場で登録してください`
                     : "絞り込み条件を変えてください"
                 }
                 action={
-                  appointments.items.length === 0 ? (
+                  unitAppointments.length === 0 ? (
                     <Button onClick={() => setFormState({ initial: null })}>
                       <Plus className="h-4 w-4" />
                       アポを登録
@@ -488,7 +499,7 @@ export default function AppointmentsPage() {
         <AppointmentFormModal
           key={formState.initial?.id ?? "new"}
           initial={formState.initial}
-          banks={banks.items}
+          banks={unitBanks}
           branches={branches.items}
           members={profiles.items}
           defaultAssignee={user.id}

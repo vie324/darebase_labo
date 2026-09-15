@@ -24,6 +24,7 @@ import {
   Mic,
   Moon,
   Newspaper,
+  Package,
   Phone,
   Receipt,
   Search,
@@ -76,17 +77,24 @@ const NAV_SECTIONS: {
     ],
   },
   {
-    heading: "銀行営業",
+    // 銀行営業とアライアンス営業は同じ画面で、上部のタブで切り替える
+    // （骨格が同じなので、呼び名だけ差し替えている。lib/business-units.ts）
+    heading: "紹介チャネル",
     items: [
-      { href: "/banks", label: "銀行・支店", icon: <Landmark className="h-[18px] w-[18px]" />, exact: true },
+      { href: "/banks", label: "紹介元マスタ", icon: <Landmark className="h-[18px] w-[18px]" />, exact: true },
       { href: "/appointments", label: "アポイント", icon: <Phone className="h-[18px] w-[18px]" /> },
-      { href: "/banks/activity", label: "支店稼働", icon: <Activity className="h-[18px] w-[18px]" /> },
+      { href: "/banks/activity", label: "稼働ダッシュボード", icon: <Activity className="h-[18px] w-[18px]" /> },
     ],
   },
   {
     heading: "営業活動",
     items: [
       { href: "/deals", label: "案件管理", icon: <Briefcase className="h-[18px] w-[18px]" /> },
+      {
+        href: "/products",
+        label: "商材マスタ",
+        icon: <Package className="h-[18px] w-[18px]" />,
+      },
       { href: "/meetings", label: "商談ログ", icon: <Bot className="h-[18px] w-[18px]" /> },
       { href: "/tasks", label: "タスク", icon: <CheckSquare className="h-[18px] w-[18px]" /> },
       { href: "/contacts", label: "名刺管理", icon: <Contact className="h-[18px] w-[18px]" /> },

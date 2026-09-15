@@ -18,6 +18,16 @@ import { DEMO_MEETING_LOGS } from "./demo/meetings";
 import { DEMO_CANDIDATES } from "./demo/recruiting";
 import { DEMO_ATTENDANCE, DEMO_EVALUATIONS, DEMO_EXPENSES } from "./demo/backoffice";
 import {
+  DEMO_ALLIANCE_APPOINTMENTS,
+  DEMO_ALLIANCE_BANKS,
+  DEMO_ALLIANCE_BRANCHES,
+  DEMO_ALLIANCE_DEALS,
+  DEMO_ALLIANCE_ORGANIZATIONS,
+  DEMO_ALLIANCE_UNIT,
+  DEMO_DEAL_PRODUCTS,
+  DEMO_PRODUCTS,
+} from "./demo/alliance";
+import {
   DEMO_COMMISSION_RATES,
   DEMO_INVOICES,
   DEMO_INVOICE_PAYMENTS,
@@ -38,7 +48,7 @@ import {
 export const DEMO_DATA: { [K in TableName]: TableMap[K][] } = {
   profiles: DEMO_TEAM,
   events: DEMO_EVENTS,
-  deals: DEMO_DEALS,
+  deals: [...DEMO_DEALS, ...DEMO_ALLIANCE_DEALS],
   deal_activities: DEMO_DEAL_ACTIVITIES,
   tasks: DEMO_TASKS,
   contacts: DEMO_CONTACTS,
@@ -58,11 +68,11 @@ export const DEMO_DATA: { [K in TableName]: TableMap[K][] } = {
   invoices: DEMO_INVOICES,
   invoice_payments: DEMO_INVOICE_PAYMENTS,
   line_groups: DEMO_LINE_GROUPS,
-  business_units: DEMO_BUSINESS_UNITS,
-  organizations: DEMO_ORGANIZATIONS,
-  banks: DEMO_BANKS,
-  branches: DEMO_BRANCHES,
-  appointments: DEMO_APPOINTMENTS,
+  business_units: [...DEMO_BUSINESS_UNITS, DEMO_ALLIANCE_UNIT],
+  organizations: [...DEMO_ORGANIZATIONS, ...DEMO_ALLIANCE_ORGANIZATIONS],
+  banks: [...DEMO_BANKS, ...DEMO_ALLIANCE_BANKS],
+  branches: [...DEMO_BRANCHES, ...DEMO_ALLIANCE_BRANCHES],
+  appointments: [...DEMO_APPOINTMENTS, ...DEMO_ALLIANCE_APPOINTMENTS],
   branch_activities: DEMO_BRANCH_ACTIVITIES,
   // 設定は「未保存 = 既定値」として扱うため、シードは置かない（settings.ts 参照）
   app_settings: [],
@@ -72,6 +82,8 @@ export const DEMO_DATA: { [K in TableName]: TableMap[K][] } = {
   attendance_records: DEMO_ATTENDANCE,
   expenses: DEMO_EXPENSES,
   evaluations: DEMO_EVALUATIONS,
+  products: DEMO_PRODUCTS,
+  deal_products: DEMO_DEAL_PRODUCTS,
 };
 
 export { DEMO_TEAM };

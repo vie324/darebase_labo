@@ -58,6 +58,9 @@ import {
 } from "../shared";
 import { useAccess } from "@/lib/use-access";
 import { HScroll } from "@/components/ui/h-scroll";
+import { useBusinessUnit } from "@/lib/use-business-unit";
+import { filterByUnit } from "@/lib/business-units";
+import { UnitSwitch } from "@/components/ui/unit-switch";
 
 const HEATMAP_MONTHS = 12;
 
@@ -71,6 +74,8 @@ export default function BranchActivityPage() {
   const activities = useCollection("branch_activities");
   const profiles = useCollection("profiles");
   const { settings } = useBranchSettings();
+  // 事業部で出し分ける。アライアンス営業では「1次代理店 / 2次代理店」になる
+  const { slug, unitId, defaultUnitId, terms, setSlug } = useBusinessUnit();
 
   const [bankFilter, setBankFilter] = useState<string>("all");
 
@@ -82,10 +87,22 @@ export default function BranchActivityPage() {
   // ---------- 派生データ（loading 後のみ計算するのでハイドレーション安全） ----------
   const today = todayStr();
   const thisMonth = toMonth(today);
+  // 事業部で絞ってから集計する（銀行営業とアライアンスの数字を混ぜない）
+  const unitBanks = filterByUnit(banks.items, unitId, defaultUnitId);
+  const unitBankIds = new Set(unitBanks.map((b) => b.id));
+  const unitBranches = filterByUnit(branches.items, unitId, defaultUnitId).filter((b) =>
+    unitBankIds.has(b.bank_id)
+  );
+  const unitBranchIds = new Set(unitBranches.map((b) => b.id));
+  const unitAppointments = appointments.items.filter(
+    (a) => a.branch_id !== null && unitBranchIds.has(a.branch_id)
+  );
+  const unitActivities = activities.items.filter((a) => unitBranchIds.has(a.branch_id));
+
   const stats = buildBranchStats(
-    branches.items,
-    appointments.items,
-    activities.items,
+    unitBranches,
+    unitAppointments,
+    unitActivities,
     today,
     settings
   );
@@ -98,8 +115,8 @@ export default function BranchActivityPage() {
   const scopedBranchIds = new Set(scoped.map((s) => s.branch.id));
   const scopedAppointments =
     bankFilter === "all"
-      ? appointments.items
-      : appointments.items.filter((a) => a.branch_id && scopedBranchIds.has(a.branch_id));
+      ? unitAppointments
+      : unitAppointments.filter((a) => a.branch_id && scopedBranchIds.has(a.branch_id));
 
   const summary = summarizeBranches(scoped);
   const month = monthlyAppointmentCounts(scopedAppointments, thisMonth);
@@ -107,9 +124,9 @@ export default function BranchActivityPage() {
   const ownerRows = rollupByOwner(scoped);
   const months = recentMonths(today, HEATMAP_MONTHS);
   const heatmap = buildHeatmap(
-    branches.items,
-    appointments.items,
-    activities.items,
+    unitBranches,
+    unitAppointments,
+    unitActivities,
     months,
     bankNameOf
   );
@@ -125,18 +142,18 @@ export default function BranchActivityPage() {
 
   const maxHeat = Math.max(1, ...heatmap.flatMap((r) => r.counts));
 
-  if (branches.items.length === 0) {
+  if (unitBranches.length === 0) {
     return (
       <div>
         <PageHeader
-          title="支店稼働ダッシュボード"
+          title={`${terms.child}稼働ダッシュボード`}
           description="どこが動いていて、どこが放置されているかを可視化"
           icon={<Activity className="h-5 w-5" />}
         />
         <EmptyState
           icon={<Building2 className="h-10 w-10" />}
-          title="支店が登録されていません"
-          description="銀行・支店マスタで支店を登録すると、ここに稼働状況が表示されます"
+          title={`${terms.child}が登録されていません`}
+          description={`${terms.parent}・${terms.child}マスタで登録すると、ここに稼働状況が表示されます`}
           action={
             <Link
               href="/banks"
@@ -154,7 +171,7 @@ export default function BranchActivityPage() {
   return (
     <div>
       <PageHeader
-        title="支店稼働ダッシュボード"
+        title={`${terms.child}稼働ダッシュボード`}
         description={`直近${settings.activeWindowDays}日に接点があった支店を「稼働」として集計`}
         icon={<Activity className="h-5 w-5" />}
         actions={
@@ -170,7 +187,9 @@ export default function BranchActivityPage() {
 
       {/* ---------- 銀行フィルタ ---------- */}
       {/* 銀行が増えると右に見切れるので、端のフェードと送りボタンを出す */}
-      <HScroll className="mb-5 flex gap-1.5 pb-1" label="銀行で絞り込み" step={240}>
+      <UnitSwitch slug={slug} onChange={setSlug} className="mb-5 w-full sm:w-auto" />
+
+      <HScroll className="mb-5 flex gap-1.5 pb-1" label={`${terms.parent}で絞り込み`} step={240}>
         <button
           onClick={() => setBankFilter("all")}
           className={cn(
@@ -182,7 +201,7 @@ export default function BranchActivityPage() {
         >
           全銀行
         </button>
-        {banks.items.map((b) => (
+        {unitBanks.map((b) => (
           <button
             key={b.id}
             onClick={() => setBankFilter(b.id)}
@@ -201,14 +220,14 @@ export default function BranchActivityPage() {
       {/* ---------- サマリー ---------- */}
       <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 2xl:grid-cols-6">
         <StatCard
-          label="総支店数"
+          label={`総${terms.child}数`}
           value={`${summary.totalBranches}`}
           sub={summary.suspendedBranches > 0 ? `取引停止 ${summary.suspendedBranches}を除く` : "—"}
           icon={<Building2 className="h-5 w-5" />}
           accent="cyan"
         />
         <StatCard
-          label="稼働支店"
+          label={`稼働${terms.child}`}
           value={`${summary.activeBranches}`}
           sub={`直近${settings.activeWindowDays}日に接点`}
           icon={<Activity className="h-5 w-5" />}
@@ -217,12 +236,12 @@ export default function BranchActivityPage() {
         <StatCard
           label="稼働率"
           value={formatRate(summary.activeRate)}
-          sub={summary.activeRate === null ? "対象なし" : "稼働 / 総支店"}
+          sub={summary.activeRate === null ? "対象なし" : `稼働 / 総${terms.child}`}
           icon={<ArrowRight className="h-5 w-5" />}
           accent="sky"
         />
         <StatCard
-          label="休眠支店"
+          label={`休眠${terms.child}`}
           value={`${summary.dormantBranches}`}
           sub={`うち接点なし ${summary.neverContacted}`}
           icon={<AlertTriangle className="h-5 w-5" />}
@@ -357,7 +376,7 @@ export default function BranchActivityPage() {
             </h2>
             <p className="mt-0.5 text-xs text-slate-400">
               {canEditMaster
-                ? "放置期間が長い順。担当の振り替えは銀行・支店マスタから行えます"
+                ? `放置期間が長い順。担当の振り替えは${terms.parent}・${terms.child}マスタから行えます`
                 : "放置期間が長い順。接点を作って稼働に戻しましょう"}
             </p>
           </div>
@@ -374,8 +393,8 @@ export default function BranchActivityPage() {
         {dormant.length === 0 ? (
           <EmptyState
             icon={<Activity className="h-8 w-8" />}
-            title="休眠中の支店はありません"
-            description="すべての支店で直近の接点が記録されています"
+            title={`休眠中の${terms.child}はありません`}
+            description={`すべての${terms.child}で直近の接点が記録されています`}
           />
         ) : (
           <ul className="scrollbar-thin max-h-[28rem] space-y-1.5 overflow-y-auto">
