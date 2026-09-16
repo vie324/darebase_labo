@@ -1,5 +1,6 @@
 import type { Contact } from "../types";
 import { dateFromNow, daysFromNow } from "../utils";
+import type { CardRead } from "../card-analysis";
 
 export const DEMO_CONTACTS: Contact[] = [
   {
@@ -155,3 +156,23 @@ export const DEMO_CONTACTS: Contact[] = [
     created_at: daysFromNow(-1),
   },
 ];
+
+/**
+ * デモモードで「名刺を読み取る」を押したときに返すサンプル。
+ * 本番では Claude が画像から読み取る（api/ai/read-card）。
+ */
+export const DEMO_CARD_READ: CardRead = {
+  name: "髙橋 健一",
+  name_kana: "タカハシ ケンイチ",
+  company: "株式会社オオタ食品",
+  department: "営業本部 西日本営業部",
+  title: "部長",
+  email: "k.takahashi@ota-foods.example.co.jp",
+  phone: "06-6123-4567",
+  mobile: "090-1234-5678",
+  address: "〒530-0001 大阪府大阪市北区梅田1-2-3 梅田ビル7F",
+  website: "https://ota-foods.example.co.jp",
+  uncertain_fields: ["name"],
+  is_business_card: true,
+  note: "氏名の「髙」は旧字体です。登録前にご確認ください。",
+};

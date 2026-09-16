@@ -57,6 +57,15 @@ import {
   type ContactFormValues,
 } from "./shared";
 import { parseBusinessCard, runOcr, type ParsedCardFields } from "./ocr";
+import { prepareCardImage } from "./card-image";
+import { useAiStatus, useCardReader } from "@/lib/use-ai";
+import {
+  CARD_FIELD_KEYS,
+  CARD_FIELD_LABELS,
+  filledFieldsOf,
+  uncertainLabelsOf,
+  type CardFieldKey,
+} from "@/lib/card-analysis";
 import { useFileUrl } from "@/lib/use-file-url";
 
 function InfoRow({
@@ -244,19 +253,6 @@ export function ContactDetailModal({
   );
 }
 
-// OCR で自動入力できるフィールドと日本語ラベルの対応（入力済みハイライト用）
-const OCR_FIELD_LABELS: Record<keyof ParsedCardFields, string> = {
-  name: "氏名",
-  company: "会社名",
-  department: "部署",
-  title: "役職",
-  email: "メールアドレス",
-  phone: "電話番号",
-  mobile: "携帯番号",
-  address: "住所",
-  website: "Webサイト",
-};
-
 // =============================================================
 // 新規 / 編集フォームモーダル
 // =============================================================
@@ -290,6 +286,14 @@ export function ContactFormModal({
   const [ocrError, setOcrError] = useState("");
   const [filledFields, setFilledFields] = useState<string[]>([]);
   const [showRawText, setShowRawText] = useState(false);
+  // AIが自信を持てなかった項目（利用者に確認してもらう）
+  const [uncertainFields, setUncertainFields] = useState<string[]>([]);
+  // 何で読み取ったか（AI / 簡易OCR）。精度の見込みが違うので画面に出す
+  const [readBy, setReadBy] = useState<"ai" | "ocr" | "">("");
+  const ai = useAiStatus();
+  const cardReader = useCardReader();
+  // AIが使えるならそちらを本線にする（tesseract は精度が出ないため控え）
+  const canUseAi = ai.configured || ai.isDemo;
   // 生成した objectURL を破棄するために保持する
   const previewUrlRef = useRef<string>("");
   // 非同期な OCR 完了時に「最新の」入力値を参照するための ref
@@ -335,15 +339,18 @@ export function ContactFormModal({
 
   // 認識結果を「空欄のフォーム項目のみ」自動入力する（既入力は上書きしない）。
   // 埋めたフィールドのラベル一覧を返す。
-  const applyParsed = (parsed: ParsedCardFields): string[] => {
+  const applyParsed = (
+    // AI は name_kana も返すので、OCR の項目より広い型で受ける
+    parsed: ParsedCardFields & Partial<Record<CardFieldKey, string>>,
+  ): string[] => {
     const current = valuesRef.current;
     const patch: Partial<ContactFormValues> = {};
     const filled: string[] = [];
-    (Object.keys(parsed) as (keyof ParsedCardFields)[]).forEach((key) => {
+    CARD_FIELD_KEYS.forEach((key) => {
       const value = parsed[key];
       if (value && current[key].trim() === "") {
         patch[key] = value;
-        filled.push(OCR_FIELD_LABELS[key]);
+        filled.push(CARD_FIELD_LABELS[key]);
       }
     });
     if (filled.length > 0) setValues((prev) => ({ ...prev, ...patch }));
@@ -366,17 +373,45 @@ export function ContactFormModal({
     setOcrError("");
     setOcrText("");
     setFilledFields([]);
+    setUncertainFields([]);
+    setReadBy("");
     setShowRawText(false);
     setOcrProgress(0);
     setOcrRunning(true);
 
     try {
-      const text = await runOcr(file, (p) => setOcrProgress(p));
-      setOcrText(text);
-      const filled = applyParsed(parseBusinessCard(text));
-      setFilledFields(filled);
+      // ---- 本線: 画像をそのまま Claude に読ませる ----
+      // OCR＋正規表現だと、文字の崩れと項目の振り分けで誤りが二重に乗る。
+      // レイアウトごと見せたほうが、社名と氏名の取り違えも起きにくい。
+      let done = false;
+      if (canUseAi) {
+        const prepared = await prepareCardImage(file);
+        const read = await cardReader.read(prepared.base64, prepared.mediaType);
+        if (read) {
+          if (!read.is_business_card) {
+            setOcrError(
+              read.note ||
+                "名刺として読み取れませんでした。名刺全体が入るように撮り直してください。",
+            );
+          } else {
+            setFilledFields(applyParsed(filledFieldsOf(read)));
+            setUncertainFields(uncertainLabelsOf(read));
+            setReadBy("ai");
+            if (read.note) setOcrText(read.note);
+          }
+          done = true;
+        }
+      }
 
-      // 認識に使った画像を名刺画像としても保存する（空欄のときのみ）
+      // ---- 控え: AIが未設定・失敗したときだけ、端末内のOCRで拾う ----
+      if (!done) {
+        const text = await runOcr(file, (p) => setOcrProgress(p));
+        setOcrText(text);
+        setFilledFields(applyParsed(parseBusinessCard(text)));
+        setReadBy("ocr");
+      }
+
+      // 読み取りに使った画像を名刺画像としても保存する（空欄のときのみ）
       try {
         const ext = (file.name.split(".").pop() || "png").toLowerCase();
         const { ref, persistent } = await storeFile(file, `cards/${uid()}.${ext}`);
@@ -385,18 +420,18 @@ export function ContactFormModal({
         );
         setTransientImage((prev) => prev || !persistent);
       } catch {
-        // 画像保存に失敗しても OCR 結果は活かせるので致命的ではない
+        // 画像保存に失敗しても読み取り結果は活かせるので致命的ではない
       }
     } catch {
       setOcrError(
-        "名刺の読み取りに失敗しました。オンライン環境か、画像が鮮明かをご確認のうえ再度お試しください。手入力でも登録できます。"
+        "名刺の読み取りに失敗しました。オンライン環境か、画像が鮮明かをご確認のうえ再度お試しください。手入力でも登録できます。",
       );
     } finally {
       setOcrRunning(false);
     }
   };
 
-  // 認識した生テキスト全文をメモ末尾に追記する
+  // 読み取りの補足（AI）／認識した生テキスト（簡易OCR）をメモ末尾に追記する
   const appendRawTextToMemo = () => {
     if (!ocrText.trim()) return;
     setValues((prev) => ({
@@ -443,7 +478,9 @@ export function ContactFormModal({
               <div>
                 <p className="text-sm font-bold">📇 名刺を撮影して読み取り</p>
                 <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                  写真から文字を読み取り、空欄の項目を自動入力します
+                  {canUseAi
+                    ? "写真をAIが読み取り、空欄の項目を自動入力します"
+                    : "写真から文字を読み取り、空欄の項目を自動入力します（簡易読み取り）"}
                 </p>
               </div>
             </div>
@@ -484,15 +521,20 @@ export function ContactFormModal({
                   <div className="space-y-2">
                     <p className="flex items-center gap-1.5 text-sm font-medium text-slate-600 dark:text-slate-300">
                       <Sparkles className="h-4 w-4 text-cyan-500" />
-                      読み取り中… {Math.round(ocrProgress * 100)}%
+                      {/* AI経路は進捗率が取れないので、出せるときだけ％を出す */}
+                      読み取り中…
+                      {ocrProgress > 0 && ` ${Math.round(ocrProgress * 100)}%`}
                     </p>
                     <ProgressBar
-                      value={ocrProgress}
+                      value={ocrProgress > 0 ? ocrProgress : 1}
                       max={1}
+                      className={ocrProgress > 0 ? undefined : "animate-pulse"}
                       barClassName="bg-gradient-to-r from-cyan-400 to-sky-400"
                     />
                     <p className="text-[11px] text-slate-400 dark:text-slate-500">
-                      初回は言語データの取得に少し時間がかかります。
+                      {canUseAi
+                        ? "名刺全体をAIが読んでいます。10秒ほどかかります。"
+                        : "初回は言語データの取得に少し時間がかかります。"}
                     </p>
                   </div>
                 ) : ocrError ? (
@@ -518,14 +560,27 @@ export function ContactFormModal({
                             </Badge>
                           ))}
                         </div>
+                        {uncertainFields.length > 0 && (
+                          <p className="flex items-start gap-1.5 rounded-xl bg-amber-50/70 px-3 py-2 text-[11px] leading-relaxed text-amber-700 dark:bg-amber-500/10 dark:text-amber-300">
+                            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                            <span>
+                              <b>{uncertainFields.join(" / ")}</b>
+                              は読み取りに自信がありません。特にご確認ください。
+                            </span>
+                          </p>
+                        )}
                         <p className="text-[11px] text-slate-400 dark:text-slate-500">
                           既に入力済みの項目は上書きしていません。内容をご確認ください。
+                          {readBy === "ocr" &&
+                            "（AIが使えなかったため簡易読み取りです。精度は限られます）"}
                         </p>
                       </>
                     ) : (
                       <p className="flex items-start gap-1.5 text-xs leading-relaxed text-slate-500 dark:text-slate-400">
                         <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
-                        自動で判別できる項目が見つかりませんでした。下の全文を参考に手入力してください。
+                        {readBy === "ai"
+                          ? "読み取れる項目が見つかりませんでした。名刺全体が入るように、明るい場所で撮り直してください。"
+                          : "自動で判別できる項目が見つかりませんでした。下の全文を参考に手入力してください。"}
                       </p>
                     )}
                   </div>
@@ -543,7 +598,8 @@ export function ContactFormModal({
             >
               <summary className="flex cursor-pointer items-center gap-1.5 text-xs font-semibold text-slate-500 select-none hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200">
                 <FileText className="h-3.5 w-3.5" />
-                認識した全文を{showRawText ? "隠す" : "表示"}
+                {readBy === "ai" ? "読み取りの補足" : "認識した全文"}を
+                {showRawText ? "隠す" : "表示"}
                 <ChevronDown className="h-3.5 w-3.5 transition-transform group-open:rotate-180" />
               </summary>
               <pre className="scrollbar-thin mt-2 max-h-40 overflow-auto rounded-xl border border-slate-200 bg-white/70 p-3 text-[11px] leading-relaxed whitespace-pre-wrap text-slate-600 dark:border-slate-700 dark:bg-slate-900/50 dark:text-slate-300">
@@ -557,7 +613,7 @@ export function ContactFormModal({
                 onClick={appendRawTextToMemo}
               >
                 <ClipboardPaste className="h-4 w-4" />
-                メモに全文を貼り付け
+                メモに貼り付け
               </Button>
             </details>
           )}
