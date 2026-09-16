@@ -2,7 +2,7 @@
 
 // アポイントの登録/編集フォームと詳細モーダル。
 //
-// 入力の速さが最優先（§5-2）。銀行→支店は絞り込み付きの2段セレクト、
+// 入力の速さが最優先（§5-2）。紹介元→窓口は絞り込み付きの2段セレクト、
 // 業種・売上規模・決裁者/担当者はボタン選択、自由入力は企業名とメモだけ。
 // スマホ（外出先）から片手で入力できることを前提にした縦積みレイアウト。
 
@@ -14,6 +14,7 @@ import {
   INDUSTRY_OPTIONS,
   REVENUE_SCALE_OPTIONS,
 } from "@/lib/constants";
+import type { UnitTerms } from "@/lib/business-units";
 import { cn, formatDate, formatDateTime } from "@/lib/utils";
 import type {
   Appointment,
@@ -37,6 +38,7 @@ export function AppointmentFormModal({
   branches,
   members,
   defaultAssignee,
+  terms,
   onClose,
   onSubmit,
 }: {
@@ -45,6 +47,7 @@ export function AppointmentFormModal({
   branches: Branch[];
   members: Profile[];
   defaultAssignee: string;
+  terms: UnitTerms;
   onClose: () => void;
   onSubmit: (values: AppointmentFormValues) => Promise<void>;
 }) {
@@ -89,22 +92,24 @@ export function AppointmentFormModal({
   return (
     <Modal open onClose={onClose} title={initial ? "アポイントを編集" : "アポイントを登録"}>
       <form onSubmit={submit} className="space-y-4">
-        {/* 銀行 → 支店 */}
-        <FieldSet label="銀行" required>
+        {/* 紹介元 → 窓口 */}
+        <FieldSet label={terms.parent} required>
           <SearchableSelect
             value={values.bank_id}
             options={bankOptions}
-            placeholder="銀行を選択"
-            emptyText="銀行が登録されていません"
+            placeholder={`${terms.parent}を選択`}
+            emptyText={`${terms.parent}が登録されていません`}
             onChange={(v) => setValues({ ...values, bank_id: v, branch_id: "" })}
           />
         </FieldSet>
-        <FieldSet label="支店" required>
+        <FieldSet label={terms.child} required>
           <SearchableSelect
             value={values.branch_id}
             options={branchOptions}
-            placeholder={values.bank_id ? "支店を選択" : "先に銀行を選択してください"}
-            emptyText="この銀行の支店が登録されていません"
+            placeholder={
+              values.bank_id ? `${terms.child}を選択` : `先に${terms.parent}を選択してください`
+            }
+            emptyText={`この${terms.parent}の${terms.child}が登録されていません`}
             disabled={!values.bank_id}
             onChange={(v) => setValues({ ...values, branch_id: v })}
           />
@@ -122,7 +127,7 @@ export function AppointmentFormModal({
 
         {/* 日付 */}
         <div className="grid grid-cols-2 gap-3">
-          <Field label="受電日" required>
+          <Field label={`${terms.received}日`} required>
             <Input
               type="date"
               value={values.received_at}
@@ -184,7 +189,7 @@ export function AppointmentFormModal({
         </Field>
 
         <p className="text-xs text-slate-400">
-          登録すると支店の最終接点日が更新され、商談予定日時があればスケジュールにも登録されます。
+          登録すると{terms.child}の最終接点日が更新され、商談予定日時があればスケジュールにも登録されます。
         </p>
 
         <div className="flex justify-end gap-2 pt-1">
@@ -207,6 +212,7 @@ export function AppointmentDetailModal({
   appointment,
   bankName,
   branchName,
+  terms,
   onClose,
   onEdit,
   onDelete,
@@ -217,6 +223,7 @@ export function AppointmentDetailModal({
   appointment: Appointment;
   bankName: string;
   branchName: string;
+  terms: UnitTerms;
   onClose: () => void;
   onEdit: (a: Appointment) => void;
   onDelete: (a: Appointment) => void;
@@ -257,9 +264,20 @@ export function AppointmentDetailModal({
 
         {/* 基本情報 */}
         <div className="grid gap-4 sm:grid-cols-2">
-          <InfoRow icon={<Landmark className="h-4 w-4" />} label="銀行" value={bankName || "—"} />
-          <InfoRow icon={<Building2 className="h-4 w-4" />} label="支店" value={branchName || "—"} />
-          <InfoRow label="受電日" value={a.received_at ? formatDate(a.received_at) : "—"} />
+          <InfoRow
+            icon={<Landmark className="h-4 w-4" />}
+            label={terms.parent}
+            value={bankName || "—"}
+          />
+          <InfoRow
+            icon={<Building2 className="h-4 w-4" />}
+            label={terms.child}
+            value={branchName || "—"}
+          />
+          <InfoRow
+            label={`${terms.received}日`}
+            value={a.received_at ? formatDate(a.received_at) : "—"}
+          />
           <InfoRow
             label="商談予定"
             value={a.scheduled_at ? formatDateTime(a.scheduled_at) : "日程未定"}

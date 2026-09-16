@@ -1,12 +1,12 @@
 "use client";
 
 // =============================================================
-// 支店稼働ダッシュボード — 本システムの中核
+// 稼働ダッシュボード — 本システムの中核
 //
 // 「どこが動いていて、どこが放置されているか」を1画面で示す。
-//  - サマリー（総支店数 / 稼働 / 稼働率 / 休眠 / 今月アポ・成約）
+//  - サマリー（総数 / 稼働 / 稼働率 / 休眠 / 今月アポ・成約）
 //  - 銀行別の稼働率バー（低い銀行を上に）
-//  - 休眠支店アラート（経過日数順・閾値でバッジ色）
+//  - 休眠アラート（経過日数順・閾値でバッジ色）
 //  - 担当者別の管理カバレッジ
 //  - 銀行×月のヒートマップ
 //
@@ -165,7 +165,7 @@ export default function BranchActivityPage() {
               href="/banks"
               className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-400 to-sky-400 px-4 text-sm font-medium text-slate-900"
             >
-              銀行・支店マスタへ
+              {terms.parent}・{terms.child}マスタへ
               <ArrowRight className="h-4 w-4" />
             </Link>
           }
@@ -179,7 +179,7 @@ export default function BranchActivityPage() {
     <div>
       <PageHeader
         title={`${terms.child}稼働ダッシュボード`}
-        description={`直近${settings.activeWindowDays}日に接点があった支店を「稼働」として集計`}
+        description={`直近${settings.activeWindowDays}日に接点があった${terms.child}を「稼働」として集計`}
         icon={<Activity className="h-5 w-5" />}
         actions={
           <Link
@@ -187,13 +187,13 @@ export default function BranchActivityPage() {
             className="inline-flex items-center gap-1 text-sm font-semibold text-cyan-600 hover:text-cyan-500 dark:text-cyan-400"
           >
             <ChevronLeft className="h-4 w-4" />
-            銀行・支店マスタ
+            {terms.parent}・{terms.child}マスタ
           </Link>
         }
       />
 
-      {/* ---------- 銀行フィルタ ---------- */}
-      {/* 銀行が増えると右に見切れるので、端のフェードと送りボタンを出す */}
+      {/* ---------- 紹介元フィルタ ---------- */}
+      {/* 紹介元が増えると右に見切れるので、端のフェードと送りボタンを出す */}
       <UnitSwitch slug={slug} onChange={setSlug} className="mb-5 w-full sm:w-auto" />
 
       <HScroll className="mb-5 flex gap-1.5 pb-1" label={`${terms.parent}で絞り込み`} step={240}>
@@ -206,7 +206,7 @@ export default function BranchActivityPage() {
               : "bg-slate-100 text-slate-500 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400"
           )}
         >
-          全銀行
+          全{terms.parent}
         </button>
         {unitBanks.map((b) => (
           <button
@@ -257,7 +257,7 @@ export default function BranchActivityPage() {
         <StatCard
           label="今月のアポ"
           value={`${month.appointments}`}
-          sub={`${thisMonth} 受電分`}
+          sub={`${thisMonth} ${terms.received}分`}
           icon={<CalendarCheck className="h-5 w-5" />}
           accent="amber"
         />
@@ -271,10 +271,12 @@ export default function BranchActivityPage() {
       </div>
 
       <div className="mt-6 grid items-start gap-4 lg:grid-cols-2">
-        {/* ---------- 銀行別の稼働率 ---------- */}
+        {/* ---------- 紹介元別の稼働率 ---------- */}
         <Card className="p-5 sm:p-6">
-          <h2 className="mb-1 font-bold">銀行別の稼働率</h2>
-          <p className="mb-4 text-xs text-slate-400">稼働率が低い銀行が上に並びます</p>
+          <h2 className="mb-1 font-bold">{terms.parent}別の稼働率</h2>
+          <p className="mb-4 text-xs text-slate-400">
+            稼働率が低い{terms.parent}が上に並びます
+          </p>
           {bankRows.length === 0 ? (
             <p className="py-8 text-center text-sm text-slate-400">データがありません</p>
           ) : (
@@ -286,7 +288,8 @@ export default function BranchActivityPage() {
                     <p className="shrink-0 text-sm font-bold tabular-nums">
                       {formatRate(row.activeRate)}
                       <span className="ml-1.5 text-xs font-normal text-slate-400">
-                        {row.active} / {row.total}支店
+                        {row.active} / {row.total}
+                        {terms.countUnit}
                       </span>
                     </p>
                   </div>
@@ -297,7 +300,7 @@ export default function BranchActivityPage() {
                   />
                   {row.neverContacted > 0 && (
                     <p className="mt-1 text-[11px] text-rose-500">
-                      一度も接点がない支店 {row.neverContacted}件
+                      一度も接点がない{terms.child} {row.neverContacted}件
                     </p>
                   )}
                 </div>
@@ -313,7 +316,7 @@ export default function BranchActivityPage() {
             担当者別の管理カバレッジ
           </h2>
           <p className="mb-4 text-xs text-slate-400">
-            担当支店のうち何支店を実際に動かせているか
+            担当{terms.child}のうち何{terms.countUnit}を実際に動かせているか
           </p>
           {ownerRows.length === 0 ? (
             <p className="py-8 text-center text-sm text-slate-400">データがありません</p>
@@ -323,7 +326,7 @@ export default function BranchActivityPage() {
                 <thead>
                   <tr className="text-[11px] font-bold text-slate-400">
                     <th className="px-2 pb-2">担当者</th>
-                    <th className="px-2 pb-2 text-right">担当支店</th>
+                    <th className="px-2 pb-2 text-right">担当{terms.child}</th>
                     <th className="px-2 pb-2 text-right">稼働</th>
                     <th className="px-2 pb-2 text-right">稼働率</th>
                     <th className="px-2 pb-2 text-right">平均経過</th>
@@ -370,13 +373,13 @@ export default function BranchActivityPage() {
         </Card>
       </div>
 
-      {/* ---------- 休眠支店アラート ---------- */}
+      {/* ---------- 休眠アラート ---------- */}
       <Card className="mt-4 p-5 sm:p-6">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
           <div>
             <h2 className="flex items-center gap-2 font-bold">
               <AlertTriangle className="h-4 w-4 text-amber-500" />
-              休眠支店アラート
+              休眠{terms.child}アラート
               <span className="rounded-full bg-slate-100 px-2 text-xs leading-5 font-semibold text-slate-500 dark:bg-slate-800 dark:text-slate-400">
                 {dormant.length}
               </span>
@@ -439,7 +442,7 @@ export default function BranchActivityPage() {
 
       {/* ---------- ヒートマップ ---------- */}
       <Card className="mt-4 p-5 sm:p-6">
-        <h2 className="mb-1 font-bold">接点ヒートマップ（銀行 × 月）</h2>
+        <h2 className="mb-1 font-bold">接点ヒートマップ（{terms.parent} × 月）</h2>
         <p className="mb-4 text-xs text-slate-400">
           直近{HEATMAP_MONTHS}ヶ月のアポ・活動ログの件数。色が薄い列は接点が途切れた月
         </p>

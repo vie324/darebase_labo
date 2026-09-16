@@ -5,12 +5,15 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 
 import {
+  branchColumnLabels,
   buildImportPlan,
   guessBranchMapping,
   isMappingReady,
+  looksLikeHeader,
   parseBranchCsv,
   type BranchColumnMapping,
 } from "./branch-import.ts";
+import { ALLIANCE, BANKING, termsOf } from "./business-units.ts";
 import type { Bank, Branch } from "./types.ts";
 
 function bank(over: Partial<Bank> & { id: string }): Bank {
@@ -283,4 +286,64 @@ test("buildImportPlan: 任意列（都道府県・住所・担当者・備考）
 test("buildImportPlan: 列数が足りない行でも落ちない", () => {
   const plan = buildImportPlan([["みらい銀行"]], MAPPING, [], []);
   assert.equal(plan.errorCount, 1);
+});
+
+// ---------- アライアンス営業（1次代理店・2次代理店）の見出し ----------
+
+test("guessBranchMapping: 1次/2次代理店の見出しを拾う", () => {
+  const m = guessBranchMapping([
+    "1次代理店名",
+    "提携先コード",
+    "2次代理店名",
+    "2次代理店コード",
+    "都道府県",
+  ]);
+  assert.equal(m.bankName, 0);
+  assert.equal(m.bankCode, 1);
+  assert.equal(m.branchName, 2);
+  assert.equal(m.branchCode, 3);
+  assert.equal(m.prefecture, 4);
+});
+
+test("guessBranchMapping: 一次・１次の表記ゆれも拾う", () => {
+  const m = guessBranchMapping(["一次代理店名", "２次代理店名"]);
+  assert.equal(m.bankName, 0);
+  assert.equal(m.branchName, 1);
+});
+
+test("guessBranchMapping: 1次/2次が明記されていない表は、余った代理店列を2次に当てる", () => {
+  const m = guessBranchMapping(["提携先", "代理店名", "代理店コード"]);
+  assert.equal(m.bankName, 0);
+  assert.equal(m.branchName, 1);
+  assert.equal(m.branchCode, 2);
+});
+
+test("guessBranchMapping: 代理店コードを代理店名として誤検出しない", () => {
+  const m = guessBranchMapping(["1次代理店コード", "2次代理店コード"]);
+  assert.equal(m.bankName, -1);
+  assert.equal(m.branchName, -1);
+  assert.equal(m.bankCode, 0);
+  assert.equal(m.branchCode, 1);
+});
+
+test("branchColumnLabels: 事業部ごとに列の呼び名が変わる", () => {
+  const banking = branchColumnLabels(termsOf(BANKING));
+  assert.equal(banking.find((c) => c.key === "bankName")?.label, "銀行名");
+  assert.equal(banking.find((c) => c.key === "branchCode")?.label, "支店コード");
+
+  const alliance = branchColumnLabels(termsOf(ALLIANCE));
+  assert.equal(alliance.find((c) => c.key === "bankName")?.label, "1次代理店名");
+  assert.equal(alliance.find((c) => c.key === "branchCode")?.label, "2次代理店コード");
+  // 必須の列は事業部が変わっても同じ
+  assert.deepEqual(
+    alliance.filter((c) => c.required).map((c) => c.key),
+    ["bankName", "branchName"]
+  );
+});
+
+test("looksLikeHeader: 「提携先 / 2次代理店」のような見出し行を拾う", () => {
+  assert.equal(looksLikeHeader(["提携先", "2次代理店"]), true);
+  assert.equal(looksLikeHeader(["1次代理店名", "2次代理店名"]), true);
+  // 実データの行は見出しと誤認しない
+  assert.equal(looksLikeHeader(["株式会社ブリッジパートナーズ", "株式会社アップリンク"]), false);
 });
