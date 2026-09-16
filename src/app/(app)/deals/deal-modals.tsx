@@ -21,7 +21,17 @@ import {
 import { columnKeyOf, fulfillmentLabel } from "@/lib/pipeline";
 import { useConfidenceCriteria } from "@/lib/settings";
 import { cn, formatDate, formatYen, formatYenShort, timeAgo } from "@/lib/utils";
-import type { ActivityType, Deal, DealActivity, DealProduct, DealStage, Product } from "@/lib/types";
+import type {
+  ActivityType,
+  Bank,
+  Branch,
+  Deal,
+  DealActivity,
+  DealProduct,
+  DealStage,
+  Product,
+} from "@/lib/types";
+import type { UnitTerms } from "@/lib/business-units";
 import {
   Avatar,
   Badge,
@@ -321,6 +331,9 @@ export function DealFormModal({
   members,
   defaultOwner,
   products,
+  banks,
+  branches,
+  terms,
   onClose,
   onSubmit,
 }: {
@@ -330,6 +343,11 @@ export function DealFormModal({
   defaultOwner: string;
   /** 選べる商材（取扱中のもの）。新規登録のときだけ使う */
   products: Product[];
+  /** 紹介元（銀行 / 1次代理店）。この事業部のものだけ渡す */
+  banks: Bank[];
+  /** 紹介の窓口（支店 / 2次代理店）。この事業部のものだけ渡す */
+  branches: Branch[];
+  terms: UnitTerms;
   onClose: () => void;
   onSubmit: (values: DealFormValues, lines: NewDealLine[]) => Promise<void>;
 }) {
@@ -380,6 +398,9 @@ export function DealFormModal({
   const ownerOptions = Array.from(
     new Set([...members, defaultOwner, values.owner_name].filter(Boolean))
   );
+
+  // 紹介元を選ぶと、その下の窓口だけに絞る
+  const branchOptions = branches.filter((b) => b.bank_id === values.bank_id);
 
   const valid =
     values.name.trim() !== "" && values.company.trim() !== "" && values.expected_close !== "";
@@ -529,6 +550,36 @@ export function DealFormModal({
               onChange={(e) => set("expected_close", e.target.value)}
               required
             />
+          </Field>
+          {/* 紹介元 → 窓口。どちらも任意（自社開拓の案件もあるため） */}
+          <Field label={`${terms.parent}（任意）`}>
+            <Select
+              value={values.bank_id}
+              onChange={(e) => setValues((prev) => ({ ...prev, bank_id: e.target.value, branch_id: "" }))}
+            >
+              <option value="">紐づけない</option>
+              {banks.map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.name}
+                </option>
+              ))}
+            </Select>
+          </Field>
+          <Field label={`${terms.child}（任意）`}>
+            <Select
+              value={values.branch_id}
+              onChange={(e) => set("branch_id", e.target.value)}
+              disabled={!values.bank_id}
+            >
+              <option value="">
+                {values.bank_id ? "紐づけない（直紹介）" : `先に${terms.parent}を選択`}
+              </option>
+              {branchOptions.map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.name}
+                </option>
+              ))}
+            </Select>
           </Field>
           {/* 商材。入口は DDS で、そこに AI などをクロスセルで足していく前提 */}
           <div className="sm:col-span-2">

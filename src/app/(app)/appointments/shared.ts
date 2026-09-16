@@ -1,6 +1,5 @@
 // アポイントモジュール内で共有するヘルパー・型
 
-import { daysBetween, toDateOnly } from "@/lib/branch-metrics";
 import type { Appointment, ContactRole } from "@/lib/types";
 import { todayStr } from "@/lib/utils";
 
@@ -75,22 +74,6 @@ export function addMinutesIso(iso: string, minutes: number): string {
 }
 
 // ---------- フォローアップ判定 ----------
-
-/**
- * 商談予定日から followUpDays 日経っても「予定」のままのアポ。
- * 結果入力の抜けを拾うためのリマインド（§5-2）。
- */
-export function needsFollowUp(a: Appointment, today: string, followUpDays: number): boolean {
-  if (a.status !== "scheduled") return false;
-  const scheduled = toDateOnly(a.scheduled_at);
-  if (!scheduled) return false;
-  const elapsed = daysBetween(scheduled, today);
-  return elapsed !== null && elapsed >= followUpDays;
-}
-
-/** 商談予定が今日以降か（これからの商談） */
-export function isUpcoming(a: Appointment, today: string): boolean {
-  if (a.status !== "scheduled") return false;
-  const scheduled = toDateOnly(a.scheduled_at);
-  return scheduled !== "" && scheduled >= today;
-}
+// 判定そのものは lib/appointments.ts（UI非依存・テスト済み）に置いている。
+// ここから使い回せるよう、そのまま出し直す。
+export { isUpcoming, needsFollowUp, isOpenAppointment } from "@/lib/appointments";

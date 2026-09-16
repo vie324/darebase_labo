@@ -47,6 +47,10 @@ export interface DealFormValues {
   memo: string;
   /** 受注後フェーズ（FULFILLMENT_STAGES のキー。"" = 未設定） */
   fulfillment_status: string;
+  /** 紹介元（銀行 / 1次代理店）。"" = 紐づけなし */
+  bank_id: string;
+  /** 紹介の窓口（支店 / 2次代理店）。"" = 紐づけなし */
+  branch_id: string;
 }
 
 export function toFormValues(d: Deal): DealFormValues {
@@ -63,6 +67,8 @@ export function toFormValues(d: Deal): DealFormValues {
     next_action: d.next_action,
     memo: d.memo,
     fulfillment_status: d.fulfillment_status ?? "",
+    bank_id: d.bank_id ?? "",
+    branch_id: d.branch_id ?? "",
   };
 }
 
@@ -80,5 +86,7 @@ export function emptyFormValues(owner: string): DealFormValues {
     next_action: "",
     memo: "",
     fulfillment_status: "",
+    bank_id: "",
+    branch_id: "",
   };
 }

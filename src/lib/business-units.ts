@@ -130,6 +130,18 @@ export const UNIT_TERMS: Record<BusinessUnitSlug, UnitTerms> = {
   },
 };
 
+/**
+ * 紹介元から直に紹介が来るぶんの受け皿になる窓口の名前。
+ *
+ * 1次代理店から2次代理店を介さず直接くる紹介は、その1次代理店の下に置いた
+ * この窓口に付ける（銀行営業でいう本店営業部と同じ扱い）。
+ * こうしておくと、紹介数・成約率・最終接点日が1次代理店の数字として
+ * そのまま積み上がる。窓口なしで登録すると、どの集計にも入らなくなる。
+ */
+export const DIRECT_CHILD_NAME = "直接";
+/** 「直接」の窓口に振るコード。まとめて登録の重複判定にも使う */
+export const DIRECT_CHILD_CODE = "000";
+
 /** 既定の事業部。未設定のデータはこちらに寄せる（0001〜0013 のデータはすべて銀行営業） */
 export const DEFAULT_UNIT: BusinessUnitSlug = BANKING;
 
