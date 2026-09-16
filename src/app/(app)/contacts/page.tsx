@@ -129,6 +129,9 @@ export default function ContactsPage() {
   };
 
   const openEdit = (c: Contact) => {
+    // 詳細を閉じてから編集を開く（他の画面と揃える。開いたままだと
+    // 同じ key のモーダルが2つ並び、React が重複 key を警告する）
+    setDetailId(null);
     setEditTarget(c);
     setFormOpen(true);
   };

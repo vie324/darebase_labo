@@ -45,7 +45,7 @@ import { DealBoard } from "./deal-board";
 import { FulfillmentBoard } from "./fulfillment-board";
 import { DealList } from "./deal-list";
 import { DealReport } from "./deal-report";
-import { DealDetailModal, DealFormModal } from "./deal-modals";
+import { DealDetailModal, DealFormModal, type NewDealLine } from "./deal-modals";
 import { DealProductsPanel } from "./deal-products";
 import { DensityToggle } from "@/components/ui/density-toggle";
 
@@ -95,6 +95,8 @@ export default function DealsPage() {
 
   // 事業部で絞る。business_unit_id が空の既存案件は銀行営業として扱う
   const unitDeals = filterByUnit(deals.items, unitId, defaultUnitId);
+  /** 新しく作る案件に入れる事業部。行がまだ無ければ既定の事業部に寄せる */
+  const defaultBusinessUnitId = unitId ?? defaultUnitId;
 
   const owners = Array.from(
     new Set([...profiles.items.map((p) => p.name), ...unitDeals.map((d) => d.owner_name)])
@@ -240,21 +242,38 @@ export default function DealsPage() {
     setDetailId(null);
   };
 
-  const saveDeal = async (values: DealFormValues) => {
+  const saveDeal = async (values: DealFormValues, lines: NewDealLine[] = []) => {
     const now = new Date().toISOString();
     if (editTarget) {
       await deals.update(editTarget.id, { ...values, updated_at: now });
     } else {
+      // いま開いている事業部の案件として登録する。
+      // これを入れ忘れると business_unit_id が空のまま入り、既定の事業部
+      // （＝銀行営業）の案件として扱われてしまう。
       const row = await deals.add({
         ...values,
+        business_unit_id: defaultBusinessUnitId,
         updated_at: now,
         organization_id: organizationId,
         owner_id: user.id,
       });
+      // 登録フォームで選んだ商材を明細として入れる
+      for (const line of lines) {
+        await dealProducts.add({
+          deal_id: row.id,
+          product_id: line.product_id,
+          product_name: line.product_name,
+          amount: line.amount,
+          quantity: 1,
+          memo: "",
+        });
+      }
+      const productNote =
+        lines.length > 0 ? `（${lines.map((l) => l.product_name).join(" / ")}）` : "";
       await activities.add({
         deal_id: row.id,
         type: "note",
-        note: "案件を新規登録しました",
+        note: `案件を新規登録しました${productNote}`,
         author_name: user.name,
       });
     }
@@ -419,6 +438,9 @@ export default function DealsPage() {
           colorOf={colorOf}
           onClose={() => setDetailId(null)}
           onEdit={(d) => {
+            // 詳細を閉じてから編集を開く（開いたままだと同じ key の
+            // モーダルが2つ並び、React が重複 key を警告する）
+            setDetailId(null);
             setEditTarget(d);
             setFormOpen(true);
           }}
@@ -446,6 +468,7 @@ export default function DealsPage() {
           initial={editTarget}
           members={owners}
           defaultOwner={user.name}
+          products={activeProducts}
           onClose={() => {
             setFormOpen(false);
             setEditTarget(null);

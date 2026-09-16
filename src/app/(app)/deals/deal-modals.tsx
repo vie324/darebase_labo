@@ -21,7 +21,7 @@ import {
 import { columnKeyOf, fulfillmentLabel } from "@/lib/pipeline";
 import { useConfidenceCriteria } from "@/lib/settings";
 import { cn, formatDate, formatYen, formatYenShort, timeAgo } from "@/lib/utils";
-import type { ActivityType, Deal, DealActivity, DealStage } from "@/lib/types";
+import type { ActivityType, Deal, DealActivity, DealProduct, DealStage, Product } from "@/lib/types";
 import {
   Avatar,
   Badge,
@@ -33,6 +33,7 @@ import {
   Select,
   Textarea,
 } from "@/components/ui";
+import { DealProductsPanel } from "./deal-products";
 import {
   STAGE_KEYS,
   emptyFormValues,
@@ -308,11 +309,18 @@ export function DealDetailModal({
 // =============================================================
 // 新規 / 編集フォームモーダル
 // =============================================================
+
+/** 案件がまだ存在しない状態で、商材パネルに渡す仮の案件id */
+const NEW_DEAL = "__new__";
+
+/** 登録と同時に載せる商材1行。保存時に deal_products へ入れる */
+export type NewDealLine = DealProduct;
 export function DealFormModal({
   open,
   initial,
   members,
   defaultOwner,
+  products,
   onClose,
   onSubmit,
 }: {
@@ -320,8 +328,10 @@ export function DealFormModal({
   initial: Deal | null;
   members: string[];
   defaultOwner: string;
+  /** 選べる商材（取扱中のもの）。新規登録のときだけ使う */
+  products: Product[];
   onClose: () => void;
-  onSubmit: (values: DealFormValues) => Promise<void>;
+  onSubmit: (values: DealFormValues, lines: NewDealLine[]) => Promise<void>;
 }) {
   // 確度の判定基準は設定画面から変更できる（未設定なら提案の暫定値）
   const { criteria } = useConfidenceCriteria();
@@ -330,9 +340,42 @@ export function DealFormModal({
     initial ? toFormValues(initial) : emptyFormValues(defaultOwner)
   );
   const [saving, setSaving] = useState(false);
+  // 登録と同時に載せる商材。保存できるまで DB には入れないので、画面の中だけで持つ。
+  // 編集のときは詳細画面の商材パネルで足し引きするため、ここでは触らない。
+  const [lines, setLines] = useState<NewDealLine[]>([]);
 
   const set = <K extends keyof DealFormValues>(key: K, v: DealFormValues[K]) =>
     setValues((prev) => ({ ...prev, [key]: v }));
+
+  /** 商材を1行足す。案件の金額は明細の合計に合わせる（lib/products.ts の考え方と揃える） */
+  const addLine = async (productId: string, amount: number) => {
+    const master = products.find((p) => p.id === productId);
+    if (!master) return;
+    const next: NewDealLine[] = [
+      ...lines,
+      {
+        // 保存前の並びを保つためだけの id。DB には渡さない
+        id: `tmp-${productId}`,
+        created_at: new Date().toISOString(),
+        deal_id: NEW_DEAL,
+        product_id: master.id,
+        // マスタを改名しても当時の名前が残るようスナップショットする
+        product_name: master.name,
+        amount,
+        quantity: 1,
+        memo: "",
+      },
+    ];
+    setLines(next);
+    set("amount", next.reduce((sum, l) => sum + l.amount, 0));
+  };
+
+  const removeLine = async (lineId: string) => {
+    const next = lines.filter((l) => l.id !== lineId);
+    setLines(next);
+    // 全部外したら金額はそのまま残す（手入力した金額を消さない）
+    if (next.length > 0) set("amount", next.reduce((sum, l) => sum + l.amount, 0));
+  };
 
   const ownerOptions = Array.from(
     new Set([...members, defaultOwner, values.owner_name].filter(Boolean))
@@ -346,14 +389,17 @@ export function DealFormModal({
     if (!valid || saving) return;
     setSaving(true);
     try {
-      await onSubmit({
-        ...values,
-        name: values.name.trim(),
-        company: values.company.trim(),
-        contact_name: values.contact_name.trim(),
-        next_action: values.next_action.trim(),
-        memo: values.memo.trim(),
-      });
+      await onSubmit(
+        {
+          ...values,
+          name: values.name.trim(),
+          company: values.company.trim(),
+          contact_name: values.contact_name.trim(),
+          next_action: values.next_action.trim(),
+          memo: values.memo.trim(),
+        },
+        lines
+      );
     } finally {
       setSaving(false);
     }
@@ -484,6 +530,25 @@ export function DealFormModal({
               required
             />
           </Field>
+          {/* 商材。入口は DDS で、そこに AI などをクロスセルで足していく前提 */}
+          <div className="sm:col-span-2">
+            {initial ? (
+              <p className="rounded-xl bg-slate-50 px-3.5 py-3 text-xs text-slate-500 dark:bg-slate-800/50 dark:text-slate-400">
+                商材の追加・削除は、案件の詳細画面から行えます。
+              </p>
+            ) : (
+              <DealProductsPanel
+                dealId={NEW_DEAL}
+                dealAmountFallback={values.amount}
+                products={products}
+                lines={lines}
+                canEdit
+                emptyText="商材はあとからでも足せます。ここで選ぶと、金額は商材の合計になります。"
+                onAdd={addLine}
+                onRemove={removeLine}
+              />
+            )}
+          </div>
           <Field label={`確度 ${values.probability}%`} className="sm:col-span-2">
             <div className="flex items-center gap-3">
               <input

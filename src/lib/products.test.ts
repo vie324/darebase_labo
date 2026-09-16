@@ -248,3 +248,33 @@ test("両事業部とも入力例がすべて埋まっている", () => {
     }
   }
 });
+
+// 案件を登録するとき、いま開いている事業部を必ず入れる、という取り決めの確認。
+// 入れ忘れると business_unit_id が空のまま入り、既定の事業部（銀行営業）の
+// 案件として数えられてしまう（実際に起きた不具合）。
+test("事業部を入れずに作った案件は、既定の事業部のものとして数えられてしまう", () => {
+  const banking = "bu-banking";
+  const alliance = "bu-alliance";
+  const 入れ忘れ = { business_unit_id: null };
+  assert.equal(belongsToUnit(入れ忘れ.business_unit_id, banking, banking), true);
+  assert.equal(belongsToUnit(入れ忘れ.business_unit_id, alliance, banking), false);
+
+  // 正しく入れれば、選んだ事業部だけに出る
+  const 正しい = { business_unit_id: alliance };
+  assert.equal(belongsToUnit(正しい.business_unit_id, alliance, banking), true);
+  assert.equal(belongsToUnit(正しい.business_unit_id, banking, banking), false);
+});
+
+test("事業部で絞ると、案件は片方にしか出ない（合算されない）", () => {
+  const rows = [
+    { id: "d1", business_unit_id: "bu-banking" },
+    { id: "d2", business_unit_id: "bu-alliance" },
+    { id: "d3", business_unit_id: null }, // 0014 以前の既存案件
+  ];
+  const 銀行 = filterByUnit(rows, "bu-banking", "bu-banking").map((r) => r.id);
+  const アライアンス = filterByUnit(rows, "bu-alliance", "bu-banking").map((r) => r.id);
+  assert.deepEqual(銀行, ["d1", "d3"]);
+  assert.deepEqual(アライアンス, ["d2"]);
+  // 足して元の件数になる＝どちらにも重複して出ない
+  assert.equal(銀行.length + アライアンス.length, rows.length);
+});

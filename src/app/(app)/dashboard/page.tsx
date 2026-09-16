@@ -28,6 +28,9 @@ import {
   Trophy,
 } from "lucide-react";
 import { useCollection } from "@/lib/use-collection";
+import { useBusinessUnit } from "@/lib/use-business-unit";
+import { UnitSwitch } from "@/components/ui/unit-switch";
+import { filterByUnit } from "@/lib/business-units";
 import { useUser } from "@/lib/use-user";
 import {
   ACTIVITY_TYPES,
@@ -125,6 +128,9 @@ export default function DashboardPage() {
   const knowledge = useCollection("knowledge");
   const posts = useCollection("posts");
   const profiles = useCollection("profiles");
+  // 案件の数字は事業部で分ける。銀行営業とアライアンス営業を足すと
+  // 「銀行営業の欄にアライアンスの案件が出る」ことになってしまう。
+  const { slug, terms, unitId, defaultUnitId, setSlug } = useBusinessUnit();
 
   // クイックタスク追加モーダル
   const [taskModalOpen, setTaskModalOpen] = useState(false);
@@ -171,14 +177,14 @@ export default function DashboardPage() {
     (e) => !e.all_day && new Date(e.end_at).getTime() > now.getTime()
   );
 
-  // 案件
-  const activeDeals = deals.items.filter(
-    (d) => d.stage !== "won" && d.stage !== "lost"
-  );
+  // 案件（いま選んでいる事業部のぶんだけ）
+  const unitDeals = filterByUnit(deals.items, unitId, defaultUnitId);
+  const unitDealIds = new Set(unitDeals.map((d) => d.id));
+  const activeDeals = unitDeals.filter((d) => d.stage !== "won" && d.stage !== "lost");
   const activeAmount = activeDeals.reduce((sum, d) => sum + d.amount, 0);
-  const wonDeals = deals.items.filter((d) => d.stage === "won");
+  const wonDeals = unitDeals.filter((d) => d.stage === "won");
   const wonAmount = wonDeals.reduce((sum, d) => sum + d.amount, 0);
-  const lostCount = deals.items.filter((d) => d.stage === "lost").length;
+  const lostCount = unitDeals.filter((d) => d.stage === "lost").length;
   const winRate =
     wonDeals.length + lostCount > 0
       ? Math.round((wonDeals.length / (wonDeals.length + lostCount)) * 100)
@@ -202,7 +208,7 @@ export default function DashboardPage() {
   const stageRows = (Object.keys(DEAL_STAGES) as DealStage[])
     .sort((a, b) => DEAL_STAGES[a].order - DEAL_STAGES[b].order)
     .map((stage) => {
-      const rows = deals.items.filter((d) => d.stage === stage);
+      const rows = unitDeals.filter((d) => d.stage === stage);
       return {
         stage,
         meta: DEAL_STAGES[stage],
@@ -212,12 +218,13 @@ export default function DashboardPage() {
     });
   const maxStageAmount = Math.max(...stageRows.map((r) => r.amount), 1);
 
-  // 最近の活動
-  const recentActivities = [...activities.items]
+  // 最近の活動（この事業部の案件に紐づくものだけ）
+  const recentActivities = activities.items
+    .filter((a) => unitDealIds.has(a.deal_id))
     .sort((a, b) => b.created_at.localeCompare(a.created_at))
     .slice(0, 5);
   const dealNameOf = (dealId: string) =>
-    deals.items.find((d) => d.id === dealId)?.name ?? "";
+    unitDeals.find((d) => d.id === dealId)?.name ?? "";
 
   // 新着ナレッジ / 掲示板
   const latestKnowledge = [...knowledge.items]
@@ -273,6 +280,9 @@ export default function DashboardPage() {
         }
       />
 
+      {/* 案件と稼働の数字は、ここで選んだ事業部のぶんだけを出す */}
+      <UnitSwitch slug={slug} onChange={setSlug} className="mb-5 w-full sm:w-auto" />
+
       {/* ---------- 挨拶ヒーロー ---------- */}
       <div className="relative mb-6 overflow-hidden rounded-3xl bg-gradient-to-br from-cyan-600 via-sky-600 to-sky-600 p-6 text-white shadow-lg shadow-cyan-500/25 sm:p-8">
         <div className="pointer-events-none absolute -top-20 -right-16 h-56 w-56 rounded-full bg-white/10 blur-2xl" />
@@ -318,7 +328,7 @@ export default function DashboardPage() {
         {/* ---------- サマリー ---------- */}
         <div className="order-1 mb-6 grid grid-cols-2 gap-3 sm:gap-4 lg:order-2 lg:mb-0 lg:grid-cols-4">
           <StatCard
-            label="進行中案件"
+            label={`進行中案件（${terms.unit}）`}
             value={<CountUp value={activeDeals.length} format={(n) => `${n}件`} />}
             sub={`総額 ${formatYenShort(activeAmount)}`}
             icon={<Briefcase className="h-5 w-5" />}
@@ -353,7 +363,7 @@ export default function DashboardPage() {
             accent="amber"
           />
           <StatCard
-            label="受注済み金額"
+            label={`受注済み金額（${terms.unit}）`}
             value={<CountUp value={wonAmount} format={formatYenShort} />}
             sub={`${wonDeals.length}件を受注`}
             icon={<Trophy className="h-5 w-5" />}
@@ -511,10 +521,10 @@ export default function DashboardPage() {
         <SectionCard
           icon={<TrendingUp className="h-4 w-4" />}
           iconClass="bg-cyan-50 text-cyan-600 dark:bg-cyan-500/15 dark:text-cyan-400"
-          title="パイプライン"
+          title={`パイプライン（${terms.unit}）`}
           href="/deals"
         >
-          {deals.items.length === 0 ? (
+          {unitDeals.length === 0 ? (
             <EmptyState
               icon={<Briefcase className="h-8 w-8" />}
               title="案件がありません"
