@@ -10,8 +10,10 @@
 import { useCallback, useEffect, useState } from "react";
 import { isSupabaseConfigured } from "./supabase";
 import { DEMO_ANALYSIS } from "./demo/meetings";
+import { DEMO_CARD_READ } from "./demo/contacts";
 import type { MeetingAnalysis, MeetingContext } from "./meeting-analysis";
 import type { LossCase, LossInsight } from "./loss-analysis";
+import type { CardRead } from "./card-analysis";
 import type {
   Crosscheck,
   InterviewQuestions,
@@ -263,4 +265,56 @@ export function useRecruitAi(): RecruitAiState {
   );
 
   return { running, error, run };
+}
+
+// ---------- 名刺の読み取り ----------
+
+export interface CardReadState {
+  reading: boolean;
+  error: string;
+  /** 画像を渡すと読み取り結果を返す。失敗時は null */
+  read: (image: string, mediaType: string) => Promise<CardRead | null>;
+}
+
+/**
+ * 名刺画像を Claude に読ませる。
+ * tesseract.js の OCR より精度が出るので、こちらを本線にする（ocr.ts は控え）。
+ */
+export function useCardReader(): CardReadState {
+  const isDemo = !isSupabaseConfigured();
+  const [reading, setReading] = useState(false);
+  const [error, setError] = useState("");
+
+  const read = useCallback(
+    async (image: string, mediaType: string): Promise<CardRead | null> => {
+      setReading(true);
+      setError("");
+      try {
+        if (isDemo) {
+          // デモは実際に課金せず、サンプルを返す（反映の流れを確認するため）
+          await new Promise((resolve) => setTimeout(resolve, 1200));
+          return DEMO_CARD_READ;
+        }
+        const res = await fetch("/api/ai/read-card", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ image, mediaType }),
+        });
+        const data = (await res.json()) as { read?: CardRead; error?: string };
+        if (!res.ok || !data.read) {
+          setError(data.error ?? "読み取りに失敗しました。");
+          return null;
+        }
+        return data.read;
+      } catch {
+        setError("読み取りに失敗しました。通信環境を確認してください。");
+        return null;
+      } finally {
+        setReading(false);
+      }
+    },
+    [isDemo]
+  );
+
+  return { reading, error, read };
 }
