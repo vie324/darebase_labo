@@ -7,6 +7,7 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useRef,
   useState,
   type ReactNode,
@@ -58,6 +59,19 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     },
     [remove]
   );
+
+  // 保存に失敗した Promise を誰も受け取らないと、画面はうんともすんとも言わない。
+  // 利用者からは「ボタンが効かない」に見えるので、最後の受け皿としてここで出す。
+  // 個別の画面で catch して具体的な文言を出せるなら、そちらが優先される。
+  useEffect(() => {
+    const onReject = (e: PromiseRejectionEvent) => {
+      e.preventDefault();
+      toast("処理に失敗しました。通信状況と権限を確認してください", "error");
+      console.error("[unhandledrejection]", e.reason);
+    };
+    window.addEventListener("unhandledrejection", onReject);
+    return () => window.removeEventListener("unhandledrejection", onReject);
+  }, [toast]);
 
   return (
     <ToastContext.Provider value={{ toast }}>

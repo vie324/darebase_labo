@@ -229,12 +229,19 @@ export function Modal({
   onClose,
   title,
   children,
+  footer,
   wide = false,
 }: {
   open: boolean;
   onClose: () => void;
   title: string;
   children: ReactNode;
+  /**
+   * 操作ボタンの行。渡すと、見出しと同じようにスマホでは下端に貼り付く。
+   * 入力欄が多いモーダルは、本文だけスクロールすると送信ボタンが
+   * 画面外に出てしまい「押せない」ように見えるため。
+   */
+  footer?: ReactNode;
   wide?: boolean;
 }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -291,6 +298,11 @@ export function Modal({
           </button>
         </div>
         {children}
+        {footer && (
+          <div className="sticky -bottom-[max(1.25rem,env(safe-area-inset-bottom))] z-10 -mx-5 mt-5 border-t border-slate-100 bg-white/95 px-5 pt-3 pb-[max(1.25rem,env(safe-area-inset-bottom))] backdrop-blur sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:px-0 sm:pb-0 sm:backdrop-blur-none dark:border-slate-800 dark:bg-slate-900/95 sm:dark:bg-transparent">
+            {footer}
+          </div>
+        )}
       </div>
     </div>,
     document.body
