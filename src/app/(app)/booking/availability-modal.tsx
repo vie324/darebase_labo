@@ -144,7 +144,39 @@ export function AvailabilityModal({
   };
 
   return (
-    <Modal open onClose={onClose} title="全員の空き時間を探す" wide>
+    <Modal
+      open
+      onClose={onClose}
+      title="全員の空き時間を探す"
+      wide
+      footer={
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          {pickedSlots.length > 0 ? (
+            <Badge className="bg-cyan-50 text-cyan-700 dark:bg-cyan-500/15 dark:text-cyan-300">
+              <Sparkles className="h-3.5 w-3.5" />
+              {pickedSlots.length}件を候補に選択中
+            </Badge>
+          ) : (
+            <span className="text-xs text-slate-400 dark:text-slate-500">
+              「調整候補にする」で選んだ日時から日程調整を作成できます
+            </span>
+          )}
+          <div className="flex items-center gap-2">
+            <Button variant="secondary" onClick={onClose}>
+              閉じる
+            </Button>
+            <Button onClick={createPoll} disabled={pickedSlots.length === 0 || creatingPoll}>
+              <Sparkles className="h-4 w-4" />
+              {creatingPoll
+                ? "作成中…"
+                : `この候補で日程調整を作成${
+                    pickedSlots.length > 0 ? `（${pickedSlots.length}）` : ""
+                  }`}
+            </Button>
+          </div>
+        </div>
+      }
+    >
       <div className="space-y-5">
         {/* メンバー選択 */}
         <div>
@@ -315,36 +347,6 @@ export function AvailabilityModal({
           <Info className="h-3.5 w-3.5 shrink-0" />
           終日予定（締切など）は空き判定から除外しています。
         </p>
-
-        {/* フッター */}
-        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-4 dark:border-slate-800">
-          {pickedSlots.length > 0 ? (
-            <Badge className="bg-cyan-50 text-cyan-700 dark:bg-cyan-500/15 dark:text-cyan-300">
-              <Sparkles className="h-3.5 w-3.5" />
-              {pickedSlots.length}件を候補に選択中
-            </Badge>
-          ) : (
-            <span className="text-xs text-slate-400 dark:text-slate-500">
-              「調整候補にする」で選んだ日時から日程調整を作成できます
-            </span>
-          )}
-          <div className="flex items-center gap-2">
-            <Button variant="secondary" onClick={onClose}>
-              閉じる
-            </Button>
-            <Button
-              onClick={createPoll}
-              disabled={pickedSlots.length === 0 || creatingPoll}
-            >
-              <Sparkles className="h-4 w-4" />
-              {creatingPoll
-                ? "作成中…"
-                : `この候補で日程調整を作成${
-                    pickedSlots.length > 0 ? `（${pickedSlots.length}）` : ""
-                  }`}
-            </Button>
-          </div>
-        </div>
       </div>
     </Modal>
   );

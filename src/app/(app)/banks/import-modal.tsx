@@ -10,7 +10,7 @@
 // 解析・差分判定は @/lib/branch-import と @/lib/branch-quick-add
 // （どちらもUI非依存・テスト済み）に委譲する。
 
-import { useMemo, useRef, useState, type ChangeEvent } from "react";
+import { useMemo, useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import { AlertTriangle, CheckCircle2, ClipboardPaste, FileUp, Upload, Zap } from "lucide-react";
 import {
   branchColumnLabels,
@@ -189,8 +189,63 @@ export function BranchImportModal({
 
   const applyCount = activePlan ? activePlan.createCount + activePlan.updateCount : 0;
 
+  // 操作行は step と mode で変わる。下端に貼り付けたいので footer にまとめる。
+  const footer =
+    step === "input" && mode === "quick" ? (
+      <div className="flex justify-end gap-2">
+        <Button type="button" variant="secondary" onClick={onClose}>
+          キャンセル
+        </Button>
+        <Button type="submit" disabled={!quickPlan || importing || applyCount === 0}>
+          <Zap className="h-4 w-4" />
+          {importing ? "登録中…" : applyCount > 0 ? `${applyCount}件を登録` : "登録"}
+        </Button>
+      </div>
+    ) : step === "input" && mode === "paste" ? (
+      <div className="flex justify-end gap-2">
+        <Button type="button" variant="secondary" onClick={onClose}>
+          キャンセル
+        </Button>
+        <Button type="submit" disabled={pasteText.trim() === ""}>
+          <ClipboardPaste className="h-4 w-4" />
+          読み込む
+        </Button>
+      </div>
+    ) : step === "mapping" && mapping ? (
+      <div className="flex justify-between gap-2">
+        <Button type="button" variant="secondary" onClick={() => setStep("input")}>
+          {mode === "paste" ? "貼り付け直す" : "ファイルを選び直す"}
+        </Button>
+        <Button type="submit" disabled={!plan || importing || applyCount === 0}>
+          <Upload className="h-4 w-4" />
+          {importing ? "取込中…" : applyCount > 0 ? `${applyCount}件を取り込む` : "取り込む"}
+        </Button>
+      </div>
+    ) : step === "result" && applied ? (
+      <div className="flex justify-end">
+        <Button type="button" onClick={onClose}>
+          閉じる
+        </Button>
+      </div>
+    ) : undefined;
+
+  // Enter（スマホの「完了」）でも、いま出ている操作行のボタンと同じことをする
+  const onFormSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    if (step === "mapping") void confirm();
+    else if (mode === "quick") void confirm();
+    else if (mode === "paste") onLoadPaste();
+  };
+
   return (
-    <Modal open onClose={onClose} title={`${terms.parent}・${terms.child}を登録`} wide>
+    <Modal
+      open
+      onClose={onClose}
+      title={`${terms.parent}・${terms.child}を登録`}
+      wide
+      footer={footer}
+      onSubmit={onFormSubmit}
+    >
       {/* ---------- 入り口の切り替え ---------- */}
       {step !== "result" && (
         <Tabs
@@ -268,15 +323,6 @@ export function BranchImportModal({
             quickPlan && <PlanPreview plan={quickPlan} terms={terms} />
           )}
 
-          <div className="flex justify-end gap-2">
-            <Button variant="secondary" onClick={onClose}>
-              キャンセル
-            </Button>
-            <Button onClick={confirm} disabled={!quickPlan || importing || applyCount === 0}>
-              <Zap className="h-4 w-4" />
-              {importing ? "登録中…" : applyCount > 0 ? `${applyCount}件を登録` : "登録"}
-            </Button>
-          </div>
         </div>
       )}
 
@@ -300,15 +346,6 @@ export function BranchImportModal({
               {error}
             </p>
           )}
-          <div className="flex justify-end gap-2">
-            <Button variant="secondary" onClick={onClose}>
-              キャンセル
-            </Button>
-            <Button onClick={onLoadPaste} disabled={pasteText.trim() === ""}>
-              <ClipboardPaste className="h-4 w-4" />
-              読み込む
-            </Button>
-          </div>
         </div>
       )}
 
@@ -413,15 +450,6 @@ export function BranchImportModal({
 
           {plan && <PlanPreview plan={plan} terms={terms} />}
 
-          <div className="flex justify-between gap-2">
-            <Button variant="secondary" onClick={() => setStep("input")}>
-              {mode === "paste" ? "貼り付け直す" : "ファイルを選び直す"}
-            </Button>
-            <Button onClick={confirm} disabled={!plan || importing || applyCount === 0}>
-              <Upload className="h-4 w-4" />
-              {importing ? "取込中…" : applyCount > 0 ? `${applyCount}件を取り込む` : "取り込む"}
-            </Button>
-          </div>
         </div>
       )}
 
@@ -437,7 +465,6 @@ export function BranchImportModal({
               {applied.errorCount > 0 && ` ・ エラー ${applied.errorCount}件`}
             </p>
           </div>
-          <Button onClick={onClose}>閉じる</Button>
         </div>
       )}
     </Modal>

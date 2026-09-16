@@ -13,7 +13,7 @@
 // 雇用形態の内訳と人数が決まってから、総合点と勤怠の実績値を入力に組む。
 // =============================================================
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type FormEvent } from "react";
 import {
   ClipboardCheck,
   Lock,
@@ -117,7 +117,8 @@ export default function HrPage() {
 
   // ---------- 操作 ----------
 
-  const createSheet = async () => {
+  const createSheet = async (e?: FormEvent) => {
+    e?.preventDefault();
     const target = profiles.items.find((p) => p.id === newDraft.target_id);
     if (!target) return;
     if (rows.some((r) => r.target_id === target.id && r.period === newDraft.period)) {
@@ -304,7 +305,22 @@ export default function HrPage() {
 
       {/* ---------- シート作成 ---------- */}
       {newOpen && (
-        <Modal open onClose={() => setNewOpen(false)} title="評価シートを作成">
+        <Modal
+          open
+          onClose={() => setNewOpen(false)}
+          title="評価シートを作成"
+          onSubmit={createSheet}
+          footer={
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="secondary" onClick={() => setNewOpen(false)}>
+                キャンセル
+              </Button>
+              <Button type="submit" disabled={newDraft.target_id === ""}>
+                作成
+              </Button>
+            </div>
+          }
+        >
           <div className="grid gap-4">
             <Field label="対象者" required>
               <Select
@@ -329,16 +345,9 @@ export default function HrPage() {
                 value={newDraft.period}
                 onChange={(e) => setNewDraft({ ...newDraft, period: e.target.value })}
                 placeholder="2026-H1"
+                required
               />
             </Field>
-          </div>
-          <div className="mt-5 flex justify-end gap-2">
-            <Button variant="secondary" onClick={() => setNewOpen(false)}>
-              キャンセル
-            </Button>
-            <Button onClick={createSheet} disabled={newDraft.target_id === ""}>
-              作成
-            </Button>
           </div>
         </Modal>
       )}

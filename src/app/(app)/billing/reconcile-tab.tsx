@@ -273,8 +273,20 @@ function PaymentModal({
       open
       onClose={onClose}
       title={invoice.direction === "receivable" ? "入金を記録（消込）" : "支払を記録（消込）"}
+      onSubmit={handleSubmit}
+      footer={
+        <div className="flex justify-end gap-2">
+          <Button type="button" variant="secondary" onClick={onClose}>
+            キャンセル
+          </Button>
+          <Button type="submit" variant="success" disabled={!valid || saving}>
+            <HandCoins className="h-4 w-4" />
+            {saving ? "記録中…" : fully ? "全額を消込" : "一部を消込"}
+          </Button>
+        </div>
+      }
     >
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="space-y-4">
         <div className="rounded-xl bg-slate-50 p-4 text-sm dark:bg-slate-800/50">
           <p className="font-semibold">{invoicePartnerLabel(invoice, partners)}</p>
           <p className="text-xs text-slate-400">{invoice.title}</p>
@@ -329,17 +341,7 @@ function PaymentModal({
             placeholder="振込名義の相違など（任意）"
           />
         </Field>
-
-        <div className="flex justify-end gap-2 pt-1">
-          <Button type="button" variant="secondary" onClick={onClose}>
-            キャンセル
-          </Button>
-          <Button type="submit" variant="success" disabled={!valid || saving}>
-            <HandCoins className="h-4 w-4" />
-            {saving ? "記録中…" : fully ? "全額を消込" : "一部を消込"}
-          </Button>
-        </div>
-      </form>
+      </div>
     </Modal>
   );
 }

@@ -110,7 +110,29 @@ export function ContactDetailModal({
   onDelete: (contact: Contact) => void;
 }) {
   return (
-    <Modal open onClose={onClose} title="名刺の詳細" wide>
+    <Modal
+      open
+      onClose={onClose}
+      title="名刺の詳細"
+      wide
+      footer={
+        <div className="flex items-center justify-between gap-2">
+          <Button variant="danger" size="sm" onClick={() => onDelete(contact)}>
+            <Trash2 className="h-4 w-4" />
+            削除
+          </Button>
+          <div className="flex gap-2">
+            <Button variant="secondary" size="sm" onClick={onClose}>
+              閉じる
+            </Button>
+            <Button size="sm" onClick={() => onEdit(contact)}>
+              <Pencil className="h-4 w-4" />
+              編集
+            </Button>
+          </div>
+        </div>
+      }
+    >
       <div className="space-y-5">
         {/* 名刺ヘッダー */}
         <div className="flex flex-wrap items-center gap-4 rounded-2xl bg-gradient-to-r from-cyan-50 to-sky-50 p-5 dark:from-cyan-500/10 dark:to-sky-500/10">
@@ -230,23 +252,6 @@ export function ContactDetailModal({
             登録者: {contact.owner_name}
           </span>
           <span>登録日: {formatDate(contact.created_at)}</span>
-        </div>
-
-        {/* フッター */}
-        <div className="flex items-center justify-between gap-2 border-t border-slate-100 pt-4 dark:border-slate-800">
-          <Button variant="danger" size="sm" onClick={() => onDelete(contact)}>
-            <Trash2 className="h-4 w-4" />
-            削除
-          </Button>
-          <div className="flex gap-2">
-            <Button variant="secondary" size="sm" onClick={onClose}>
-              閉じる
-            </Button>
-            <Button size="sm" onClick={() => onEdit(contact)}>
-              <Pencil className="h-4 w-4" />
-              編集
-            </Button>
-          </div>
         </div>
       </div>
     </Modal>
@@ -466,8 +471,25 @@ export function ContactFormModal({
   };
 
   return (
-    <Modal open onClose={onClose} title={initial ? "名刺を編集" : "名刺を登録"} wide>
-      <form onSubmit={handleSubmit} className="space-y-4">
+    <Modal
+      open
+      onClose={onClose}
+      title={initial ? "名刺を編集" : "名刺を登録"}
+      wide
+      onSubmit={handleSubmit}
+      footer={
+        <div className="flex justify-end gap-2">
+          <Button type="button" variant="secondary" onClick={onClose}>
+            キャンセル
+          </Button>
+          <Button type="submit" disabled={!valid || saving || uploading || ocrRunning}>
+            {initial ? <Pencil className="h-4 w-4" /> : <UserPlus className="h-4 w-4" />}
+            {initial ? "保存する" : "登録する"}
+          </Button>
+        </div>
+      }
+    >
+      <div className="space-y-4">
         {/* ---------- 名刺 OCR 読み取り ---------- */}
         <div className="rounded-2xl border border-cyan-200/70 bg-gradient-to-br from-cyan-50/80 to-sky-50/50 p-4 dark:border-cyan-500/25 dark:from-cyan-500/10 dark:to-sky-500/5">
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -793,16 +815,7 @@ export function ContactFormModal({
           </div>
         </div>
 
-        <div className="flex justify-end gap-2 pt-1">
-          <Button type="button" variant="secondary" onClick={onClose}>
-            キャンセル
-          </Button>
-          <Button type="submit" disabled={!valid || saving || uploading || ocrRunning}>
-            {initial ? <Pencil className="h-4 w-4" /> : <UserPlus className="h-4 w-4" />}
-            {initial ? "保存する" : "登録する"}
-          </Button>
-        </div>
-      </form>
+      </div>
     </Modal>
   );
 }

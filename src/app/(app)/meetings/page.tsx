@@ -11,8 +11,9 @@
 // デモモードではサンプルの解析結果を返し、反映までの流れを確認できる。
 // =============================================================
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type FormEvent } from "react";
 import {
+  AlertTriangle,
   Bot,
   Brain,
   CheckCheck,
@@ -137,9 +138,14 @@ export default function MeetingsPage() {
     };
   };
 
+  // 文字起こしが短すぎるとAIが解析できないため、20文字を下限にしている
+  const canCreateLog = draft.transcript.trim().length >= 20;
+
   // ---------- 操作 ----------
 
-  const createLog = async () => {
+  const createLog = async (e?: FormEvent) => {
+    e?.preventDefault();
+    if (!canCreateLog) return;
     const now = new Date().toISOString();
     const row = await logs.add({
       title: draft.title.trim() || draft.company_name.trim() || "商談ログ",
@@ -387,7 +393,31 @@ export default function MeetingsPage() {
 
       {/* ---------- 追加フォーム ---------- */}
       {formOpen && (
-        <Modal open onClose={() => setFormOpen(false)} title="商談ログを追加" wide>
+        <Modal
+          open
+          onClose={() => setFormOpen(false)}
+          title="商談ログを追加"
+          wide
+          onSubmit={createLog}
+          footer={
+            <div className="space-y-2">
+              {!canCreateLog && (
+                <p className="flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400">
+                  <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                  文字起こしを20文字以上貼り付けると登録できます
+                </p>
+              )}
+              <div className="flex justify-end gap-2">
+                <Button type="button" variant="secondary" onClick={() => setFormOpen(false)}>
+                  キャンセル
+                </Button>
+                <Button type="submit" disabled={!canCreateLog}>
+                  登録する
+                </Button>
+              </div>
+            </div>
+          }
+        >
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="タイトル">
               <Input
@@ -449,14 +479,6 @@ export default function MeetingsPage() {
                 ロープレ練習の文字起こし機能（Chrome / Edge）で書き起こしたテキストもそのまま使えます
               </span>
             </Field>
-          </div>
-          <div className="mt-5 flex justify-end gap-2">
-            <Button variant="secondary" onClick={() => setFormOpen(false)}>
-              キャンセル
-            </Button>
-            <Button onClick={createLog} disabled={draft.transcript.trim().length < 20}>
-              登録
-            </Button>
           </div>
         </Modal>
       )}

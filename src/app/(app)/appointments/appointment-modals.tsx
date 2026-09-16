@@ -90,8 +90,23 @@ export function AppointmentFormModal({
   };
 
   return (
-    <Modal open onClose={onClose} title={initial ? "アポイントを編集" : "アポイントを登録"}>
-      <form onSubmit={submit} className="space-y-4">
+    <Modal
+      open
+      onClose={onClose}
+      title={initial ? "アポイントを編集" : "アポイントを登録"}
+      onSubmit={submit}
+      footer={
+        <div className="flex justify-end gap-2">
+          <Button type="button" variant="secondary" onClick={onClose}>
+            キャンセル
+          </Button>
+          <Button type="submit" disabled={!ready || saving}>
+            {initial ? "保存" : "登録する"}
+          </Button>
+        </div>
+      }
+    >
+      <div className="space-y-4">
         {/* 紹介元 → 窓口 */}
         <FieldSet label={terms.parent} required>
           <SearchableSelect
@@ -191,16 +206,7 @@ export function AppointmentFormModal({
         <p className="text-xs text-slate-400">
           登録すると{terms.child}の最終接点日が更新され、商談予定日時があればスケジュールにも登録されます。
         </p>
-
-        <div className="flex justify-end gap-2 pt-1">
-          <Button type="button" variant="secondary" onClick={onClose}>
-            キャンセル
-          </Button>
-          <Button type="submit" disabled={!ready || saving}>
-            {initial ? "保存" : "登録する"}
-          </Button>
-        </div>
-      </form>
+      </div>
     </Modal>
   );
 }
@@ -237,7 +243,28 @@ export function AppointmentDetailModal({
   );
 
   return (
-    <Modal open onClose={onClose} title={a.company_name || "アポイント"} wide>
+    <Modal
+      open
+      onClose={onClose}
+      title={a.company_name || "アポイント"}
+      wide
+      footer={
+        <div className="flex flex-wrap justify-between gap-2">
+          <Button variant="ghost" onClick={() => onDelete(a)}>
+            <Trash2 className="h-4 w-4" />
+            削除
+          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="secondary" onClick={() => onEdit(a)}>
+              編集
+            </Button>
+            <Button onClick={() => onCreateDeal(a)} disabled={hasDeal}>
+              {hasDeal ? "案件化済み" : "案件化する"}
+            </Button>
+          </div>
+        </div>
+      }
+    >
       <div className="space-y-5">
         {/* ステータス */}
         <div>
@@ -307,21 +334,6 @@ export function AppointmentDetailModal({
             </p>
           </div>
         )}
-
-        <div className="flex flex-wrap justify-between gap-2 border-t border-slate-100 pt-4 dark:border-slate-800">
-          <Button variant="ghost" onClick={() => onDelete(a)}>
-            <Trash2 className="h-4 w-4" />
-            削除
-          </Button>
-          <div className="flex flex-wrap gap-2">
-            <Button variant="secondary" onClick={() => onEdit(a)}>
-              編集
-            </Button>
-            <Button onClick={() => onCreateDeal(a)} disabled={hasDeal}>
-              {hasDeal ? "案件化済み" : "案件化する"}
-            </Button>
-          </div>
-        </div>
       </div>
     </Modal>
   );

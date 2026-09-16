@@ -180,6 +180,7 @@ export default function ExpensesPage() {
   });
 
   const save = async (submit: boolean) => {
+    if (submit && formErrors.length > 0) return;
     const now = new Date().toISOString();
     const body = draftRow();
     const status = submit ? "submitted" : "draft";
@@ -479,6 +480,24 @@ export default function ExpensesPage() {
           onClose={() => setFormOpen(false)}
           title={editId ? "経費申請を編集" : "経費を申請"}
           wide
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (formErrors.length === 0) void save(true);
+          }}
+          footer={
+            <div className="flex flex-wrap justify-end gap-2">
+              <Button type="button" variant="secondary" onClick={() => setFormOpen(false)}>
+                キャンセル
+              </Button>
+              <Button type="button" variant="secondary" onClick={() => save(false)}>
+                下書き保存
+              </Button>
+              <Button type="submit" disabled={formErrors.length > 0}>
+                <Send className="h-4 w-4" />
+                申請する
+              </Button>
+            </div>
+          }
         >
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="利用日" required>
@@ -585,19 +604,6 @@ export default function ExpensesPage() {
               ))}
             </ul>
           )}
-
-          <div className="mt-5 flex flex-wrap justify-end gap-2">
-            <Button variant="secondary" onClick={() => setFormOpen(false)}>
-              キャンセル
-            </Button>
-            <Button variant="secondary" onClick={() => save(false)}>
-              下書き保存
-            </Button>
-            <Button onClick={() => save(true)} disabled={formErrors.length > 0}>
-              <Send className="h-4 w-4" />
-              申請する
-            </Button>
-          </div>
         </Modal>
       )}
 

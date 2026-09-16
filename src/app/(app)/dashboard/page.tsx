@@ -713,8 +713,24 @@ export default function DashboardPage() {
         open={taskModalOpen}
         onClose={() => setTaskModalOpen(false)}
         title="タスクを追加"
+        onSubmit={handleAddTask}
+        footer={
+          <div className="flex justify-end gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setTaskModalOpen(false)}
+            >
+              キャンセル
+            </Button>
+            <Button type="submit" disabled={!taskTitle.trim()}>
+              <Plus className="h-4 w-4" />
+              追加する
+            </Button>
+          </div>
+        }
       >
-        <form onSubmit={handleAddTask} className="space-y-4">
+        <div className="space-y-4">
           <Field label="タイトル" required>
             <Input
               value={taskTitle}
@@ -753,21 +769,7 @@ export default function DashboardPage() {
           </Field>
           <p className="text-xs text-slate-400 dark:text-slate-500">
             担当者は自分（{user.name}）として登録されます。
-          </p>
-          <div className="flex justify-end gap-2 pt-1">
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => setTaskModalOpen(false)}
-            >
-              キャンセル
-            </Button>
-            <Button type="submit" disabled={!taskTitle.trim()}>
-              <Plus className="h-4 w-4" />
-              追加する
-            </Button>
-          </div>
-        </form>
+          </p>        </div>
       </Modal>
     </div>
   );

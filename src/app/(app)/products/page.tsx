@@ -305,6 +305,7 @@ export default function ProductsPage() {
           open
           onClose={() => setFormOpen(false)}
           title={editing ? "商材を編集" : "商材を追加"}
+          onSubmit={save}
           footer={
             <div className="space-y-2">
               {!nameFilled && (
@@ -317,15 +318,14 @@ export default function ProductsPage() {
                 <Button type="button" variant="secondary" onClick={() => setFormOpen(false)}>
                   キャンセル
                 </Button>
-                {/* form="product-form" で、footer が form の外にあっても送信できる */}
-                <Button type="submit" form="product-form" disabled={!canSave}>
+                <Button type="submit" disabled={!canSave}>
                   {saving ? "保存中…" : editing ? "保存する" : "登録する"}
                 </Button>
               </div>
             </div>
           }
         >
-          <form id="product-form" onSubmit={save} className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-2">
             <Field label="商材名" required className="sm:col-span-2">
               <Input
                 value={draft.name}
@@ -381,7 +381,7 @@ export default function ProductsPage() {
                 placeholder="例: 入口商材。設置を伴う"
               />
             </Field>
-          </form>
+          </div>
         </Modal>
       )}
     </div>

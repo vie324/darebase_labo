@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 import { Button, Field, Input, Modal } from "@/components/ui";
 
 export interface ChannelFormValues {
@@ -32,7 +32,8 @@ export function ChannelFormModal({
 
   const canSubmit = name.trim().length > 0;
 
-  const submit = () => {
+  const submit = (e?: FormEvent) => {
+    e?.preventDefault();
     if (!canSubmit) return;
     void onSubmit({
       name: name.trim(),
@@ -43,7 +44,22 @@ export function ChannelFormModal({
   };
 
   return (
-    <Modal open={open} onClose={close} title="チャンネルを作成">
+    <Modal
+      open={open}
+      onClose={close}
+      title="チャンネルを作成"
+      onSubmit={submit}
+      footer={
+        <div className="flex justify-end gap-2">
+          <Button type="button" variant="secondary" onClick={close}>
+            キャンセル
+          </Button>
+          <Button type="submit" disabled={!canSubmit}>
+            作成
+          </Button>
+        </div>
+      }
+    >
       <div className="space-y-4">
         <div className="flex gap-4">
           <Field label="絵文字">
@@ -59,11 +75,9 @@ export function ChannelFormModal({
             <Input
               value={name}
               onChange={(e) => setName(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") submit();
-              }}
               placeholder="例: 新規開拓"
               autoFocus
+              required
             />
           </Field>
         </div>
@@ -74,14 +88,6 @@ export function ChannelFormModal({
             placeholder="このチャンネルの用途を一言で"
           />
         </Field>
-        <div className="flex justify-end gap-2 pt-2">
-          <Button variant="secondary" onClick={close}>
-            キャンセル
-          </Button>
-          <Button onClick={submit} disabled={!canSubmit}>
-            作成
-          </Button>
-        </div>
       </div>
     </Modal>
   );

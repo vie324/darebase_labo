@@ -68,8 +68,29 @@ export function BankFormModal({
       open
       onClose={onClose}
       title={`${terms.parent}を${initial ? "編集" : "登録"}`}
+      onSubmit={submit}
+      footer={
+        <div className="flex justify-between gap-2">
+          {initial && onDelete ? (
+            <Button type="button" variant="ghost" onClick={() => onDelete(initial)}>
+              <Trash2 className="h-4 w-4" />
+              削除
+            </Button>
+          ) : (
+            <span />
+          )}
+          <div className="flex gap-2">
+            <Button type="button" variant="secondary" onClick={onClose}>
+              キャンセル
+            </Button>
+            <Button type="submit" disabled={!values.name.trim() || saving}>
+              保存
+            </Button>
+          </div>
+        </div>
+      }
     >
-      <form onSubmit={submit} className="space-y-4">
+      <div className="space-y-4">
         <Field label={`${terms.parent}名`} required>
           <Input
             value={values.name}
@@ -95,25 +116,7 @@ export function BankFormModal({
           />
           取引中（オフにすると選択肢から外れます）
         </label>
-        <div className="flex justify-between gap-2 pt-1">
-          {initial && onDelete ? (
-            <Button type="button" variant="ghost" onClick={() => onDelete(initial)}>
-              <Trash2 className="h-4 w-4" />
-              削除
-            </Button>
-          ) : (
-            <span />
-          )}
-          <div className="flex gap-2">
-            <Button type="button" variant="secondary" onClick={onClose}>
-              キャンセル
-            </Button>
-            <Button type="submit" disabled={!values.name.trim() || saving}>
-              保存
-            </Button>
-          </div>
-        </div>
-      </form>
+      </div>
     </Modal>
   );
 }
@@ -163,8 +166,29 @@ export function BranchFormModal({
       open
       onClose={onClose}
       title={`${terms.child}を${initial ? "編集" : "登録"}`}
+      onSubmit={submit}
+      footer={
+        <div className="flex justify-between gap-2">
+          {initial && onDelete ? (
+            <Button type="button" variant="ghost" onClick={() => onDelete(initial)}>
+              <Trash2 className="h-4 w-4" />
+              削除
+            </Button>
+          ) : (
+            <span />
+          )}
+          <div className="flex gap-2">
+            <Button type="button" variant="secondary" onClick={onClose}>
+              キャンセル
+            </Button>
+            <Button type="submit" disabled={!values.name.trim() || !values.bank_id || saving}>
+              保存
+            </Button>
+          </div>
+        </div>
+      }
     >
-      <form onSubmit={submit} className="space-y-4">
+      <div className="space-y-4">
         <Field label={terms.parent} required>
           <Select
             value={values.bank_id}
@@ -262,25 +286,7 @@ export function BranchFormModal({
             placeholder={terms.examples.childNote}
           />
         </Field>
-        <div className="flex justify-between gap-2 pt-1">
-          {initial && onDelete ? (
-            <Button type="button" variant="ghost" onClick={() => onDelete(initial)}>
-              <Trash2 className="h-4 w-4" />
-              削除
-            </Button>
-          ) : (
-            <span />
-          )}
-          <div className="flex gap-2">
-            <Button type="button" variant="secondary" onClick={onClose}>
-              キャンセル
-            </Button>
-            <Button type="submit" disabled={!values.name.trim() || !values.bank_id || saving}>
-              保存
-            </Button>
-          </div>
-        </div>
-      </form>
+      </div>
     </Modal>
   );
 }
@@ -316,8 +322,23 @@ export function BranchActivityModal({
   };
 
   return (
-    <Modal open onClose={onClose} title={`${branch.name} に活動を記録`}>
-      <form onSubmit={submit} className="space-y-4">
+    <Modal
+      open
+      onClose={onClose}
+      title={`${branch.name} に活動を記録`}
+      onSubmit={submit}
+      footer={
+        <div className="flex justify-end gap-2">
+          <Button type="button" variant="secondary" onClick={onClose}>
+            キャンセル
+          </Button>
+          <Button type="submit" disabled={saving || !values.occurred_at}>
+            記録する
+          </Button>
+        </div>
+      }
+    >
+      <div className="space-y-4">
         <p className="text-xs text-slate-400">
           {bankName} ・ 記録すると{terms.child}の最終接点日が更新されます
         </p>
@@ -356,15 +377,7 @@ export function BranchActivityModal({
             placeholder="誰に何を話したか、次のアクション"
           />
         </Field>
-        <div className="flex justify-end gap-2 pt-1">
-          <Button type="button" variant="secondary" onClick={onClose}>
-            キャンセル
-          </Button>
-          <Button type="submit" disabled={saving || !values.occurred_at}>
-            記録する
-          </Button>
-        </div>
-      </form>
+      </div>
     </Modal>
   );
 }
@@ -404,8 +417,24 @@ export function BulkAssignModal({
   };
 
   return (
-    <Modal open onClose={onClose} title="担当者を一括変更">
-      <form onSubmit={submit} className="space-y-4">
+    <Modal
+      open
+      onClose={onClose}
+      title="担当者を一括変更"
+      onSubmit={submit}
+      footer={
+        <div className="flex justify-end gap-2">
+          <Button type="button" variant="secondary" onClick={onClose}>
+            キャンセル
+          </Button>
+          <Button type="submit" disabled={saving || count === 0}>
+            {count}
+            {terms.countUnit}を変更
+          </Button>
+        </div>
+      }
+    >
+      <div className="space-y-4">
         <div className="flex items-center gap-2.5 rounded-xl bg-cyan-50/70 p-3 text-sm dark:bg-cyan-500/10">
           <Users className="h-4 w-4 shrink-0 text-cyan-600 dark:text-cyan-400" />
           <p>
@@ -448,16 +477,7 @@ export function BulkAssignModal({
             </Select>
           </Field>
         )}
-        <div className="flex justify-end gap-2 pt-1">
-          <Button type="button" variant="secondary" onClick={onClose}>
-            キャンセル
-          </Button>
-          <Button type="submit" disabled={saving || count === 0}>
-            {count}
-            {terms.countUnit}を変更
-          </Button>
-        </div>
-      </form>
+      </div>
     </Modal>
   );
 }

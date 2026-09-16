@@ -4,7 +4,7 @@
 // 日程調整 — 新規作成モーダル と 詳細モーダル（本体）
 // =============================================================
 
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 import {
   CalendarCheck,
   CalendarClock,
@@ -110,7 +110,8 @@ export function PollFormModal({
 
   const validCandidates = values.candidates.filter((c) => c.start);
 
-  const submit = async () => {
+  const submit = async (e?: FormEvent) => {
+    e?.preventDefault();
     if (!values.title.trim()) {
       setError("タイトルを入力してください");
       return;
@@ -128,7 +129,29 @@ export function PollFormModal({
   };
 
   return (
-    <Modal open onClose={onClose} title="日程調整を新規作成" wide>
+    <Modal
+      open
+      onClose={onClose}
+      title="日程調整を新規作成"
+      wide
+      onSubmit={submit}
+      footer={
+        <div className="space-y-2">
+          {error && (
+            <p className="text-sm font-medium text-rose-500 dark:text-rose-400">{error}</p>
+          )}
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="secondary" onClick={onClose}>
+              キャンセル
+            </Button>
+            <Button type="submit" disabled={saving}>
+              <Plus className="h-4 w-4" />
+              {saving ? "作成中…" : "作成する"}
+            </Button>
+          </div>
+        </div>
+      }
+    >
       <div className="space-y-4">
         <div className="flex items-center gap-2 rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-500 dark:bg-slate-800/60 dark:text-slate-400">
           <Users className="h-3.5 w-3.5" />
@@ -144,6 +167,7 @@ export function PollFormModal({
             onChange={(e) => set("title", e.target.value)}
             placeholder="例: 株式会社〇〇 オンラインデモ"
             autoFocus
+            required
           />
         </Field>
 
@@ -230,22 +254,6 @@ export function PollFormModal({
             候補を追加
           </Button>
         </div>
-
-        {error && (
-          <p className="text-sm font-medium text-rose-500 dark:text-rose-400">
-            {error}
-          </p>
-        )}
-
-        <div className="flex justify-end gap-2 border-t border-slate-100 pt-4 dark:border-slate-800">
-          <Button variant="secondary" onClick={onClose}>
-            キャンセル
-          </Button>
-          <Button onClick={submit} disabled={saving}>
-            <Plus className="h-4 w-4" />
-            {saving ? "作成中…" : "作成する"}
-          </Button>
-        </div>
       </div>
     </Modal>
   );
@@ -282,7 +290,27 @@ export function PollDetailModal({
     poll.confirmed_index !== null ? poll.candidates[poll.confirmed_index] : null;
 
   return (
-    <Modal open onClose={onClose} title={poll.title} wide>
+    <Modal
+      open
+      onClose={onClose}
+      title={poll.title}
+      wide
+      footer={
+        <div className="flex items-center justify-between gap-2">
+          {isOrganizer ? (
+            <Button variant="danger" size="sm" onClick={onDelete}>
+              <Trash2 className="h-4 w-4" />
+              削除
+            </Button>
+          ) : (
+            <span />
+          )}
+          <Button variant="secondary" size="sm" onClick={onClose}>
+            閉じる
+          </Button>
+        </div>
+      }
+    >
       <div className="space-y-5">
         {/* ヘッダー情報 */}
         <div className="flex flex-wrap items-center gap-2 text-xs">
@@ -377,21 +405,6 @@ export function PollDetailModal({
             onAddResponse={onAddResponse}
           />
         )}
-
-        {/* フッター */}
-        <div className="flex items-center justify-between gap-2 border-t border-slate-100 pt-4 dark:border-slate-800">
-          {isOrganizer ? (
-            <Button variant="danger" size="sm" onClick={onDelete}>
-              <Trash2 className="h-4 w-4" />
-              削除
-            </Button>
-          ) : (
-            <span />
-          )}
-          <Button variant="secondary" size="sm" onClick={onClose}>
-            閉じる
-          </Button>
-        </div>
       </div>
     </Modal>
   );
@@ -574,7 +587,8 @@ function ResponseForm({
   const setAnswer = (index: number, value: Answer) =>
     setAnswers((prev) => prev.map((a, i) => (i === index ? value : a)));
 
-  const submit = async () => {
+  const submit = async (e?: FormEvent) => {
+    e?.preventDefault();
     if (!name.trim() || saving) return;
     setSaving(true);
     try {
@@ -588,7 +602,10 @@ function ResponseForm({
   };
 
   return (
-    <div className="rounded-2xl border border-cyan-100 bg-cyan-50/40 p-4 dark:border-cyan-500/20 dark:bg-cyan-500/5">
+    <form
+      onSubmit={submit}
+      className="rounded-2xl border border-cyan-100 bg-cyan-50/40 p-4 dark:border-cyan-500/20 dark:bg-cyan-500/5"
+    >
       <h3 className="mb-3 flex items-center gap-2 text-sm font-bold text-slate-700 dark:text-slate-200">
         <Send className="h-4 w-4 text-cyan-500" />
         出欠を回答する
@@ -649,11 +666,11 @@ function ResponseForm({
       </div>
 
       <div className="mt-3 flex justify-end">
-        <Button onClick={submit} disabled={!name.trim() || saving}>
+        <Button type="submit" disabled={!name.trim() || saving}>
           <Send className="h-4 w-4" />
           {saving ? "送信中…" : "回答を送信"}
         </Button>
       </div>
-    </div>
+    </form>
   );
 }
