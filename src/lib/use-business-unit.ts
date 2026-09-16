@@ -16,8 +16,8 @@ import { useCollection } from "./use-collection";
 import {
   BANKING,
   DEFAULT_UNIT,
+  UNIT_TERMS,
   normalizeUnitSlug,
-  resolveUnit,
   type BusinessUnitSlug,
   type UnitTerms,
 } from "./business-units";
@@ -68,12 +68,21 @@ export interface BusinessUnitState {
   unitId: string | null;
   /** 既定の事業部の id。business_unit_id が空の既存行はこちら扱い */
   defaultUnitId: string | null;
-  /** 画面に出す呼び名 */
+  /** 画面に出す呼び名。選んだ事業部から引く（行の有無に依存しない） */
   terms: UnitTerms;
   /** 選べる事業部（is_active のみ） */
   units: BusinessUnit[];
+  /**
+   * 選択中の事業部が business_units に無い。
+   * 画面はデータを出さず、作成を促すこと。
+   * （null を「絞り込まない」と解釈して全件出すと、銀行営業のデータが
+   *   アライアンスのタブに出てしまう）
+   */
+  missing: boolean;
   loading: boolean;
   setSlug: (next: BusinessUnitSlug) => void;
+  /** 選択中の事業部を作る。作成後の id を返す */
+  createUnit: () => Promise<string | null>;
 }
 
 export function useBusinessUnit(): BusinessUnitState {
@@ -81,10 +90,23 @@ export function useBusinessUnit(): BusinessUnitState {
   const rows = useCollection("business_units");
   const units = rows.items.filter((u) => u.is_active);
 
-  const byId = new Map(units.map((u) => [u.slug, u.id]));
-  const unitId = byId.get(slug) ?? null;
-  const defaultUnitId = byId.get(BANKING) ?? units[0]?.id ?? null;
-  const { terms } = resolveUnit(units, unitId);
+  const idOf = new Map(units.map((u) => [u.slug, u.id]));
+  const unitId = idOf.get(slug) ?? null;
+  const defaultUnitId = idOf.get(BANKING) ?? units[0]?.id ?? null;
+
+  // 呼び名は「選んだ事業部」から引く。行がまだ無くても、
+  // アライアンスを選んだのに「銀行・支店」と出る、という食い違いを防ぐ。
+  const terms = UNIT_TERMS[slug];
+
+  const createUnit = async (): Promise<string | null> => {
+    if (unitId) return unitId;
+    const created = await rows.add({
+      name: UNIT_TERMS[slug].unit,
+      slug,
+      is_active: true,
+    });
+    return created.id;
+  };
 
   return {
     slug,
@@ -92,7 +114,10 @@ export function useBusinessUnit(): BusinessUnitState {
     defaultUnitId,
     terms,
     units,
+    // 読み込み中は「無い」と断定しない（一瞬だけ未作成の画面が出るのを防ぐ）
+    missing: !rows.loading && unitId === null,
     loading: rows.loading,
     setSlug: setBusinessUnit,
+    createUnit,
   };
 }

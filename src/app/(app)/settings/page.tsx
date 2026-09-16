@@ -9,10 +9,13 @@ import {
   Palette,
   RefreshCw,
   Settings,
+  ShieldCheck,
   Trash2,
 } from "lucide-react";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import { useAccess } from "@/lib/use-access";
+import { useCollection } from "@/lib/use-collection";
+import { roleLabel } from "@/lib/roles";
 import { Badge, Button, Card, PageHeader } from "@/components/ui";
 import { fetchLineStatus } from "../billing/line-client";
 import { BranchSettingsCard } from "./branch-settings-card";
@@ -22,7 +25,12 @@ import { ConfidenceSettingsCard } from "./confidence-settings-card";
 export default function SettingsPage() {
   const configured = isSupabaseConfigured();
   const [cleared, setCleared] = useState(false);
-  const { isExecutive, can } = useAccess();
+  const { isExecutive, role, can } = useAccess();
+  const profiles = useCollection("profiles");
+  // 権限を上げてもらう相手が分かるよう、経営権限のメンバーを出す
+  const executives = profiles.items.filter(
+    (p) => (p.role_key ?? (p.access_level === "executive" ? "executive" : "")) === "executive"
+  );
   const [lineConfigured, setLineConfigured] = useState<boolean | null>(null);
 
   useEffect(() => {
@@ -168,8 +176,40 @@ export default function SettingsPage() {
           </div>
         </Card>
 
-        {/* 権限管理・招待（経営層のみ） */}
-        {isExecutive && <RoleSettingsCard />}
+        {/* 権限管理・招待（変更できるのは経営層のみ） */}
+        {isExecutive ? (
+          <RoleSettingsCard />
+        ) : (
+          // 経営層以外には従来カードごと出していなかったため、
+          // 「権限をどこで変えるのか」が誰にも分からなかった。
+          // 変更はできなくても、場所と依頼先は示す。
+          <Card className="p-6">
+            <div className="mb-3 flex items-center gap-2.5">
+              <ShieldCheck className="h-5 w-5 text-cyan-500" />
+              <h2 className="font-bold">権限管理・招待</h2>
+            </div>
+            <div className="space-y-3 text-sm leading-relaxed text-slate-500 dark:text-slate-400">
+              <p>
+                いまのあなたの権限は
+                <b className="mx-1 text-slate-700 dark:text-slate-200">{roleLabel(role)}</b>
+                です。メンバーの権限変更と招待の発行は
+                <b className="mx-1 text-slate-700 dark:text-slate-200">経営</b>
+                の権限を持つ人だけが行えます。
+              </p>
+              <p>
+                権限を上げたい場合は、経営権限のメンバーに「設定 &gt; 権限管理」からの変更を依頼してください。
+              </p>
+              {executives.length > 0 && (
+                <p>
+                  現在の経営権限:{" "}
+                  <b className="text-slate-700 dark:text-slate-200">
+                    {executives.map((p) => p.name).join(" / ")}
+                  </b>
+                </p>
+              )}
+            </div>
+          </Card>
+        )}
 
         {/* Google カレンダー連携 */}
         <Card className="p-6">

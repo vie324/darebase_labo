@@ -127,6 +127,10 @@ export function filterByUnit<T extends { business_unit_id?: string | null }>(
   unitId: string | null,
   defaultUnitId: string | null
 ): T[] {
+  // 【注意】null は「事業部で絞らない」の意味。
+  // 「選んだ事業部が business_units に無い」の合図として null を渡してはいけない。
+  // 渡すと全件（他事業部のぶんも）返ってしまう。
+  // 未作成の判定は useBusinessUnit の missing を見て、画面側で早期に返すこと。
   if (unitId === null) return rows;
   return rows.filter((r) => belongsToUnit(r.business_unit_id, unitId, defaultUnitId));
 }
