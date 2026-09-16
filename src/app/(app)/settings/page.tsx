@@ -66,7 +66,7 @@ export default function SettingsPage() {
       />
 
       <div className="grid gap-4 lg:grid-cols-2">
-        {/* 銀行営業の判定基準 */}
+        {/* 稼働の判定基準（銀行営業・アライアンス営業に共通） */}
         {/* 判定基準の保存は app_settings への書き込み（経営・管理部のみ許可） */}
         {can("settings_admin") && <BranchSettingsCard />}
         {can("settings_admin") && <ConfidenceSettingsCard />}

@@ -1,9 +1,9 @@
 "use client";
 
-// 銀行・支店リストの一括登録。入り口は3つあるが、
+// 紹介元リストの一括登録。入り口は3つあるが、
 // 差分判定（新規／更新／スキップ）と確定処理は1本に揃えてある。
 //
-//   かんたん入力 … 銀行を1つ選び、支店名を1行1件で貼り付ける（列の割当なし）
+//   かんたん入力 … 紹介元を1つ選び、窓口名を1行1件で貼り付ける（列の割当なし）
 //   貼り付け     … Excel・スプレッドシートからそのまま貼る → 列マッピング
 //   ファイル     … CSV / TSV を選ぶ → 列マッピング
 //
@@ -13,7 +13,7 @@
 import { useMemo, useRef, useState, type ChangeEvent } from "react";
 import { AlertTriangle, CheckCircle2, ClipboardPaste, FileUp, Upload, Zap } from "lucide-react";
 import {
-  BRANCH_COLUMN_LABELS,
+  branchColumnLabels,
   buildImportPlan,
   guessBranchMapping,
   isMappingReady,
@@ -24,6 +24,7 @@ import {
 } from "@/lib/branch-import";
 import { QUICK_ADD_MAPPING, buildQuickRows } from "@/lib/branch-quick-add";
 import { parseDelimited } from "@/lib/csv";
+import type { UnitTerms } from "@/lib/business-units";
 import { cn } from "@/lib/utils";
 import type { Bank, Branch } from "@/lib/types";
 import { Badge, Button, Field, Input, Modal, Select, Tabs, Textarea } from "@/components/ui";
@@ -31,25 +32,23 @@ import { Badge, Button, Field, Input, Modal, Select, Tabs, Textarea } from "@/co
 type Mode = "quick" | "paste" | "file";
 type Step = "input" | "mapping" | "result";
 
-/** 「＋ 新しい銀行」を選んだときの Select の値 */
+/** 「＋ 新しい紹介元」を選んだときの Select の値 */
 const NEW_BANK = "__new__";
-
-const QUICK_PLACEHOLDER = `中央支店
-丸の内支店 002
-新宿支店,003,東京都,新宿区西新宿1-1-1`;
 
 export function BranchImportModal({
   banks,
   branches,
+  terms,
   onClose,
   onConfirm,
 }: {
   banks: Bank[];
   branches: Branch[];
+  terms: UnitTerms;
   onClose: () => void;
   onConfirm: (plan: ImportPlan) => Promise<void>;
 }) {
-  // 銀行が1件も無いうちは列マッピングより「かんたん入力」のほうが早い
+  // 紹介元が1件も無いうちは列マッピングより「かんたん入力」のほうが早い
   const [mode, setMode] = useState<Mode>("quick");
   const [step, setStep] = useState<Step>("input");
   const [importing, setImporting] = useState(false);
@@ -80,7 +79,16 @@ export function BranchImportModal({
     return buildImportPlan(dataRows, mapping, banks, branches, hasHeader ? 1 : 0);
   }, [mapping, dataRows, banks, branches, hasHeader]);
 
-  // 選択中の銀行（既存 or 新規入力）
+  // 列の呼び名と貼り付け例は事業部で変わる
+  const columns = useMemo(() => branchColumnLabels(terms), [terms]);
+  const pastePlaceholder = useMemo(() => {
+    const ex = terms.examples;
+    const head = [`${terms.parent}名`, `${terms.parent}コード`, `${terms.child}名`, `${terms.child}コード`];
+    const row = [ex.parent, ex.parentCode, ex.child, ex.childCode];
+    return `${head.join("\t")}\n${row.join("\t")}`;
+  }, [terms]);
+
+  // 選択中の紹介元（既存 or 新規入力）
   const quickBank = useMemo(() => {
     if (quickBankId === NEW_BANK) {
       return { name: newBank.name.trim(), code: newBank.code.trim() };
@@ -114,7 +122,9 @@ export function BranchImportModal({
   const loadTable = (text: string, label: string): boolean => {
     const parsed = parseBranchCsv(text);
     if (parsed.rows.length === 0 && parsed.header.length === 0) {
-      setError("読み取れる行がありませんでした。1行1支店の表になっているか確認してください。");
+      setError(
+        `読み取れる行がありませんでした。1行1${terms.countUnit}の表になっているか確認してください。`
+      );
       return false;
     }
     setSourceLabel(label);
@@ -180,7 +190,7 @@ export function BranchImportModal({
   const applyCount = activePlan ? activePlan.createCount + activePlan.updateCount : 0;
 
   return (
-    <Modal open onClose={onClose} title="銀行・支店を登録" wide>
+    <Modal open onClose={onClose} title={`${terms.parent}・${terms.child}を登録`} wide>
       {/* ---------- 入り口の切り替え ---------- */}
       {step !== "result" && (
         <Tabs
@@ -199,12 +209,12 @@ export function BranchImportModal({
       {step === "input" && mode === "quick" && (
         <div className="space-y-4">
           <p className="text-sm leading-relaxed text-slate-500 dark:text-slate-400">
-            銀行を選んで、支店名を1行に1つずつ入れてください。
-            支店コード・都道府県・住所は、タブ・カンマ区切りで続けて書けば一緒に登録されます。
+            {terms.parent}を選んで、{terms.child}名を1行に1つずつ入れてください。
+            {terms.childCode}・都道府県・住所は、タブ・カンマ区切りで続けて書けば一緒に登録されます。
           </p>
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="銀行" required>
+            <Field label={terms.parent} required>
               <Select value={quickBankId} onChange={(e) => setQuickBankId(e.target.value)}>
                 {banks.map((b) => (
                   <option key={b.id} value={b.id}>
@@ -212,40 +222,39 @@ export function BranchImportModal({
                     {b.code ? `（${b.code}）` : ""}
                   </option>
                 ))}
-                <option value={NEW_BANK}>＋ 新しい銀行を登録する</option>
+                <option value={NEW_BANK}>＋ 新しい{terms.parent}を登録する</option>
               </Select>
             </Field>
             {quickBankId === NEW_BANK && (
               <>
-                <Field label="銀行名" required>
+                <Field label={`${terms.parent}名`} required>
                   <Input
                     value={newBank.name}
                     onChange={(e) => setNewBank({ ...newBank, name: e.target.value })}
-                    placeholder="例: みらい銀行"
+                    placeholder={`例: ${terms.examples.parent}`}
                     autoFocus
                   />
                 </Field>
-                <Field label="金融機関コード">
+                <Field label={terms.parentCode}>
                   <Input
                     value={newBank.code}
                     onChange={(e) => setNewBank({ ...newBank, code: e.target.value })}
-                    placeholder="例: 0011"
-                    inputMode="numeric"
+                    placeholder={`例: ${terms.examples.parentCode}`}
                   />
                 </Field>
               </>
             )}
           </div>
 
-          <Field label="支店" required>
+          <Field label={terms.child} required>
             <Textarea
               value={quickText}
               onChange={(e) => setQuickText(e.target.value)}
-              placeholder={QUICK_PLACEHOLDER}
+              placeholder={terms.examples.childLines}
               className="min-h-44 font-mono text-xs"
             />
             <span className="mt-1 block text-[11px] text-slate-400">
-              「1.」のような行頭の連番、「中央支店（001）」のような括弧書きのコードは自動で外します。
+              {`「1.」のような行頭の連番、「${terms.examples.childWithCode}」のような括弧書きのコードは自動で外します。`}
               空行と「#」で始まる行は読み飛ばします。
             </span>
           </Field>
@@ -253,10 +262,10 @@ export function BranchImportModal({
           {quickBank.name === "" ? (
             <p className="flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400">
               <AlertTriangle className="h-3.5 w-3.5" />
-              銀行名を入れてください。
+              {terms.parent}名を入れてください。
             </p>
           ) : (
-            quickPlan && <PlanPreview plan={quickPlan} />
+            quickPlan && <PlanPreview plan={quickPlan} terms={terms} />
           )}
 
           <div className="flex justify-end gap-2">
@@ -281,7 +290,7 @@ export function BranchImportModal({
           <Textarea
             value={pasteText}
             onChange={(e) => setPasteText(e.target.value)}
-            placeholder={"銀行名\t銀行コード\t支店名\t支店コード\nみらい銀行\t0011\t中央支店\t001"}
+            placeholder={pastePlaceholder}
             className="min-h-48 font-mono text-xs"
             autoFocus
           />
@@ -307,7 +316,7 @@ export function BranchImportModal({
       {step === "input" && mode === "file" && (
         <div className="space-y-4">
           <p className="text-sm leading-relaxed text-slate-500 dark:text-slate-400">
-            銀行・支店リストの CSV / TSV を選択してください。
+            {terms.parent}・{terms.child}リストの CSV / TSV を選択してください。
             列の意味は次の画面で割り当てられます。取込前に差分（新規・更新・スキップ）を
             確認してから確定します。
           </p>
@@ -318,7 +327,7 @@ export function BranchImportModal({
             <FileUp className="h-8 w-8 text-slate-400" />
             <span className="text-sm font-semibold">CSV / TSV ファイルを選択</span>
             <span className="text-xs text-slate-400">
-              例: 銀行名 / 銀行コード / 支店名 / 支店コード / 都道府県 / 住所 / 担当者
+              例: {columns.map((c) => c.label).join(" / ")}
             </span>
           </button>
           <input
@@ -335,9 +344,15 @@ export function BranchImportModal({
             </p>
           )}
           <div className="rounded-xl bg-slate-50 p-3 text-xs leading-relaxed text-slate-500 dark:bg-slate-800/50 dark:text-slate-400">
-            重複判定は<strong>銀行コード + 支店コード</strong>で行います。
-            コードが空の場合は<strong>銀行名 + 支店名</strong>で突き合わせ、
-            一致した支店は上書き更新、無ければ新規登録します。
+            重複判定は
+            <strong>
+              {terms.parent}コード + {terms.child}コード
+            </strong>
+            で行います。 コードが空の場合は
+            <strong>
+              {terms.parent}名 + {terms.child}名
+            </strong>
+            で突き合わせ、 一致した{terms.child}は上書き更新、無ければ新規登録します。
           </div>
         </div>
       )}
@@ -365,7 +380,7 @@ export function BranchImportModal({
           <div>
             <p className="mb-2 text-xs font-bold text-slate-500 dark:text-slate-400">列の割り当て</p>
             <div className="grid gap-3 sm:grid-cols-2">
-              {BRANCH_COLUMN_LABELS.map(({ key, label, required }) => (
+              {columns.map(({ key, label, required }) => (
                 <label key={key} className="block">
                   <span className="mb-1.5 block text-xs font-semibold text-slate-500 dark:text-slate-400">
                     {label}
@@ -391,12 +406,12 @@ export function BranchImportModal({
             {!isMappingReady(mapping) && (
               <p className="mt-2 flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400">
                 <AlertTriangle className="h-3.5 w-3.5" />
-                銀行名と支店名の列を割り当ててください。
+                {terms.parent}名と{terms.child}名の列を割り当ててください。
               </p>
             )}
           </div>
 
-          {plan && <PlanPreview plan={plan} />}
+          {plan && <PlanPreview plan={plan} terms={terms} />}
 
           <div className="flex justify-between gap-2">
             <Button variant="secondary" onClick={() => setStep("input")}>
@@ -453,7 +468,7 @@ function SummaryTile({
 }
 
 /** 差分プレビュー（かんたん入力・列マッピングの両方から使う） */
-function PlanPreview({ plan }: { plan: ImportPlan }) {
+function PlanPreview({ plan, terms }: { plan: ImportPlan; terms: UnitTerms }) {
   return (
     <div className="space-y-3">
       <p className="text-xs font-bold text-slate-500 dark:text-slate-400">
@@ -467,10 +482,10 @@ function PlanPreview({ plan }: { plan: ImportPlan }) {
       </div>
       {plan.newBanks.length > 0 && (
         <p className="text-xs text-slate-500 dark:text-slate-400">
-          新しく作成される銀行: {plan.newBanks.map((b) => b.name).join(" / ")}
+          新しく作成される{terms.parent}: {plan.newBanks.map((b) => b.name).join(" / ")}
         </p>
       )}
-      <PreviewTable rows={plan.rows} />
+      <PreviewTable rows={plan.rows} terms={terms} />
     </div>
   );
 }
@@ -494,7 +509,7 @@ const ACTION_META: Record<ImportRow["action"], { label: string; color: string }>
   },
 };
 
-function PreviewTable({ rows }: { rows: ImportRow[] }) {
+function PreviewTable({ rows, terms }: { rows: ImportRow[]; terms: UnitTerms }) {
   // 問題のある行を先に見せる（エラー → スキップ → 新規 → 更新）
   const order: Record<ImportRow["action"], number> = { error: 0, skip: 1, create: 2, update: 3 };
   const sorted = [...rows].sort((a, b) => order[a.action] - order[b.action] || a.lineNo - b.lineNo);
@@ -512,8 +527,8 @@ function PreviewTable({ rows }: { rows: ImportRow[] }) {
             <tr className="text-slate-500 dark:text-slate-400">
               <th className="px-3 py-2 font-bold">行</th>
               <th className="px-3 py-2 font-bold">判定</th>
-              <th className="px-3 py-2 font-bold">銀行</th>
-              <th className="px-3 py-2 font-bold">支店</th>
+              <th className="px-3 py-2 font-bold">{terms.parent}</th>
+              <th className="px-3 py-2 font-bold">{terms.child}</th>
               <th className="px-3 py-2 font-bold">備考</th>
             </tr>
           </thead>

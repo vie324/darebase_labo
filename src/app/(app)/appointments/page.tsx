@@ -1,7 +1,7 @@
 "use client";
 
 // =============================================================
-// アポイント — 銀行支店から電話で来た紹介を最小入力で登録する
+// アポイント — 紹介元の窓口から来た紹介を最小入力で登録する
 //
 // 登録時の連動（§5-2）:
 //  1. branches.last_contact_at を更新（＝支店稼働の指標に反映）
@@ -123,7 +123,7 @@ export default function AppointmentsPage() {
       return true;
     })
     .sort((a, b) => {
-      // 予定があるものは日時の近い順、無いものは受電日の新しい順
+      // 予定があるものは日時の近い順、無いものは紹介を受けた日の新しい順
       const av = a.scheduled_at || a.received_at;
       const bv = b.scheduled_at || b.received_at;
       return bv.localeCompare(av);
@@ -306,7 +306,7 @@ export default function AppointmentsPage() {
               href="/banks"
               className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-400 to-sky-400 px-4 text-sm font-medium text-slate-900"
             >
-              銀行・支店マスタへ
+              {terms.parent}・{terms.child}マスタへ
               <ArrowRight className="h-4 w-4" />
             </Link>
           }
@@ -318,7 +318,7 @@ export default function AppointmentsPage() {
             <StatCard
               label="今月のアポ"
               value={`${month.appointments}件`}
-              sub={`${toMonth(today)} 受電分`}
+              sub={`${toMonth(today)} ${terms.received}分`}
               icon={<Phone className="h-5 w-5" />}
               accent="cyan"
             />
@@ -486,7 +486,7 @@ export default function AppointmentsPage() {
                           {a.scheduled_at ? formatDateTime(a.scheduled_at) : "日程未定"}
                         </p>
                         <p className="mt-0.5 text-xs text-slate-400">
-                          受電 {a.received_at ? formatDate(a.received_at) : "—"}
+                          {terms.received} {a.received_at ? formatDate(a.received_at) : "—"}
                           {a.assigned_name && ` ・ ${a.assigned_name}`}
                         </p>
                       </div>
@@ -505,9 +505,10 @@ export default function AppointmentsPage() {
           key={formState.initial?.id ?? "new"}
           initial={formState.initial}
           banks={unitBanks}
-          branches={branches.items}
+          branches={unitBranches}
           members={profiles.items}
           defaultAssignee={user.id}
+          terms={terms}
           onClose={() => setFormState(null)}
           onSubmit={saveAppointment}
         />
@@ -519,6 +520,7 @@ export default function AppointmentsPage() {
           bankName={bankNameOf(detail.bank_id)}
           branchName={branchNameOf(detail.branch_id)}
           hasDeal={Boolean(detail.deal_id)}
+          terms={terms}
           onClose={() => setDetailId(null)}
           onEdit={(a) => {
             setDetailId(null);

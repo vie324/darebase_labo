@@ -1,6 +1,10 @@
 "use client";
 
-// 銀行・支店の登録/編集、支店への活動記録、担当者の一括振り替え
+// 紹介元（銀行/1次代理店）と窓口（支店/2次代理店）の登録・編集、
+// 窓口への活動記録、担当者の一括振り替え。
+//
+// 呼び名と入力例は事業部で変わるため、すべて terms から引く。
+// ここにベタ書きすると、アライアンスの登録画面が銀行の顔のままになる。
 
 import { useState, type FormEvent } from "react";
 import { Trash2, Users } from "lucide-react";
@@ -14,6 +18,7 @@ import type {
   Organization,
   Profile,
 } from "@/lib/types";
+import type { UnitTerms } from "@/lib/business-units";
 import { Button, Field, FieldSet, Input, Modal, Select, Textarea } from "@/components/ui";
 import {
   emptyActivityForm,
@@ -27,15 +32,17 @@ import {
 } from "./shared";
 
 // =============================================================
-// 銀行
+// 紹介元（銀行 / 1次代理店）
 // =============================================================
 export function BankFormModal({
   initial,
+  terms,
   onClose,
   onSubmit,
   onDelete,
 }: {
   initial: Bank | null;
+  terms: UnitTerms;
   onClose: () => void;
   onSubmit: (values: BankFormValues) => Promise<void>;
   onDelete?: (bank: Bank) => void;
@@ -57,23 +64,26 @@ export function BankFormModal({
   };
 
   return (
-    <Modal open onClose={onClose} title={initial ? "銀行を編集" : "銀行を登録"}>
+    <Modal
+      open
+      onClose={onClose}
+      title={`${terms.parent}を${initial ? "編集" : "登録"}`}
+    >
       <form onSubmit={submit} className="space-y-4">
-        <Field label="銀行名" required>
+        <Field label={`${terms.parent}名`} required>
           <Input
             value={values.name}
             onChange={(e) => setValues({ ...values, name: e.target.value })}
-            placeholder="例: みらい銀行"
+            placeholder={`例: ${terms.examples.parent}`}
             autoFocus
             required
           />
         </Field>
-        <Field label="金融機関コード">
+        <Field label={terms.parentCode}>
           <Input
             value={values.code}
             onChange={(e) => setValues({ ...values, code: e.target.value })}
-            placeholder="例: 0011（まとめて登録するときの重複判定に使用）"
-            inputMode="numeric"
+            placeholder={`例: ${terms.examples.parentCode}（まとめて登録するときの重複判定に使用）`}
           />
         </Field>
         <label className="flex cursor-pointer items-center gap-2 text-sm">
@@ -109,7 +119,7 @@ export function BankFormModal({
 }
 
 // =============================================================
-// 支店
+// 紹介の窓口（支店 / 2次代理店）
 // =============================================================
 export function BranchFormModal({
   initial,
@@ -117,6 +127,7 @@ export function BranchFormModal({
   banks,
   members,
   organizations,
+  terms,
   onClose,
   onSubmit,
   onDelete,
@@ -126,6 +137,7 @@ export function BranchFormModal({
   banks: Bank[];
   members: Profile[];
   organizations: Organization[];
+  terms: UnitTerms;
   onClose: () => void;
   onSubmit: (values: BranchFormValues) => Promise<void>;
   onDelete?: (branch: Branch) => void;
@@ -147,9 +159,13 @@ export function BranchFormModal({
   };
 
   return (
-    <Modal open onClose={onClose} title={initial ? "支店を編集" : "支店を登録"}>
+    <Modal
+      open
+      onClose={onClose}
+      title={`${terms.child}を${initial ? "編集" : "登録"}`}
+    >
       <form onSubmit={submit} className="space-y-4">
-        <Field label="銀行" required>
+        <Field label={terms.parent} required>
           <Select
             value={values.bank_id}
             onChange={(e) => setValues({ ...values, bank_id: e.target.value })}
@@ -164,20 +180,20 @@ export function BranchFormModal({
           </Select>
         </Field>
         <div className="grid grid-cols-2 gap-3">
-          <Field label="支店名" required>
+          <Field label={`${terms.child}名`} required>
             <Input
               value={values.name}
               onChange={(e) => setValues({ ...values, name: e.target.value })}
-              placeholder="例: 渋谷支店"
+              placeholder={`例: ${terms.examples.child}`}
               required
             />
           </Field>
-          <Field label="支店コード">
+          <Field label={terms.childCode}>
             <Input
               value={values.code}
               onChange={(e) => setValues({ ...values, code: e.target.value })}
-              placeholder="例: 001"
-              inputMode="numeric"
+              placeholder={`例: ${terms.examples.childCode}`}
+              inputMode={terms.numericCode ? "numeric" : undefined}
             />
           </Field>
         </div>
@@ -243,7 +259,7 @@ export function BranchFormModal({
             value={values.note}
             onChange={(e) => setValues({ ...values, note: e.target.value })}
             rows={2}
-            placeholder="支店長の人柄、紹介が出やすい商材など"
+            placeholder={terms.examples.childNote}
           />
         </Field>
         <div className="flex justify-between gap-2 pt-1">
@@ -275,11 +291,13 @@ export function BranchFormModal({
 export function BranchActivityModal({
   branch,
   bankName,
+  terms,
   onClose,
   onSubmit,
 }: {
   branch: Branch;
   bankName: string;
+  terms: UnitTerms;
   onClose: () => void;
   onSubmit: (values: BranchActivityFormValues) => Promise<void>;
 }) {
@@ -301,7 +319,7 @@ export function BranchActivityModal({
     <Modal open onClose={onClose} title={`${branch.name} に活動を記録`}>
       <form onSubmit={submit} className="space-y-4">
         <p className="text-xs text-slate-400">
-          {bankName} ・ 記録すると支店の最終接点日が更新されます
+          {bankName} ・ 記録すると{terms.child}の最終接点日が更新されます
         </p>
         <FieldSet label="活動種別">
           <div className="flex flex-wrap gap-1.5">
@@ -352,18 +370,20 @@ export function BranchActivityModal({
 }
 
 // =============================================================
-// 担当者の一括振り替え（放置支店を動ける担当に配り直すための機能）
+// 担当者の一括振り替え（放置されている窓口を動ける担当に配り直すための機能）
 // =============================================================
 export function BulkAssignModal({
   count,
   members,
   organizations,
+  terms,
   onClose,
   onSubmit,
 }: {
   count: number;
   members: Profile[];
   organizations: Organization[];
+  terms: UnitTerms;
   onClose: () => void;
   onSubmit: (assignedTo: string, assignedOrgId: string, changeOrg: boolean) => Promise<void>;
 }) {
@@ -389,7 +409,12 @@ export function BulkAssignModal({
         <div className="flex items-center gap-2.5 rounded-xl bg-cyan-50/70 p-3 text-sm dark:bg-cyan-500/10">
           <Users className="h-4 w-4 shrink-0 text-cyan-600 dark:text-cyan-400" />
           <p>
-            選択中の <strong>{count}支店</strong> の担当を変更します。
+            選択中の{" "}
+            <strong>
+              {count}
+              {terms.countUnit}
+            </strong>{" "}
+            の担当を変更します。
           </p>
         </div>
         <Field label="新しい担当営業">
@@ -428,7 +453,8 @@ export function BulkAssignModal({
             キャンセル
           </Button>
           <Button type="submit" disabled={saving || count === 0}>
-            {count}支店を変更
+            {count}
+            {terms.countUnit}を変更
           </Button>
         </div>
       </form>

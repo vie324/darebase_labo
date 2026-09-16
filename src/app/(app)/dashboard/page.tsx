@@ -362,7 +362,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* ---------- 支店稼働（銀行営業） ---------- */}
+      {/* ---------- 稼働（選択中の事業部） ---------- */}
       <BranchActivitySection />
 
       {/* ---------- メイングリッド ---------- */}

@@ -528,7 +528,7 @@ export default function BanksPage() {
                 className="inline-flex cursor-pointer items-center gap-1 text-sm font-semibold text-cyan-600 hover:text-cyan-500 dark:text-cyan-400"
               >
                 <ChevronLeft className="h-4 w-4" />
-                銀行一覧に戻る
+                {terms.parent}一覧に戻る
               </button>
             ) : (
               <>
@@ -558,7 +558,8 @@ export default function BanksPage() {
                           <p className="truncate font-semibold">{bank.name}</p>
                           <p className="text-xs text-slate-400">
                             {bank.code ? `コード ${bank.code} ・ ` : ""}
-                            {totalBranches}支店
+                            {totalBranches}
+                            {terms.countUnit}
                           </p>
                         </div>
                         <span
@@ -577,7 +578,7 @@ export default function BanksPage() {
                         barClassName={rateBarClass(activeRate)}
                       />
                       <p className="mt-1.5 text-xs text-slate-400">
-                        稼働 {activeBranches} / {totalBranches} 支店
+                        稼働 {activeBranches} / {totalBranches} {terms.countUnit}
                       </p>
                     </Card>
                   ))}
@@ -720,6 +721,7 @@ export default function BanksPage() {
         <BankFormModal
           key={bankForm.initial?.id ?? "new-bank"}
           initial={bankForm.initial}
+          terms={terms}
           onClose={() => setBankForm(null)}
           onSubmit={saveBank}
           onDelete={canEditMaster ? removeBank : undefined}
@@ -733,6 +735,7 @@ export default function BanksPage() {
           banks={unitBanks}
           members={members}
           organizations={activeOrgs}
+          terms={terms}
           onClose={() => setBranchForm(null)}
           onSubmit={saveBranch}
           onDelete={canEditMaster ? removeBranch : undefined}
@@ -743,6 +746,7 @@ export default function BanksPage() {
           key={activityTarget.id}
           branch={activityTarget}
           bankName={bankNameOf(activityTarget.bank_id)}
+          terms={terms}
           onClose={() => setActivityTarget(null)}
           onSubmit={(values) => logActivity(activityTarget, values)}
         />
@@ -751,6 +755,7 @@ export default function BanksPage() {
         <BranchImportModal
           banks={unitBanks}
           branches={unitBranches}
+          terms={terms}
           onClose={() => setImportOpen(false)}
           onConfirm={applyImport}
         />
@@ -760,6 +765,7 @@ export default function BanksPage() {
           count={selected.size}
           members={members}
           organizations={activeOrgs}
+          terms={terms}
           onClose={() => setBulkOpen(false)}
           onSubmit={bulkAssign}
         />
