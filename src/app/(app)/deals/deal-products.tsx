@@ -18,6 +18,7 @@ export function DealProductsPanel({
   products,
   lines,
   canEdit,
+  emptyText,
   onAdd,
   onRemove,
 }: {
@@ -27,6 +28,8 @@ export function DealProductsPanel({
   products: Product[];
   lines: DealProduct[];
   canEdit: boolean;
+  /** 商材が1件も無いときの案内。未指定なら既定の文言 */
+  emptyText?: string;
   onAdd: (productId: string, amount: number) => Promise<void>;
   onRemove: (lineId: string) => Promise<void>;
 }) {
@@ -75,8 +78,8 @@ export function DealProductsPanel({
 
       {own.length === 0 ? (
         <p className="rounded-xl bg-slate-50 px-3.5 py-3 text-sm text-slate-500 dark:bg-slate-800/50 dark:text-slate-400">
-          商材が登録されていません。
-          {canEdit && "下のプルダウンから選んで追加してください。"}
+          {emptyText ??
+            `商材が登録されていません。${canEdit ? "下のプルダウンから選んで追加してください。" : ""}`}
         </p>
       ) : (
         <ul className="space-y-1.5">
@@ -98,6 +101,7 @@ export function DealProductsPanel({
                 </span>
                 {canEdit && (
                   <button
+                    type="button"
                     onClick={() => onRemove(line.id)}
                     aria-label={`${line.product_name}を外す`}
                     className="shrink-0 cursor-pointer rounded-lg p-1 text-slate-400 transition-colors hover:bg-slate-100 hover:text-rose-500 dark:hover:bg-slate-800"
@@ -135,7 +139,7 @@ export function DealProductsPanel({
             aria-label="金額"
             className="w-full sm:w-32"
           />
-          <Button size="sm" onClick={add} disabled={!picked || saving}>
+          <Button type="button" size="sm" onClick={add} disabled={!picked || saving}>
             <Plus className="h-4 w-4" />
             追加
           </Button>
