@@ -24,6 +24,7 @@ import { useCollection } from "@/lib/use-collection";
 import { useBusinessUnit } from "@/lib/use-business-unit";
 import { filterByUnit } from "@/lib/business-units";
 import { UnitSwitch } from "@/components/ui/unit-switch";
+import { UnitMissing } from "@/components/ui/unit-missing";
 import { useUser } from "@/lib/use-user";
 import { useBranchSettings } from "@/lib/settings";
 import { monthlyAppointmentCounts, toMonth } from "@/lib/branch-metrics";
@@ -58,7 +59,7 @@ type TabKey = "all" | "upcoming" | "followup" | "won";
 export default function AppointmentsPage() {
   const { user } = useUser();
   // 代理店ユーザーが登録した行は自組織に紐づける（RLS のスコープ条件）
-  const { organizationId } = useAccess();
+  const { organizationId, can } = useAccess();
   const { toast } = useToast();
   const appointments = useCollection("appointments");
   const banks = useCollection("banks");
@@ -67,7 +68,8 @@ export default function AppointmentsPage() {
   const deals = useCollection("deals");
   const profiles = useCollection("profiles");
   // 事業部で出し分ける。アライアンス営業では「1次代理店 / 2次代理店」になる
-  const { slug, unitId, defaultUnitId, terms, setSlug } = useBusinessUnit();
+  const { slug, unitId, defaultUnitId, terms, missing, setSlug, createUnit } =
+    useBusinessUnit();
   const { settings } = useBranchSettings();
 
   const [tab, setTab] = useState<TabKey>("all");
@@ -291,7 +293,10 @@ export default function AppointmentsPage() {
 
       <UnitSwitch slug={slug} onChange={setSlug} className="mb-5 w-full sm:w-auto" />
 
-      {!hasBranches ? (
+      {missing ? (
+        // 事業部の行が無いまま一覧を出すと、絞り込みが効かず銀行営業の紹介が出てしまう
+        <UnitMissing slug={slug} canCreate={can("master_add")} onCreate={createUnit} />
+      ) : !hasBranches ? (
         <EmptyState
           icon={<Phone className="h-10 w-10" />}
           title={`先に${terms.parent}・${terms.child}を登録してください`}

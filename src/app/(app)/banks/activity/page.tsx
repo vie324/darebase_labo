@@ -61,6 +61,7 @@ import { HScroll } from "@/components/ui/h-scroll";
 import { useBusinessUnit } from "@/lib/use-business-unit";
 import { filterByUnit } from "@/lib/business-units";
 import { UnitSwitch } from "@/components/ui/unit-switch";
+import { UnitMissing } from "@/components/ui/unit-missing";
 
 const HEATMAP_MONTHS = 12;
 
@@ -75,7 +76,8 @@ export default function BranchActivityPage() {
   const profiles = useCollection("profiles");
   const { settings } = useBranchSettings();
   // 事業部で出し分ける。アライアンス営業では「1次代理店 / 2次代理店」になる
-  const { slug, unitId, defaultUnitId, terms, setSlug } = useBusinessUnit();
+  const { slug, unitId, defaultUnitId, terms, missing, setSlug, createUnit } =
+    useBusinessUnit();
 
   const [bankFilter, setBankFilter] = useState<string>("all");
 
@@ -142,7 +144,7 @@ export default function BranchActivityPage() {
 
   const maxHeat = Math.max(1, ...heatmap.flatMap((r) => r.counts));
 
-  if (unitBranches.length === 0) {
+  if (missing || unitBranches.length === 0) {
     return (
       <div>
         <PageHeader
@@ -150,6 +152,10 @@ export default function BranchActivityPage() {
           description="どこが動いていて、どこが放置されているかを可視化"
           icon={<Activity className="h-5 w-5" />}
         />
+        <UnitSwitch slug={slug} onChange={setSlug} className="mb-5 w-full sm:w-auto" />
+        {missing ? (
+          <UnitMissing slug={slug} canCreate={canEditMaster} onCreate={createUnit} />
+        ) : (
         <EmptyState
           icon={<Building2 className="h-10 w-10" />}
           title={`${terms.child}が登録されていません`}
@@ -164,6 +170,7 @@ export default function BranchActivityPage() {
             </Link>
           }
         />
+        )}
       </div>
     );
   }

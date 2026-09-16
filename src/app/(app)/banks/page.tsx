@@ -61,6 +61,7 @@ import { useAccess } from "@/lib/use-access";
 import { useBusinessUnit } from "@/lib/use-business-unit";
 import { filterByUnit } from "@/lib/business-units";
 import { UnitSwitch } from "@/components/ui/unit-switch";
+import { UnitMissing } from "@/components/ui/unit-missing";
 import { DensityToggle } from "@/components/ui/density-toggle";
 
 type DormancyFilter = "all" | "dormant" | "never" | "unassigned";
@@ -77,7 +78,8 @@ export default function BanksPage() {
   const profiles = useCollection("profiles");
   const { settings } = useBranchSettings();
   // 事業部で銀行・支店を出し分ける。呼び名も事業部で変わる（lib/business-units.ts）
-  const { slug, unitId, defaultUnitId, terms, setSlug } = useBusinessUnit();
+  const { slug, unitId, defaultUnitId, terms, missing, setSlug, createUnit } =
+    useBusinessUnit();
   const defaultBusinessUnitId = unitId ?? defaultUnitId;
 
   const [selectedBankId, setSelectedBankId] = useState<string | null>(null);
@@ -452,7 +454,10 @@ export default function BanksPage() {
       {/* 事業部の切り替え。銀行営業とアライアンス営業で同じ画面を出し分ける */}
       <UnitSwitch slug={slug} onChange={setSlug} className="mb-5 w-full sm:w-auto sm:self-start" />
 
-      {!hasData ? (
+      {missing ? (
+        // 事業部の行が無いまま一覧を出すと、絞り込みが効かず銀行営業のデータが出てしまう
+        <UnitMissing slug={slug} canCreate={canAddMaster} onCreate={createUnit} />
+      ) : !hasData ? (
         <EmptyState
           icon={<Landmark className="h-10 w-10" />}
           title={`${terms.parent}が登録されていません`}

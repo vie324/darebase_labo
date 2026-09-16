@@ -17,6 +17,7 @@ import { useBusinessUnit } from "@/lib/use-business-unit";
 import { filterByUnit } from "@/lib/business-units";
 import { dealHasProduct } from "@/lib/products";
 import { UnitSwitch } from "@/components/ui/unit-switch";
+import { UnitMissing } from "@/components/ui/unit-missing";
 import { useUser } from "@/lib/use-user";
 import { useAccess } from "@/lib/use-access";
 import { DEAL_STAGES, FULFILLMENT_GROUPS } from "@/lib/constants";
@@ -54,7 +55,7 @@ export default function DealsPage() {
   const { user } = useUser();
   // 代理店ユーザーが登録した案件は自社（organization）に紐づける。
   // これが無いと RLS のスコープ外になり保存できない（本部ユーザーは null）。
-  const { organizationId, loading: accessLoading } = useAccess();
+  const { organizationId, can, loading: accessLoading } = useAccess();
   const deals = useCollection("deals");
   const activities = useCollection("deal_activities");
   const profiles = useCollection("profiles");
@@ -64,7 +65,7 @@ export default function DealsPage() {
   const dealProducts = useCollection("deal_products");
   const products = useCollection("products");
   // 事業部で商談を出し分ける
-  const { slug, unitId, defaultUnitId, setSlug } = useBusinessUnit();
+  const { slug, unitId, defaultUnitId, missing, setSlug, createUnit } = useBusinessUnit();
 
   const [view, setView] = useState<ViewKey>("board");
   const [query, setQuery] = useState("");
@@ -284,6 +285,11 @@ export default function DealsPage() {
       {/* 事業部の切り替え。銀行営業とアライアンス営業の商談を混ぜない */}
       <UnitSwitch slug={slug} onChange={setSlug} className="mb-5 w-full sm:w-auto" />
 
+      {missing ? (
+        // 事業部の行が無いまま一覧を出すと、絞り込みが効かず両事業部の案件が混ざる
+        <UnitMissing slug={slug} canCreate={can("master_add")} onCreate={createUnit} />
+      ) : (
+        <>
       {/* ---------- サマリー ---------- */}
       <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         <StatCard
@@ -400,6 +406,8 @@ export default function DealsPage() {
           <DealReport deals={unitDeals} logs={meetingLogs.items} colorOf={colorOf} />
         )}
       </div>
+        </>
+      )}
 
       {/* ---------- モーダル ---------- */}
       {detailDeal && (
