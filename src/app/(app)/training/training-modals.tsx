@@ -2,7 +2,7 @@
 
 // 勉強会 — 詳細モーダル / 作成・編集モーダル
 
-import { useState, type ReactNode } from "react";
+import { useState, type FormEvent, type ReactNode } from "react";
 import {
   CalendarDays,
   ExternalLink,
@@ -254,7 +254,8 @@ function FormModalInner({
     values.category.trim() !== "" &&
     values.held_at !== "";
 
-  const submit = async () => {
+  const submit = async (e?: FormEvent) => {
+    e?.preventDefault();
     if (!canSave || saving) return;
     setSaving(true);
     try {
@@ -266,7 +267,23 @@ function FormModalInner({
   };
 
   return (
-    <Modal open onClose={onClose} title={editing ? "勉強会ログを編集" : "勉強会ログを作成"} wide>
+    <Modal
+      open
+      onClose={onClose}
+      title={editing ? "勉強会ログを編集" : "勉強会ログを作成"}
+      wide
+      onSubmit={submit}
+      footer={
+        <div className="flex items-center justify-end gap-2">
+          <Button type="button" variant="secondary" onClick={onClose}>
+            キャンセル
+          </Button>
+          <Button type="submit" disabled={!canSave || saving}>
+            {saving ? "保存中…" : editing ? "更新する" : "作成する"}
+          </Button>
+        </div>
+      }
+    >
       <div className="space-y-4">
         <Field label="タイトル" required>
           <Input
@@ -274,6 +291,7 @@ function FormModalInner({
             onChange={(e) => set("title", e.target.value)}
             placeholder="例: クラウド会計『カウントA』新機能勉強会"
             autoFocus
+            required
           />
         </Field>
 
@@ -405,16 +423,6 @@ function FormModalInner({
             placeholder="例: 会計, 新機能, 代理店"
           />
         </Field>
-
-        {/* フッター */}
-        <div className="flex items-center justify-end gap-2 border-t border-slate-200 pt-4 dark:border-slate-800">
-          <Button variant="secondary" onClick={onClose}>
-            キャンセル
-          </Button>
-          <Button onClick={submit} disabled={!canSave || saving}>
-            {saving ? "保存中…" : editing ? "更新する" : "作成する"}
-          </Button>
-        </div>
       </div>
     </Modal>
   );

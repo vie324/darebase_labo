@@ -88,8 +88,23 @@ export function PartnerFormModal({
   };
 
   return (
-    <Modal open onClose={onClose} title={initial ? "取引先を編集" : "取引先を登録"}>
-      <form onSubmit={handleSubmit} className="space-y-4">
+    <Modal
+      open
+      onClose={onClose}
+      title={initial ? "取引先を編集" : "取引先を登録"}
+      onSubmit={handleSubmit}
+      footer={
+        <div className="flex justify-end gap-2">
+          <Button type="button" variant="secondary" onClick={onClose}>
+            キャンセル
+          </Button>
+          <Button type="submit" disabled={!valid || saving}>
+            {saving ? "保存中…" : "保存する"}
+          </Button>
+        </div>
+      }
+    >
+      <div className="space-y-4">
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="会社名" required>
             <Input
@@ -158,15 +173,7 @@ export function PartnerFormModal({
           />
           取引中（オフにすると選択肢に表示されなくなります）
         </label>
-        <div className="flex justify-end gap-2 pt-1">
-          <Button type="button" variant="secondary" onClick={onClose}>
-            キャンセル
-          </Button>
-          <Button type="submit" disabled={!valid || saving}>
-            {saving ? "保存中…" : "保存する"}
-          </Button>
-        </div>
-      </form>
+      </div>
     </Modal>
   );
 }
@@ -247,8 +254,23 @@ export function RateFormModal({
   };
 
   return (
-    <Modal open onClose={onClose} title={initial ? "手数料率を編集" : "手数料率を登録"}>
-      <form onSubmit={handleSubmit} className="space-y-4">
+    <Modal
+      open
+      onClose={onClose}
+      title={initial ? "手数料率を編集" : "手数料率を登録"}
+      onSubmit={handleSubmit}
+      footer={
+        <div className="flex justify-end gap-2">
+          <Button type="button" variant="secondary" onClick={onClose}>
+            キャンセル
+          </Button>
+          <Button type="submit" disabled={!valid || saving}>
+            {saving ? "保存中…" : "保存する"}
+          </Button>
+        </div>
+      }
+    >
+      <div className="space-y-4">
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="代理店" required>
             <Select value={values.agency_id} onChange={(e) => set("agency_id", e.target.value)}>
@@ -335,15 +357,7 @@ export function RateFormModal({
         <Field label="メモ">
           <Textarea value={values.memo} onChange={(e) => set("memo", e.target.value)} rows={2} />
         </Field>
-        <div className="flex justify-end gap-2 pt-1">
-          <Button type="button" variant="secondary" onClick={onClose}>
-            キャンセル
-          </Button>
-          <Button type="submit" disabled={!valid || saving}>
-            {saving ? "保存中…" : "保存する"}
-          </Button>
-        </div>
-      </form>
+      </div>
     </Modal>
   );
 }
@@ -402,8 +416,23 @@ export function LineGroupFormModal({
   };
 
   return (
-    <Modal open onClose={onClose} title={initial ? "LINEグループを編集" : "LINEグループを手動追加"}>
-      <form onSubmit={handleSubmit} className="space-y-4">
+    <Modal
+      open
+      onClose={onClose}
+      title={initial ? "LINEグループを編集" : "LINEグループを手動追加"}
+      onSubmit={handleSubmit}
+      footer={
+        <div className="flex justify-end gap-2">
+          <Button type="button" variant="secondary" onClick={onClose}>
+            キャンセル
+          </Button>
+          <Button type="submit" disabled={!valid || saving}>
+            {saving ? "保存中…" : "保存する"}
+          </Button>
+        </div>
+      }
+    >
+      <div className="space-y-4">
         <Field label="グループID" required>
           <Input
             value={values.group_id}
@@ -443,15 +472,7 @@ export function LineGroupFormModal({
         <Field label="メモ">
           <Textarea value={values.memo} onChange={(e) => set("memo", e.target.value)} rows={2} />
         </Field>
-        <div className="flex justify-end gap-2 pt-1">
-          <Button type="button" variant="secondary" onClick={onClose}>
-            キャンセル
-          </Button>
-          <Button type="submit" disabled={!valid || saving}>
-            {saving ? "保存中…" : "保存する"}
-          </Button>
-        </div>
-      </form>
+      </div>
     </Modal>
   );
 }

@@ -107,7 +107,7 @@ export function BranchTable({
                       type="checkbox"
                       checked={allSelected}
                       onChange={() => onToggleAll(allIds)}
-                      aria-label="表示中の支店をすべて選択"
+                      aria-label={`表示中の${terms.child}をすべて選択`}
                       className="h-4 w-4 cursor-pointer accent-cyan-500"
                     />
                   </th>

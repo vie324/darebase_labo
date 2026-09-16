@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { useCollection } from "@/lib/use-collection";
 import { useAccess } from "@/lib/use-access";
+import { useBusinessUnit } from "@/lib/use-business-unit";
 import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui";
 
@@ -60,6 +61,8 @@ export function SetupGuide() {
     setDismissed(stored);
   }, []);
 
+  const { terms } = useBusinessUnit();
+
   const loading =
     accessLoading ||
     branches.loading ||
@@ -71,8 +74,8 @@ export function SetupGuide() {
   const candidates: (Step | false)[] = [
     can("master_add") && {
       key: "branches",
-      title: "銀行・支店リストを登録する",
-      description: "支店名を貼り付けるだけで登録できます。支店ごとの稼働状況を追えるようになります",
+      title: `${terms.parent}・${terms.child}リストを登録する`,
+      description: `${terms.child}名を貼り付けるだけで登録できます。${terms.child}ごとの稼働状況を追えるようになります`,
       href: "/banks",
       icon: <Landmark className="h-4 w-4" />,
       done: branches.items.length > 0,
@@ -88,7 +91,7 @@ export function SetupGuide() {
     {
       key: "appointments",
       title: "紹介をアポイントに登録する",
-      description: "銀行から来た紹介を登録すると、予定と支店の接点日に反映されます",
+      description: `${terms.parent}から来た紹介を登録すると、予定と${terms.child}の接点日に反映されます`,
       href: "/appointments",
       icon: <Phone className="h-4 w-4" />,
       done: appointments.items.length > 0,
@@ -128,7 +131,7 @@ export function SetupGuide() {
           <p className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">
             {isPartner
               ? "この2つが終わればひととおり使えます"
-              : "この順で進めると、支店の稼働から受注までがつながります"}
+              : `この順で進めると、${terms.child}の稼働から受注までがつながります`}
           </p>
         </div>
         <span className="shrink-0 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-500 tabular-nums dark:bg-slate-800 dark:text-slate-400">

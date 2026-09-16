@@ -2,7 +2,7 @@
 
 // ナレッジ共有 — 記事詳細モーダル / 作成・編集モーダル
 
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 import { Eye, Heart, Pencil, Pin, PinOff, Trash2 } from "lucide-react";
 import {
   Avatar,
@@ -198,7 +198,8 @@ function FormModalInner({
 
   const canSave = values.title.trim() !== "" && values.content.trim() !== "";
 
-  const submit = async () => {
+  const submit = async (e?: FormEvent) => {
+    e?.preventDefault();
     if (!canSave || saving) return;
     setSaving(true);
     try {
@@ -215,6 +216,29 @@ function FormModalInner({
       onClose={onClose}
       title={editing ? "記事を編集" : "新しいナレッジを投稿"}
       wide
+      onSubmit={submit}
+      footer={
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-600 select-none dark:text-slate-300">
+            <input
+              type="checkbox"
+              checked={values.pinned}
+              onChange={(e) => setValues({ ...values, pinned: e.target.checked })}
+              className="h-4 w-4 cursor-pointer accent-cyan-600"
+            />
+            <Pin className="h-4 w-4 text-amber-500" />
+            一覧の最上部にピン留めする
+          </label>
+          <div className="flex gap-2">
+            <Button type="button" variant="secondary" onClick={onClose}>
+              キャンセル
+            </Button>
+            <Button type="submit" disabled={!canSave || saving}>
+              {saving ? "保存中…" : editing ? "更新する" : "投稿する"}
+            </Button>
+          </div>
+        </div>
+      }
     >
       <div className="space-y-4">
         <Field label="タイトル" required>
@@ -223,6 +247,7 @@ function FormModalInner({
             onChange={(e) => setValues({ ...values, title: e.target.value })}
             placeholder="例: 「予算がない」と言われた時の切り返し"
             autoFocus
+            required
           />
         </Field>
 
@@ -291,28 +316,6 @@ function FormModalInner({
           <p className="mt-1.5 text-[11px] text-slate-400 dark:text-slate-500">
             {"# 見出し / **太字** / - リスト / > 引用 / `コード` / [リンク](URL) が使えます"}
           </p>
-        </div>
-
-        {/* フッター */}
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 pt-4 dark:border-slate-800">
-          <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-600 select-none dark:text-slate-300">
-            <input
-              type="checkbox"
-              checked={values.pinned}
-              onChange={(e) => setValues({ ...values, pinned: e.target.checked })}
-              className="h-4 w-4 cursor-pointer accent-cyan-600"
-            />
-            <Pin className="h-4 w-4 text-amber-500" />
-            一覧の最上部にピン留めする
-          </label>
-          <div className="flex gap-2">
-            <Button variant="secondary" onClick={onClose}>
-              キャンセル
-            </Button>
-            <Button onClick={submit} disabled={!canSave || saving}>
-              {saving ? "保存中…" : editing ? "更新する" : "投稿する"}
-            </Button>
-          </div>
         </div>
       </div>
     </Modal>

@@ -10,8 +10,8 @@
 // 過去の案件の表示は変わらない（lib/products.ts）。
 // =============================================================
 
-import { useMemo, useState } from "react";
-import { Package, Pencil, Plus, ShieldAlert, Trash2 } from "lucide-react";
+import { useMemo, useState, type FormEvent } from "react";
+import { AlertTriangle, Package, Pencil, Plus, ShieldAlert, Trash2 } from "lucide-react";
 import { useCollection } from "@/lib/use-collection";
 import { useAccess } from "@/lib/use-access";
 import {
@@ -50,6 +50,7 @@ export default function ProductsPage() {
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Product | null>(null);
   const [draft, setDraft] = useState({ ...EMPTY });
+  const [saving, setSaving] = useState(false);
 
   const canEdit = can("master_edit");
 
@@ -72,11 +73,16 @@ export default function ProductsPage() {
   );
   const activeCount = sorted.filter((p) => p.is_active).length;
 
+  // 商材名だけが必須。押せない理由は画面にも出す（§UI: 無反応に見せない）
+  const nameFilled = draft.name.trim() !== "";
+  const canSave = nameFilled && !saving;
+
   // ---------- 操作 ----------
 
   const openNew = () => {
     setEditing(null);
     setDraft({ ...EMPTY, sort_order: String((sorted.at(-1)?.sort_order ?? 0) + 10) });
+    setSaving(false);
     setFormOpen(true);
   };
 
@@ -90,10 +96,13 @@ export default function ProductsPage() {
       sort_order: String(product.sort_order),
       memo: product.memo,
     });
+    setSaving(false);
     setFormOpen(true);
   };
 
-  const save = async () => {
+  const save = async (e?: FormEvent) => {
+    e?.preventDefault();
+    if (!canSave) return;
     const body = {
       name: draft.name.trim(),
       slug: draft.slug.trim(),
@@ -104,14 +113,23 @@ export default function ProductsPage() {
       business_unit_id: null,
       updated_at: new Date().toISOString(),
     };
-    if (editing) {
-      await products.update(editing.id, body);
-      toast(`${body.name} を更新しました`, "success");
-    } else {
-      await products.add({ ...body, is_active: true });
-      toast(`${body.name} を追加しました`, "success");
+    setSaving(true);
+    try {
+      if (editing) {
+        await products.update(editing.id, body);
+        toast(`${body.name} を更新しました`, "success");
+      } else {
+        await products.add({ ...body, is_active: true });
+        toast(`${body.name} を追加しました`, "success");
+      }
+      setFormOpen(false);
+    } catch {
+      // 保存できなかったことを黙って飲み込むと「ボタンが効かない」ように見える。
+      // 入力は消さずに開いたままにして、理由を出す。
+      toast("保存できませんでした。通信状況と権限を確認してください", "error");
+    } finally {
+      setSaving(false);
     }
-    setFormOpen(false);
   };
 
   const toggleActive = async (product: Product) => {
@@ -287,6 +305,25 @@ export default function ProductsPage() {
           open
           onClose={() => setFormOpen(false)}
           title={editing ? "商材を編集" : "商材を追加"}
+          onSubmit={save}
+          footer={
+            <div className="space-y-2">
+              {!nameFilled && (
+                <p className="flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400">
+                  <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                  商材名を入れると保存できます
+                </p>
+              )}
+              <div className="flex justify-end gap-2">
+                <Button type="button" variant="secondary" onClick={() => setFormOpen(false)}>
+                  キャンセル
+                </Button>
+                <Button type="submit" disabled={!canSave}>
+                  {saving ? "保存中…" : editing ? "保存する" : "登録する"}
+                </Button>
+              </div>
+            </div>
+          }
         >
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="商材名" required className="sm:col-span-2">
@@ -295,6 +332,7 @@ export default function ProductsPage() {
                 onChange={(e) => setDraft({ ...draft, name: e.target.value })}
                 placeholder="例: DDS"
                 autoFocus
+                required
               />
             </Field>
             <Field label="識別子">
@@ -343,14 +381,6 @@ export default function ProductsPage() {
                 placeholder="例: 入口商材。設置を伴う"
               />
             </Field>
-          </div>
-          <div className="mt-5 flex justify-end gap-2">
-            <Button variant="secondary" onClick={() => setFormOpen(false)}>
-              キャンセル
-            </Button>
-            <Button onClick={save} disabled={draft.name.trim() === ""}>
-              保存
-            </Button>
           </div>
         </Modal>
       )}

@@ -130,8 +130,24 @@ export function DocFormModal({
   const FileIcon = style.icon;
 
   return (
-    <Modal open onClose={onClose} title={isEdit ? "資料情報を編集" : "資料をアップロード"}>
-      <form onSubmit={handleSubmit} className="space-y-4">
+    <Modal
+      open
+      onClose={onClose}
+      title={isEdit ? "資料情報を編集" : "資料をアップロード"}
+      onSubmit={handleSubmit}
+      footer={
+        <div className="flex justify-end gap-2">
+          <Button type="button" variant="secondary" onClick={onClose}>
+            キャンセル
+          </Button>
+          <Button type="submit" disabled={!valid || saving || uploading}>
+            {isEdit ? <Pencil className="h-4 w-4" /> : <FileUp className="h-4 w-4" />}
+            {saving ? "保存中…" : isEdit ? "保存する" : "アップロード"}
+          </Button>
+        </div>
+      }
+    >
+      <div className="space-y-4">
         {/* ---------- ファイル選択（新規のみ） ---------- */}
         {!isEdit && (
           <div>
@@ -237,16 +253,7 @@ export function DocFormModal({
           )}
         </Field>
 
-        <div className="flex justify-end gap-2 pt-1">
-          <Button type="button" variant="secondary" onClick={onClose}>
-            キャンセル
-          </Button>
-          <Button type="submit" disabled={!valid || saving || uploading}>
-            {isEdit ? <Pencil className="h-4 w-4" /> : <FileUp className="h-4 w-4" />}
-            {saving ? "保存中…" : isEdit ? "保存する" : "アップロード"}
-          </Button>
-        </div>
-      </form>
+      </div>
     </Modal>
   );
 }
@@ -274,7 +281,26 @@ export function DocDetailModal({
   const cat = DOC_CATEGORIES[doc.category];
 
   return (
-    <Modal open onClose={onClose} title="資料の詳細">
+    <Modal
+      open
+      onClose={onClose}
+      title="資料の詳細"
+      footer={
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <Button variant="danger" size="sm" onClick={() => onDelete(doc)}>
+            <Trash2 className="h-4 w-4" />
+            削除
+          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <DownloadAction doc={doc} onDownloaded={onDownloaded} size="md" />
+            <Button variant="secondary" size="sm" onClick={() => onEdit(doc)}>
+              <Pencil className="h-4 w-4" />
+              編集
+            </Button>
+          </div>
+        </div>
+      }
+    >
       <div className="space-y-5">
         {/* ヘッダー */}
         <div className="flex items-start gap-4 rounded-2xl bg-gradient-to-r from-cyan-50 to-sky-50 p-5 dark:from-cyan-500/10 dark:to-sky-500/10">
@@ -328,21 +354,6 @@ export function DocDetailModal({
             <Download className="h-3.5 w-3.5" />
             累計 {doc.downloads} DL
           </span>
-        </div>
-
-        {/* フッター */}
-        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-4 dark:border-slate-800">
-          <Button variant="danger" size="sm" onClick={() => onDelete(doc)}>
-            <Trash2 className="h-4 w-4" />
-            削除
-          </Button>
-          <div className="flex flex-wrap items-center gap-2">
-            <DownloadAction doc={doc} onDownloaded={onDownloaded} size="md" />
-            <Button variant="secondary" size="sm" onClick={() => onEdit(doc)}>
-              <Pencil className="h-4 w-4" />
-              編集
-            </Button>
-          </div>
         </div>
       </div>
     </Modal>

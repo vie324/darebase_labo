@@ -6,7 +6,7 @@
 //  kind:"customer" の poll を作成する。公開ページは /invite/[id]。
 // =============================================================
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type FormEvent } from "react";
 import {
   CalendarClock,
   Info,
@@ -106,7 +106,8 @@ export function CustomerLinkModal({
   const removeCandidate = (iso: string) =>
     setCandidates((prev) => prev.filter((c) => c.start !== iso));
 
-  const submit = async () => {
+  const submit = async (e?: FormEvent) => {
+    e?.preventDefault();
     if (!title.trim()) {
       setError("タイトルを入力してください");
       return;
@@ -130,7 +131,24 @@ export function CustomerLinkModal({
   };
 
   return (
-    <Modal open onClose={onClose} title="顧客用 予約リンクを作成" wide>
+    <Modal
+      open
+      onClose={onClose}
+      title="顧客用 予約リンクを作成"
+      wide
+      onSubmit={submit}
+      footer={
+        <div className="flex justify-end gap-2">
+          <Button type="button" variant="secondary" onClick={onClose}>
+            キャンセル
+          </Button>
+          <Button type="submit" disabled={saving}>
+            <Link2 className="h-4 w-4" />
+            {saving ? "作成中…" : "予約リンクを作成"}
+          </Button>
+        </div>
+      }
+    >
       <div className="space-y-4">
         <div className="flex items-center gap-2 rounded-xl bg-violet-50 px-3 py-2 text-xs text-violet-700 dark:bg-violet-500/10 dark:text-violet-300">
           <Users className="h-3.5 w-3.5 shrink-0" />
@@ -143,6 +161,7 @@ export function CustomerLinkModal({
             onChange={(e) => setTitle(e.target.value)}
             placeholder="例: オンライン相談（30分）"
             autoFocus
+            required
           />
         </Field>
 
@@ -303,16 +322,6 @@ export function CustomerLinkModal({
           <Info className="h-3.5 w-3.5 shrink-0" />
           作成後、詳細画面の「共有リンクをコピー」から顧客にURLを送れます。
         </p>
-
-        <div className="flex justify-end gap-2 border-t border-slate-100 pt-4 dark:border-slate-800">
-          <Button variant="secondary" onClick={onClose}>
-            キャンセル
-          </Button>
-          <Button onClick={submit} disabled={saving}>
-            <Link2 className="h-4 w-4" />
-            {saving ? "作成中…" : "予約リンクを作成"}
-          </Button>
-        </div>
       </div>
     </Modal>
   );

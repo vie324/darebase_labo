@@ -14,8 +14,9 @@
 //   - AI は判断材料を作るだけで、合否は出さない
 // =============================================================
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type FormEvent } from "react";
 import {
+  AlertTriangle,
   Brain,
   FileSearch,
   ListChecks,
@@ -145,7 +146,12 @@ export default function RecruitPage() {
 
   // ---------- 操作 ----------
 
-  const createCandidate = async () => {
+  const canCreateCandidate =
+    draft.name.trim() !== "" && draft.resume_text.trim().length >= 50;
+
+  const createCandidate = async (e?: FormEvent) => {
+    e?.preventDefault();
+    if (!canCreateCandidate) return;
     const now = new Date().toISOString();
     const row = await candidates.add({
       name: draft.name.trim(),
@@ -431,13 +437,38 @@ export default function RecruitPage() {
 
       {/* ---------- 追加フォーム ---------- */}
       {formOpen && (
-        <Modal open onClose={() => setFormOpen(false)} title="応募者を追加" wide>
+        <Modal
+          open
+          onClose={() => setFormOpen(false)}
+          title="応募者を追加"
+          wide
+          onSubmit={createCandidate}
+          footer={
+            <div className="space-y-2">
+              {!canCreateCandidate && (
+                <p className="flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400">
+                  <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                  氏名と、50文字以上の職務経歴を入れると登録できます
+                </p>
+              )}
+              <div className="flex justify-end gap-2">
+                <Button type="button" variant="secondary" onClick={() => setFormOpen(false)}>
+                  キャンセル
+                </Button>
+                <Button type="submit" disabled={!canCreateCandidate}>
+                  登録する
+                </Button>
+              </div>
+            </div>
+          }
+        >
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="氏名" required>
               <Input
                 value={draft.name}
                 onChange={(e) => setDraft({ ...draft, name: e.target.value })}
                 placeholder="例: 佐々木 遼"
+                required
               />
             </Field>
             <Field label="フリガナ">
@@ -491,17 +522,6 @@ export default function RecruitPage() {
                 PDFやWordの場合は、本文をコピーして貼り付けてください
               </span>
             </Field>
-          </div>
-          <div className="mt-5 flex justify-end gap-2">
-            <Button variant="secondary" onClick={() => setFormOpen(false)}>
-              キャンセル
-            </Button>
-            <Button
-              onClick={createCandidate}
-              disabled={draft.name.trim() === "" || draft.resume_text.trim().length < 50}
-            >
-              登録
-            </Button>
           </div>
         </Modal>
       )}

@@ -9,6 +9,7 @@ import {
   useEffect,
   useRef,
   type ButtonHTMLAttributes,
+  type FormEvent,
   type InputHTMLAttributes,
   type ReactNode,
   type SelectHTMLAttributes,
@@ -229,12 +230,26 @@ export function Modal({
   onClose,
   title,
   children,
+  footer,
+  onSubmit,
   wide = false,
 }: {
   open: boolean;
   onClose: () => void;
   title: string;
   children: ReactNode;
+  /**
+   * 操作ボタンの行。渡すと、見出しと同じようにスマホでは下端に貼り付く。
+   * 入力欄が多いモーダルは、本文だけスクロールすると送信ボタンが
+   * 画面外に出てしまい「押せない」ように見えるため。
+   */
+  footer?: ReactNode;
+  /**
+   * 入力があるモーダルは必ず渡すこと。本文と footer をまとめて form で囲み、
+   * Enter（スマホのキーボードの「完了」）でも送信できるようにする。
+   * footer の送信ボタンは type="submit" にするだけでよい。
+   */
+  onSubmit?: (e: FormEvent<HTMLFormElement>) => void;
   wide?: boolean;
 }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -253,6 +268,17 @@ export function Modal({
   }, [open, onClose]);
 
   if (!open || typeof document === "undefined") return null;
+
+  const body = (
+    <>
+      {children}
+      {footer && (
+        <div className="sticky -bottom-[max(1.25rem,env(safe-area-inset-bottom))] z-10 -mx-5 mt-5 border-t border-slate-100 bg-white/95 px-5 pt-3 pb-[max(1.25rem,env(safe-area-inset-bottom))] backdrop-blur sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:px-0 sm:pb-0 sm:backdrop-blur-none dark:border-slate-800 dark:bg-slate-900/95 sm:dark:bg-transparent">
+          {footer}
+        </div>
+      )}
+    </>
+  );
 
   // body 直下へポータルする。
   // アプリシェルの .animate-fade-up は transform を保持したままになるため、
@@ -290,7 +316,7 @@ export function Modal({
             <X className="h-5 w-5" />
           </button>
         </div>
-        {children}
+        {onSubmit ? <form onSubmit={onSubmit}>{body}</form> : body}
       </div>
     </div>,
     document.body

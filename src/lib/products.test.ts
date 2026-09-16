@@ -22,6 +22,7 @@ import {
   normalizeUnitSlug,
   resolveUnit,
   termsOf,
+  UNIT_SLUGS,
 } from "./business-units.ts";
 import type { BusinessUnit, DealProduct, Product } from "./types.ts";
 
@@ -206,4 +207,44 @@ test("事業部を絞らない（null）ときは全件返す", () => {
   const rows = [{ business_unit_id: "bu-banking" }, { business_unit_id: "bu-alliance" }];
   assert.equal(filterByUnit(rows, null, "bu-banking").length, 2);
   assert.equal(filterByUnit(rows, "bu-alliance", "bu-banking").length, 1);
+});
+
+// 今回の不具合（登録画面が銀行のままになる）の再発防止。
+// 呼び名だけ直して入力例を直し忘れると、アライアンスの登録画面に
+// 「例: みらい銀行」のような銀行の言葉が残ってしまう。
+test("アライアンスの呼び名と入力例に銀行の言葉が残っていない", () => {
+  const t = termsOf(ALLIANCE);
+  const texts = [
+    t.unit,
+    t.parent,
+    t.child,
+    t.parentCode,
+    t.childCode,
+    t.received,
+    t.description,
+    t.activityDescription,
+    t.referral,
+    t.countUnit,
+    ...Object.values(t.examples),
+  ];
+  for (const text of texts) {
+    for (const word of ["銀行", "支店", "金融機関"]) {
+      assert.ok(!text.includes(word), `アライアンスの文言に「${word}」が残っている: ${text}`);
+    }
+  }
+});
+
+test("銀行営業の入力例は銀行の言葉のまま", () => {
+  const ex = termsOf(BANKING).examples;
+  assert.equal(ex.parent, "みらい銀行");
+  assert.equal(ex.child, "渋谷支店");
+  assert.ok(ex.childLines.includes("支店"));
+});
+
+test("両事業部とも入力例がすべて埋まっている", () => {
+  for (const slug of UNIT_SLUGS) {
+    for (const [key, value] of Object.entries(termsOf(slug).examples)) {
+      assert.ok(value.trim() !== "", `${slug} の examples.${key} が空`);
+    }
+  }
 });

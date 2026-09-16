@@ -12,6 +12,7 @@
 // =============================================================
 
 import { parseDelimited } from "./csv.ts";
+import type { UnitTerms } from "./business-units.ts";
 import type { Bank, Branch } from "./types";
 
 // ---------- 列マッピング ----------
@@ -39,42 +40,77 @@ export const EMPTY_MAPPING: BranchColumnMapping = {
   note: -1,
 };
 
-/** 取込対象列のラベル（マッピングUIの表示にも使う） */
-export const BRANCH_COLUMN_LABELS: { key: keyof BranchColumnMapping; label: string; required: boolean }[] = [
-  { key: "bankName", label: "銀行名", required: true },
-  { key: "branchName", label: "支店名", required: true },
-  { key: "bankCode", label: "銀行コード", required: false },
-  { key: "branchCode", label: "支店コード", required: false },
-  { key: "prefecture", label: "都道府県", required: false },
-  { key: "address", label: "住所", required: false },
-  { key: "assignee", label: "担当者", required: false },
-  { key: "note", label: "備考", required: false },
-];
+/**
+ * 取込対象列のラベル（マッピングUIの表示にも使う）。
+ * 呼び名は事業部で変わるため、定数ではなく terms から組み立てる。
+ */
+export function branchColumnLabels(
+  terms: UnitTerms
+): { key: keyof BranchColumnMapping; label: string; required: boolean }[] {
+  return [
+    { key: "bankName", label: `${terms.parent}名`, required: true },
+    { key: "branchName", label: `${terms.child}名`, required: true },
+    { key: "bankCode", label: `${terms.parent}コード`, required: false },
+    { key: "branchCode", label: `${terms.child}コード`, required: false },
+    { key: "prefecture", label: "都道府県", required: false },
+    { key: "address", label: "住所", required: false },
+    { key: "assignee", label: "担当者", required: false },
+    { key: "note", label: "備考", required: false },
+  ];
+}
 
-/** ヘッダ行から列マッピングを推測する */
+/**
+ * ヘッダ行から列マッピングを推測する。
+ * 銀行営業（銀行/支店）とアライアンス（1次/2次代理店）のどちらの見出しでも拾う。
+ * 推測を外しても取込UIで手動で割り当て直せるため、確証のない語は当てない。
+ */
 export function guessBranchMapping(header: string[]): BranchColumnMapping {
   const find = (patterns: RegExp[]) =>
     header.findIndex((h) => patterns.some((p) => p.test(h)));
-  return {
+  // 「1次」「一次」「１次」の表記ゆれをまとめて拾う
+  const PRIMARY = /(銀行|金融機関|信用金庫|信金|[1１一]次代理店|提携先)/;
+  const SECONDARY = /(支店|店舗|営業店|[2２二]次代理店)/;
+  const CODE = /(コード|CD|cd|番号)/;
+  const notCode = (word: RegExp) => new RegExp(`^(?!.*${CODE.source}).*${word.source}.*$`);
+
+  const mapping: BranchColumnMapping = {
     // 「銀行コード」を「銀行名」として拾わないよう、コード系を先に除外する
-    bankName: find([/^(?!.*(コード|CD|cd|番号)).*(銀行|金融機関|信用金庫|信金).*$/]),
-    bankCode: find([/(銀行|金融機関).*(コード|CD|cd|番号)/, /^金融機関コード$/]),
-    branchName: find([/^(?!.*(コード|CD|cd|番号)).*(支店|店舗|営業店).*$/]),
-    branchCode: find([/(支店|店舗|営業店).*(コード|CD|cd|番号)/, /^店番/]),
+    bankName: find([notCode(PRIMARY)]),
+    bankCode: find([new RegExp(`${PRIMARY.source}.*${CODE.source}`), /^金融機関コード$/]),
+    branchName: find([notCode(SECONDARY)]),
+    branchCode: find([new RegExp(`${SECONDARY.source}.*${CODE.source}`), /^店番/]),
     prefecture: find([/都道府県/, /^県$/, /エリア/]),
     address: find([/住所/, /所在地/]),
     assignee: find([/担当/, /営業担当/]),
     note: find([/備考/, /メモ/, /note/i]),
   };
+
+  // 「代理店名」だけの表など、1次/2次が明記されていない表への保険。
+  // 1次として拾った列以外に代理店の列があれば、それを2次に当てる。
+  // 両方とも埋まらなければ取込UIが「割り当ててください」と出すので、外しても害はない。
+  if (mapping.branchName === -1) {
+    const i = header.findIndex(
+      (h, idx) => idx !== mapping.bankName && notCode(/代理店/).test(h)
+    );
+    if (i !== -1) mapping.branchName = i;
+  }
+  if (mapping.branchCode === -1) {
+    const i = header.findIndex(
+      (h, idx) =>
+        idx !== mapping.bankCode && new RegExp(`代理店.*${CODE.source}`).test(h)
+    );
+    if (i !== -1) mapping.branchCode = i;
+  }
+  return mapping;
 }
 
 /**
  * 見出しらしいセルの判定。
- * データ値（"みらい銀行" "渋谷支店"）を見出しと誤認しないよう、
+ * データ値（"みらい銀行" "株式会社アップリンク"）を見出しと誤認しないよう、
  * 「〜名 / 〜コード / 〜番号」で終わるか、既知の見出し語そのものの場合だけ真とする。
  */
 const HEADER_CELL =
-  /^(.*(名|コード|ｺｰﾄﾞ|CD|cd|番号|区分|状態|ｽﾃｰﾀｽ|ステータス)|住所|所在地|都道府県|県|エリア|地区|担当|担当者|営業担当|備考|メモ|note|店番)$/;
+  /^(.*(名|コード|ｺｰﾄﾞ|CD|cd|番号|区分|状態|ｽﾃｰﾀｽ|ステータス)|住所|所在地|都道府県|県|エリア|地区|担当|担当者|営業担当|備考|メモ|note|店番|提携先|代理店|[1１一]次代理店|[2２二]次代理店)$/;
 
 /**
  * 1行目がヘッダ行かどうかの推定。

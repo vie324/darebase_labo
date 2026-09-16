@@ -24,6 +24,28 @@ export const ALLIANCE = "alliance";
 
 export type BusinessUnitSlug = typeof BANKING | typeof ALLIANCE;
 
+/**
+ * 入力欄に出す例。
+ * 呼び名だけ差し替えると「1次代理店名／例: みらい銀行」のようにちぐはぐになるため、
+ * 例文も事業部ごとに持つ。
+ */
+export interface UnitExamples {
+  /** banks.name の例 */
+  parent: string;
+  /** banks.code の例 */
+  parentCode: string;
+  /** branches.name の例 */
+  child: string;
+  /** branches.code の例 */
+  childCode: string;
+  /** branches.note の入力例 */
+  childNote: string;
+  /** まとめて登録（かんたん入力）の複数行プレースホルダ */
+  childLines: string;
+  /** 行頭の連番・括弧書きコードの説明で使う「◯◯（001）」の例 */
+  childWithCode: string;
+}
+
 /** 画面に出す呼び名。banks / branches の実体は同じで、ラベルだけ変わる */
 export interface UnitTerms {
   /** 事業部そのものの名前 */
@@ -36,7 +58,11 @@ export interface UnitTerms {
   parentCode: string;
   /** branches.code の呼び名 */
   childCode: string;
-  /** アポの received_at（接点を持った日）の呼び名 */
+  /**
+   * アポの received_at（紹介の接点を持った日）の呼び名。
+   * 「受電日」「受電分」のように後ろに語を足して使うため、素の名詞で持つ。
+   * 銀行は電話で来るが、アライアンスは電話とは限らない。
+   */
   received: string;
   /** 一覧ページの説明文 */
   description: string;
@@ -46,6 +72,14 @@ export interface UnitTerms {
   referral: string;
   /** 件数の数え方（例: 12支店 / 12社） */
   countUnit: string;
+  /**
+   * コードが数字だけか。
+   * 銀行は金融機関コード・支店コードとも数字。代理店は "AP01" のような
+   * 英数字が入るため、スマホで数字キーボードに固定してはいけない。
+   */
+  numericCode: boolean;
+  /** 入力欄のプレースホルダ */
+  examples: UnitExamples;
 }
 
 export const UNIT_TERMS: Record<BusinessUnitSlug, UnitTerms> = {
@@ -55,11 +89,21 @@ export const UNIT_TERMS: Record<BusinessUnitSlug, UnitTerms> = {
     child: "支店",
     parentCode: "金融機関コード",
     childCode: "支店コード",
-    received: "銀行から連絡を受けた日",
+    received: "受電",
     description: "支店ごとの稼働状況を可視化し、放置支店の担当を振り替える",
     activityDescription: "支店ごとの紹介数・成約率と、放置されている支店を洗い出す",
     referral: "銀行紹介",
     countUnit: "支店",
+    numericCode: true,
+    examples: {
+      parent: "みらい銀行",
+      parentCode: "0011",
+      child: "渋谷支店",
+      childCode: "001",
+      childNote: "支店長の人柄、紹介が出やすい商材など",
+      childLines: "中央支店\n丸の内支店 002\n新宿支店,003,東京都,新宿区西新宿1-1-1",
+      childWithCode: "中央支店（001）",
+    },
   },
   [ALLIANCE]: {
     unit: "アライアンス営業",
@@ -67,11 +111,22 @@ export const UNIT_TERMS: Record<BusinessUnitSlug, UnitTerms> = {
     child: "2次代理店",
     parentCode: "提携先コード",
     childCode: "代理店コード",
-    received: "紹介を受けた日",
+    received: "紹介",
     description: "代理店ごとの紹介状況を可視化し、止まっている代理店に手を打つ",
     activityDescription: "代理店ごとの紹介数・成約率と、紹介が止まっている代理店を洗い出す",
     referral: "代理店紹介",
     countUnit: "社",
+    numericCode: false,
+    examples: {
+      parent: "株式会社ブリッジパートナーズ",
+      parentCode: "AP01",
+      child: "株式会社アップリンク",
+      childCode: "101",
+      childNote: "担当者の人柄、紹介が出やすい商材など",
+      childLines:
+        "株式会社アップリンク\nミラクルセールス株式会社 102\n株式会社トップギア,103,千葉県,千葉市中央区1-1-1",
+      childWithCode: "株式会社アップリンク（101）",
+    },
   },
 };
 

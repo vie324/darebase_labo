@@ -2,7 +2,7 @@
 
 // タスクの新規作成・詳細編集モーダル
 
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 import { Trash2 } from "lucide-react";
 import { Button, Field, Input, Modal, Select, Textarea } from "@/components/ui";
 import { TASK_PRIORITIES, TASK_STATUSES } from "@/lib/constants";
@@ -31,12 +31,9 @@ interface TaskModalProps {
 }
 
 export function TaskModal({ open, task, onClose, ...rest }: TaskModalProps) {
-  return (
-    <Modal open={open} onClose={onClose} title={task ? "タスクを編集" : "新規タスク"}>
-      {/* Modal は閉じると子をアンマウントするため、開くたびにフォームが初期化される */}
-      <TaskForm key={task?.id ?? "new"} task={task} onClose={onClose} {...rest} />
-    </Modal>
-  );
+  // 閉じている間はフォームごと外す。開くたびに key で初期化される。
+  if (!open) return null;
+  return <TaskForm key={task?.id ?? "new"} task={task} onClose={onClose} {...rest} />;
 }
 
 function TaskForm({
@@ -75,13 +72,42 @@ function TaskForm({
 
   const assigneeOptions = Array.from(new Set([...members, form.assignee_name].filter(Boolean)));
 
-  const submit = () => {
+  const submit = (e?: FormEvent) => {
+    e?.preventDefault();
     if (!form.title.trim()) return;
     onSave({ ...form, title: form.title.trim(), related_deal: form.related_deal.trim() });
   };
 
   return (
-    <div>
+    <Modal
+      open
+      onClose={onClose}
+      title={task ? "タスクを編集" : "新規タスク"}
+      onSubmit={submit}
+      footer={
+        <div className="flex items-center gap-2">
+          {task && (
+            <Button
+              type="button"
+              variant="ghost"
+              className="text-rose-600 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-500/10"
+              onClick={() => onDelete(task)}
+            >
+              <Trash2 className="h-4 w-4" />
+              削除
+            </Button>
+          )}
+          <div className="ml-auto flex items-center gap-2">
+            <Button type="button" variant="secondary" onClick={onClose}>
+              キャンセル
+            </Button>
+            <Button type="submit" disabled={!form.title.trim()}>
+              {task ? "保存" : "作成"}
+            </Button>
+          </div>
+        </div>
+      }
+    >
       <div className="space-y-4">
         <Field label="タイトル" required>
           <Input
@@ -89,6 +115,7 @@ function TaskForm({
             onChange={(e) => set("title", e.target.value)}
             placeholder="例: 提案書の初稿を作成"
             autoFocus
+            required
           />
         </Field>
 
@@ -161,27 +188,6 @@ function TaskForm({
           </datalist>
         </Field>
       </div>
-
-      <div className="mt-6 flex items-center gap-2">
-        {task && (
-          <Button
-            variant="ghost"
-            className="text-rose-600 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-500/10"
-            onClick={() => onDelete(task)}
-          >
-            <Trash2 className="h-4 w-4" />
-            削除
-          </Button>
-        )}
-        <div className="ml-auto flex items-center gap-2">
-          <Button variant="secondary" onClick={onClose}>
-            キャンセル
-          </Button>
-          <Button onClick={submit} disabled={!form.title.trim()}>
-            {task ? "保存" : "作成"}
-          </Button>
-        </div>
-      </div>
-    </div>
+    </Modal>
   );
 }

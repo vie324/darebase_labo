@@ -1,11 +1,16 @@
 "use client";
 
-// ダッシュボードの支店稼働セクション。
+// ダッシュボードの稼働セクション。
 // 詳細は /banks/activity に置き、ここでは「今どれだけ放置されているか」だけを出す。
+//
+// 集計は、いま選んでいる事業部のぶんだけ。絞らずに出すと
+// 「支店稼働」の見出しのまま2次代理店が混ざる。
 
 import Link from "next/link";
 import { Activity, AlertTriangle, ArrowRight, Building2 } from "lucide-react";
 import { useCollection } from "@/lib/use-collection";
+import { useBusinessUnit } from "@/lib/use-business-unit";
+import { filterByUnit } from "@/lib/business-units";
 import { useBranchSettings } from "@/lib/settings";
 import { buildBranchStats, summarizeBranches } from "@/lib/branch-metrics";
 import { cn, formatDate, todayStr } from "@/lib/utils";
@@ -19,28 +24,43 @@ export function BranchActivitySection() {
   const banks = useCollection("banks");
   const appointments = useCollection("appointments");
   const activities = useCollection("branch_activities");
+  const { unitId, defaultUnitId, terms, missing, loading: unitLoading } = useBusinessUnit();
   const { settings } = useBranchSettings();
 
   const loading =
-    branches.loading || banks.loading || appointments.loading || activities.loading;
+    branches.loading ||
+    banks.loading ||
+    appointments.loading ||
+    activities.loading ||
+    unitLoading;
 
   if (loading) {
     return <Skeleton className="h-64 rounded-2xl" />;
   }
 
-  // 支店が未登録なら（＝銀行営業を使っていないチームなら）セクションごと出さない
-  if (branches.items.length === 0) return null;
+  // 事業部の行が無いときは、絞り込みが効かず他事業部のぶんが出てしまうので何も出さない
+  if (missing) return null;
+
+  // いま選んでいる事業部のぶんだけを集計する
+  const unitBanks = filterByUnit(banks.items, unitId, defaultUnitId);
+  const unitBankIds = new Set(unitBanks.map((b) => b.id));
+  const unitBranches = filterByUnit(branches.items, unitId, defaultUnitId).filter((b) =>
+    unitBankIds.has(b.bank_id)
+  );
+
+  // 窓口が未登録なら（＝この事業部を使っていないチームなら）セクションごと出さない
+  if (unitBranches.length === 0) return null;
 
   const today = todayStr();
   const stats = buildBranchStats(
-    branches.items,
-    appointments.items,
+    unitBranches,
+    filterByUnit(appointments.items, unitId, defaultUnitId),
     activities.items,
     today,
     settings
   );
   const summary = summarizeBranches(stats);
-  const bankNameOf = (id: string) => banks.items.find((b) => b.id === id)?.name ?? "";
+  const bankNameOf = (id: string) => unitBanks.find((b) => b.id === id)?.name ?? "";
 
   const worst = stats
     .filter((s) => s.counted && !s.isActive)
@@ -58,7 +78,7 @@ export function BranchActivitySection() {
           <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-cyan-50 text-cyan-600 dark:bg-cyan-500/15 dark:text-cyan-400">
             <Activity className="h-4 w-4" />
           </span>
-          <span className="truncate">支店稼働</span>
+          <span className="truncate">{terms.child}稼働</span>
         </h2>
         <Link
           href="/banks/activity"
@@ -89,23 +109,24 @@ export function BranchActivitySection() {
             }
           />
           <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-            稼働 {summary.activeBranches} / {summary.totalBranches} 支店
+            稼働 {summary.activeBranches} / {summary.totalBranches} {terms.countUnit}
           </p>
           <p className="mt-1 flex items-center gap-1 text-xs text-slate-400">
             <Building2 className="h-3 w-3" />
-            一度も接点なし {summary.neverContacted}支店
+            一度も接点なし {summary.neverContacted}
+            {terms.countUnit}
           </p>
         </div>
 
-        {/* 放置支店 */}
+        {/* 放置されている窓口 */}
         <div className="sm:col-span-2">
           <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-slate-500 dark:text-slate-400">
             <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />
-            放置期間が長い支店
+            放置期間が長い{terms.child}
           </p>
           {worst.length === 0 ? (
             <p className="rounded-xl border border-dashed border-slate-200 py-6 text-center text-sm text-slate-400 dark:border-slate-800">
-              休眠中の支店はありません
+              休眠中の{terms.child}はありません
             </p>
           ) : (
             <ul className="space-y-1">

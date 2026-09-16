@@ -2,7 +2,7 @@
 
 // イベントの詳細 / 日別一覧 / 作成・編集モーダル
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type FormEvent } from "react";
 import {
   CalendarPlus,
   Clock,
@@ -210,7 +210,8 @@ export function EventFormModal({
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
 
-  const submit = async () => {
+  const submit = async (e?: FormEvent) => {
+    e?.preventDefault();
     if (!title.trim()) {
       setError("タイトルを入力してください");
       return;
@@ -256,7 +257,27 @@ export function EventFormModal({
   };
 
   return (
-    <Modal open onClose={onClose} title={event ? "予定を編集" : "予定を作成"}>
+    <Modal
+      open
+      onClose={onClose}
+      title={event ? "予定を編集" : "予定を作成"}
+      onSubmit={submit}
+      footer={
+        <div className="space-y-2">
+          {error && (
+            <p className="text-sm font-medium text-rose-500 dark:text-rose-400">{error}</p>
+          )}
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="secondary" onClick={onClose}>
+              キャンセル
+            </Button>
+            <Button type="submit" disabled={saving}>
+              {saving ? "保存中…" : event ? "更新する" : "作成する"}
+            </Button>
+          </div>
+        </div>
+      }
+    >
       <div className="space-y-4">
         <Field label="タイトル" required>
           <Input
@@ -264,6 +285,7 @@ export function EventFormModal({
             onChange={(e) => setTitle(e.target.value)}
             placeholder="例: 株式会社〇〇 訪問商談"
             autoFocus
+            required
           />
         </Field>
 
@@ -345,21 +367,6 @@ export function EventFormModal({
             placeholder="アジェンダや持ち物、参加者などのメモ"
           />
         </Field>
-
-        {error && (
-          <p className="text-sm font-medium text-rose-500 dark:text-rose-400">
-            {error}
-          </p>
-        )}
-
-        <div className="flex justify-end gap-2 border-t border-slate-100 pt-4 dark:border-slate-800">
-          <Button variant="secondary" onClick={onClose}>
-            キャンセル
-          </Button>
-          <Button onClick={submit} disabled={saving}>
-            {saving ? "保存中…" : event ? "更新する" : "作成する"}
-          </Button>
-        </div>
       </div>
     </Modal>
   );

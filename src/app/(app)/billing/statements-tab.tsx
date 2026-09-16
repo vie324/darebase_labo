@@ -266,8 +266,25 @@ function ImportModal({
   ];
 
   return (
-    <Modal open onClose={onClose} title="メーカー明細を取り込む" wide>
-      <form onSubmit={handleSubmit} className="space-y-4">
+    <Modal
+      open
+      onClose={onClose}
+      title="メーカー明細を取り込む"
+      wide
+      onSubmit={handleSubmit}
+      footer={
+        <div className="flex justify-end gap-2">
+          <Button type="button" variant="secondary" onClick={onClose}>
+            キャンセル
+          </Button>
+          <Button type="submit" disabled={!valid || saving}>
+            <Plus className="h-4 w-4" />
+            {saving ? "取込中…" : `${imported.length}行を取り込む`}
+          </Button>
+        </div>
+      }
+    >
+      <div className="space-y-4">
         <div className="grid gap-4 sm:grid-cols-3">
           <Field label="メーカー">
             <Select value={makerId} onChange={(e) => setMakerId(e.target.value)}>
@@ -349,16 +366,7 @@ function ImportModal({
           </div>
         )}
 
-        <div className="flex justify-end gap-2 pt-1">
-          <Button type="button" variant="secondary" onClick={onClose}>
-            キャンセル
-          </Button>
-          <Button type="submit" disabled={!valid || saving}>
-            <Plus className="h-4 w-4" />
-            {saving ? "取込中…" : `${imported.length}行を取り込む`}
-          </Button>
-        </div>
-      </form>
+      </div>
     </Modal>
   );
 }

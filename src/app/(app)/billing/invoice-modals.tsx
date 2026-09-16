@@ -284,8 +284,24 @@ export function InvoiceFormModal({
   const FileIcon = style.icon;
 
   return (
-    <Modal open onClose={onClose} title={isEdit ? "請求書を編集" : "請求書を登録"} wide>
-      <form onSubmit={handleSubmit} className="space-y-4">
+    <Modal
+      open
+      onClose={onClose}
+      title={isEdit ? "請求書を編集" : "請求書を登録"}
+      wide
+      onSubmit={handleSubmit}
+      footer={
+        <div className="flex justify-end gap-2">
+          <Button type="button" variant="secondary" onClick={onClose}>
+            キャンセル
+          </Button>
+          <Button type="submit" disabled={!valid || saving || uploading}>
+            {saving ? "保存中…" : isEdit ? "保存する" : "登録する"}
+          </Button>
+        </div>
+      }
+    >
+      <div className="space-y-4">
         {/* 方向 */}
         <div className="flex gap-2">
           {(Object.keys(INVOICE_DIRECTIONS) as InvoiceDirection[]).map((d) => (
@@ -540,15 +556,7 @@ export function InvoiceFormModal({
           />
         </Field>
 
-        <div className="flex justify-end gap-2 pt-1">
-          <Button type="button" variant="secondary" onClick={onClose}>
-            キャンセル
-          </Button>
-          <Button type="submit" disabled={!valid || saving || uploading}>
-            {saving ? "保存中…" : isEdit ? "保存する" : "登録する"}
-          </Button>
-        </div>
-      </form>
+      </div>
     </Modal>
   );
 }

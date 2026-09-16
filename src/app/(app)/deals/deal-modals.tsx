@@ -106,7 +106,29 @@ export function DealDetailModal({
   };
 
   return (
-    <Modal open onClose={onClose} title={deal.name} wide>
+    <Modal
+      open
+      onClose={onClose}
+      title={deal.name}
+      wide
+      footer={
+        <div className="flex items-center justify-between gap-2">
+          <Button variant="danger" size="sm" onClick={() => onDelete(deal)}>
+            <Trash2 className="h-4 w-4" />
+            削除
+          </Button>
+          <div className="flex gap-2">
+            <Button variant="secondary" size="sm" onClick={onClose}>
+              閉じる
+            </Button>
+            <Button size="sm" onClick={() => onEdit(deal)}>
+              <Pencil className="h-4 w-4" />
+              編集
+            </Button>
+          </div>
+        </div>
+      }
+    >
       <div className="space-y-5">
         {/* 商談ステージ（1階）。後追いは確度ランクごとに分かれている */}
         <div>
@@ -278,23 +300,6 @@ export function DealDetailModal({
             </ol>
           )}
         </div>
-
-        {/* フッター */}
-        <div className="flex items-center justify-between gap-2 border-t border-slate-100 pt-4 dark:border-slate-800">
-          <Button variant="danger" size="sm" onClick={() => onDelete(deal)}>
-            <Trash2 className="h-4 w-4" />
-            削除
-          </Button>
-          <div className="flex gap-2">
-            <Button variant="secondary" size="sm" onClick={onClose}>
-              閉じる
-            </Button>
-            <Button size="sm" onClick={() => onEdit(deal)}>
-              <Pencil className="h-4 w-4" />
-              編集
-            </Button>
-          </div>
-        </div>
       </div>
     </Modal>
   );
@@ -355,8 +360,25 @@ export function DealFormModal({
   };
 
   return (
-    <Modal open={open} onClose={onClose} title={initial ? "案件を編集" : "新規案件"} wide>
-      <form onSubmit={handleSubmit} className="space-y-4">
+    <Modal
+      open={open}
+      onClose={onClose}
+      title={initial ? "案件を編集" : "新規案件"}
+      wide
+      onSubmit={handleSubmit}
+      footer={
+        <div className="flex justify-end gap-2">
+          <Button type="button" variant="secondary" onClick={onClose}>
+            キャンセル
+          </Button>
+          <Button type="submit" disabled={!valid || saving}>
+            {initial ? <Pencil className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+            {initial ? "保存する" : "登録する"}
+          </Button>
+        </div>
+      }
+    >
+      <div className="space-y-4">
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="案件名" required className="sm:col-span-2">
             <Input
@@ -494,17 +516,7 @@ export function DealFormModal({
               placeholder="競合状況・先方の関心事など（任意）"
             />
           </Field>
-        </div>
-        <div className="flex justify-end gap-2 pt-1">
-          <Button type="button" variant="secondary" onClick={onClose}>
-            キャンセル
-          </Button>
-          <Button type="submit" disabled={!valid || saving}>
-            {initial ? <Pencil className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-            {initial ? "保存する" : "登録する"}
-          </Button>
-        </div>
-      </form>
+        </div>      </div>
     </Modal>
   );
 }

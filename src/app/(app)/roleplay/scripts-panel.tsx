@@ -5,7 +5,7 @@
 // スクリプトの一覧 / 検索 / 作成・編集 / 削除、練習への受け渡し
 // =============================================================
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type FormEvent } from "react";
 import { FileText, Mic, Pencil, Plus, Trash2 } from "lucide-react";
 import {
   Avatar,
@@ -267,7 +267,8 @@ function ScriptFormModal({
   const categoryOptions = Array.from(new Set<string>([...SCRIPT_CATEGORIES, values.category]));
   const canSave = values.title.trim() !== "" && values.content.trim() !== "";
 
-  const submit = async () => {
+  const submit = async (e?: FormEvent) => {
+    e?.preventDefault();
     if (!canSave || saving) return;
     setSaving(true);
     try {
@@ -279,7 +280,23 @@ function ScriptFormModal({
   };
 
   return (
-    <Modal open onClose={onClose} title={editing ? "スクリプトを編集" : "スクリプトを作成"} wide>
+    <Modal
+      open
+      onClose={onClose}
+      title={editing ? "スクリプトを編集" : "スクリプトを作成"}
+      wide
+      onSubmit={submit}
+      footer={
+        <div className="flex justify-end gap-2">
+          <Button type="button" variant="secondary" onClick={onClose}>
+            キャンセル
+          </Button>
+          <Button type="submit" disabled={!canSave || saving}>
+            {saving ? "保存中…" : editing ? "更新する" : "作成する"}
+          </Button>
+        </div>
+      }
+    >
       <div className="space-y-4">
         <Field label="タイトル" required>
           <Input
@@ -287,6 +304,7 @@ function ScriptFormModal({
             onChange={(e) => setValues({ ...values, title: e.target.value })}
             placeholder="例: 新規テレアポ標準スクリプト"
             autoFocus
+            required
           />
         </Field>
 
@@ -352,15 +370,6 @@ function ScriptFormModal({
           <p className="mt-1.5 text-[11px] text-slate-400 dark:text-slate-500">
             {"# 見出し / **太字** / - リスト / > 引用 が使えます"}
           </p>
-        </div>
-
-        <div className="flex justify-end gap-2 border-t border-slate-200 pt-4 dark:border-slate-800">
-          <Button variant="secondary" onClick={onClose}>
-            キャンセル
-          </Button>
-          <Button onClick={submit} disabled={!canSave || saving}>
-            {saving ? "保存中…" : editing ? "更新する" : "作成する"}
-          </Button>
         </div>
       </div>
     </Modal>
