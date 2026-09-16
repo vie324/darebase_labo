@@ -22,7 +22,12 @@ import {
 } from "lucide-react";
 import { useCollection } from "@/lib/use-collection";
 import { useBusinessUnit } from "@/lib/use-business-unit";
-import { filterByUnit } from "@/lib/business-units";
+import {
+  ALLIANCE,
+  DIRECT_CHILD_CODE,
+  DIRECT_CHILD_NAME,
+  filterByUnit,
+} from "@/lib/business-units";
 import { UnitSwitch } from "@/components/ui/unit-switch";
 import { UnitMissing } from "@/components/ui/unit-missing";
 import { useUser } from "@/lib/use-user";
@@ -30,7 +35,7 @@ import { useBranchSettings } from "@/lib/settings";
 import { monthlyAppointmentCounts, toMonth } from "@/lib/branch-metrics";
 import { APPOINTMENT_STATUSES, CONTACT_ROLES } from "@/lib/constants";
 import { cn, formatDate, formatDateTime, todayStr } from "@/lib/utils";
-import type { Appointment, AppointmentStatus } from "@/lib/types";
+import type { Appointment, AppointmentStatus, Branch } from "@/lib/types";
 import {
   Badge,
   Button,
@@ -133,15 +138,45 @@ export default function AppointmentsPage() {
 
   // ---------- 操作 ----------
 
+  /**
+   * 窓口を空欄で登録したときの受け皿。
+   * 紹介元の下の「直接」を探し、無ければ作って返す。
+   * こうしておかないと、直紹介が紹介数・成約率・最終接点日のどれにも入らない。
+   */
+  const resolveDirectBranch = async (bankId: string): Promise<Branch> => {
+    const found = branches.items.find(
+      (b) => b.bank_id === bankId && b.name === DIRECT_CHILD_NAME
+    );
+    if (found) return found;
+    return await branches.add({
+      bank_id: bankId,
+      name: DIRECT_CHILD_NAME,
+      code: DIRECT_CHILD_CODE,
+      address: "",
+      prefecture: "",
+      assigned_to: null,
+      assigned_name: "",
+      assigned_org_id: null,
+      status: "active",
+      last_contact_at: "",
+      note: `${terms.parent}からの直紹介の受け皿`,
+      business_unit_id: defaultBusinessUnitId,
+      updated_at: new Date().toISOString(),
+    });
+  };
+
   const saveAppointment = async (values: AppointmentFormValues) => {
-    const branch = branches.items.find((b) => b.id === values.branch_id);
+    // 窓口が空欄なら「直接」に寄せる（アライアンスの直紹介）
+    const branch = values.branch_id
+      ? branches.items.find((b) => b.id === values.branch_id)
+      : await resolveDirectBranch(values.bank_id);
     const assignee = profiles.items.find((p) => p.id === values.assigned_to);
     const scheduledIso = localInputToIso(values.scheduled_local);
     const now = new Date().toISOString();
 
     const base = {
       bank_id: values.bank_id || null,
-      branch_id: values.branch_id || null,
+      branch_id: branch?.id ?? null,
       assigned_to: values.assigned_to || null,
       assigned_name: assignee?.name ?? "",
       organization_id: branch?.assigned_org_id ?? organizationId ?? null,
@@ -275,7 +310,10 @@ export default function AppointmentsPage() {
     toast("案件を作成しました。案件管理から進捗を更新できます", "success");
   };
 
-  const hasBranches = unitBranches.length > 0;
+  // 窓口が任意の事業部（アライアンス）は、紹介元さえあれば直紹介を登録できる。
+  // 窓口が必須の事業部（銀行営業）は、支店が1つも無いと登録しようがない。
+  const childOptional = slug === ALLIANCE;
+  const canRegister = childOptional ? unitBanks.length > 0 : unitBranches.length > 0;
 
   return (
     <div>
@@ -284,7 +322,7 @@ export default function AppointmentsPage() {
         description={`${terms.parent}からの紹介を最小入力で登録し、${terms.child}の稼働に反映する`}
         icon={<Phone className="h-5 w-5" />}
         actions={
-          <Button size="sm" onClick={() => setFormState({ initial: null })} disabled={!hasBranches}>
+          <Button size="sm" onClick={() => setFormState({ initial: null })} disabled={!canRegister}>
             <Plus className="h-4 w-4" />
             アポを登録
           </Button>
@@ -296,11 +334,19 @@ export default function AppointmentsPage() {
       {missing ? (
         // 事業部の行が無いまま一覧を出すと、絞り込みが効かず銀行営業の紹介が出てしまう
         <UnitMissing slug={slug} canCreate={can("master_add")} onCreate={createUnit} />
-      ) : !hasBranches ? (
+      ) : !canRegister ? (
         <EmptyState
           icon={<Phone className="h-10 w-10" />}
-          title={`先に${terms.parent}・${terms.child}を登録してください`}
-          description={`アポイントは${terms.child}に紐づけて登録します`}
+          title={
+            childOptional
+              ? `先に${terms.parent}を登録してください`
+              : `先に${terms.parent}・${terms.child}を登録してください`
+          }
+          description={
+            childOptional
+              ? `${terms.child}を介さない直紹介も、${terms.parent}さえあれば登録できます`
+              : `アポイントは${terms.child}に紐づけて登録します`
+          }
           action={
             <Link
               href="/banks"
@@ -509,6 +555,8 @@ export default function AppointmentsPage() {
           members={profiles.items}
           defaultAssignee={user.id}
           terms={terms}
+          // 1次代理店から直に来る紹介があるため、アライアンスは窓口を任意にする
+          childOptional={childOptional}
           onClose={() => setFormState(null)}
           onSubmit={saveAppointment}
         />

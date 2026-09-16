@@ -39,6 +39,7 @@ export function AppointmentFormModal({
   members,
   defaultAssignee,
   terms,
+  childOptional = false,
   onClose,
   onSubmit,
 }: {
@@ -48,6 +49,12 @@ export function AppointmentFormModal({
   members: Profile[];
   defaultAssignee: string;
   terms: UnitTerms;
+  /**
+   * 窓口を空欄のまま登録できるか。
+   * アライアンスは1次代理店から直に紹介が来ることがあるため、空欄を許して
+   * 「直接」の窓口に寄せる（保存側で解決する）。
+   */
+  childOptional?: boolean;
   onClose: () => void;
   onSubmit: (values: AppointmentFormValues) => Promise<void>;
 }) {
@@ -76,7 +83,10 @@ export function AppointmentFormModal({
     [branches, values.bank_id]
   );
 
-  const ready = values.bank_id !== "" && values.branch_id !== "" && values.company_name.trim() !== "";
+  const ready =
+    values.bank_id !== "" &&
+    (childOptional || values.branch_id !== "") &&
+    values.company_name.trim() !== "";
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
@@ -117,17 +127,26 @@ export function AppointmentFormModal({
             onChange={(v) => setValues({ ...values, bank_id: v, branch_id: "" })}
           />
         </FieldSet>
-        <FieldSet label={terms.child} required>
+        <FieldSet label={terms.child} required={!childOptional}>
           <SearchableSelect
             value={values.branch_id}
             options={branchOptions}
             placeholder={
-              values.bank_id ? `${terms.child}を選択` : `先に${terms.parent}を選択してください`
+              !values.bank_id
+                ? `先に${terms.parent}を選択してください`
+                : childOptional
+                  ? `${terms.child}を選択（空欄なら直接）`
+                  : `${terms.child}を選択`
             }
             emptyText={`この${terms.parent}の${terms.child}が登録されていません`}
             disabled={!values.bank_id}
             onChange={(v) => setValues({ ...values, branch_id: v })}
           />
+          {childOptional && (
+            <span className="mt-1 block text-[11px] text-slate-400">
+              空欄のままにすると、{terms.parent}からの直紹介として「直接」に登録します
+            </span>
+          )}
         </FieldSet>
 
         {/* 企業名（自由入力） */}

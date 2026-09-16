@@ -64,8 +64,11 @@ export default function DealsPage() {
   // 案件に載せた商材（1案件に複数載る）
   const dealProducts = useCollection("deal_products");
   const products = useCollection("products");
+  // 案件の紹介元（銀行・支店 / 1次・2次代理店）を選べるようにするため読む
+  const banks = useCollection("banks");
+  const branches = useCollection("branches");
   // 事業部で商談を出し分ける
-  const { slug, unitId, defaultUnitId, missing, setSlug, createUnit } = useBusinessUnit();
+  const { slug, unitId, defaultUnitId, terms, missing, setSlug, createUnit } = useBusinessUnit();
 
   const [view, setView] = useState<ViewKey>("board");
   const [query, setQuery] = useState("");
@@ -83,7 +86,9 @@ export default function DealsPage() {
     profiles.loading ||
     meetingLogs.loading ||
     dealProducts.loading ||
-    products.loading
+    products.loading ||
+    banks.loading ||
+    branches.loading
   ) {
     return <PageSkeleton />;
   }
@@ -97,6 +102,13 @@ export default function DealsPage() {
   const unitDeals = filterByUnit(deals.items, unitId, defaultUnitId);
   /** 新しく作る案件に入れる事業部。行がまだ無ければ既定の事業部に寄せる */
   const defaultBusinessUnitId = unitId ?? defaultUnitId;
+
+  // 紹介元のプルダウンも事業部で絞る（銀行営業の支店がアライアンスに出ないように）
+  const unitBanks = filterByUnit(banks.items, unitId, defaultUnitId).filter((b) => b.is_active);
+  const unitBankIds = new Set(unitBanks.map((b) => b.id));
+  const unitBranches = filterByUnit(branches.items, unitId, defaultUnitId).filter((b) =>
+    unitBankIds.has(b.bank_id)
+  );
 
   const owners = Array.from(
     new Set([...profiles.items.map((p) => p.name), ...unitDeals.map((d) => d.owner_name)])
@@ -244,17 +256,24 @@ export default function DealsPage() {
 
   const saveDeal = async (values: DealFormValues, lines: NewDealLine[] = []) => {
     const now = new Date().toISOString();
+    // 紹介元は未選択なら null にする（uuid の列に "" は入れられない）
+    const branch = branches.items.find((b) => b.id === values.branch_id);
+    const body = {
+      ...values,
+      bank_id: values.bank_id || null,
+      branch_id: values.branch_id || null,
+      updated_at: now,
+    };
     if (editTarget) {
-      await deals.update(editTarget.id, { ...values, updated_at: now });
+      await deals.update(editTarget.id, body);
     } else {
       // いま開いている事業部の案件として登録する。
       // これを入れ忘れると business_unit_id が空のまま入り、既定の事業部
       // （＝銀行営業）の案件として扱われてしまう。
       const row = await deals.add({
-        ...values,
+        ...body,
         business_unit_id: defaultBusinessUnitId,
-        updated_at: now,
-        organization_id: organizationId,
+        organization_id: branch?.assigned_org_id ?? organizationId,
         owner_id: user.id,
       });
       // 登録フォームで選んだ商材を明細として入れる
@@ -469,6 +488,9 @@ export default function DealsPage() {
           members={owners}
           defaultOwner={user.name}
           products={activeProducts}
+          banks={unitBanks}
+          branches={unitBranches}
+          terms={terms}
           onClose={() => {
             setFormOpen(false);
             setEditTarget(null);
