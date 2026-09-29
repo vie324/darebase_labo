@@ -4,7 +4,12 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { isOpenAppointment, isUpcoming, needsFollowUp } from "./appointments.ts";
+import {
+  appointmentDealMemo,
+  isOpenAppointment,
+  isUpcoming,
+  needsFollowUp,
+} from "./appointments.ts";
 import type { Appointment } from "./types.ts";
 
 const TODAY = "2026-09-16";
@@ -67,4 +72,13 @@ test("isOpenAppointment: 予定かつ未案件化のときだけ true", () => {
   assert.equal(isOpenAppointment(appointment()), true);
   assert.equal(isOpenAppointment(appointment({ deal_id: "deal-1" })), false);
   assert.equal(isOpenAppointment(appointment({ status: "won" } as Partial<Appointment>)), false);
+});
+
+test("案件化するときのメモは紹介の経緯・業種・売上規模を並べる（空欄は飛ばす）", () => {
+  assert.equal(
+    appointmentDealMemo({ source_note: "支店長から", industry: "製造", revenue_scale: "1〜5億円" }),
+    "支店長から\n業種: 製造\n売上規模: 1〜5億円"
+  );
+  assert.equal(appointmentDealMemo({ source_note: "", industry: "IT", revenue_scale: "" }), "業種: IT");
+  assert.equal(appointmentDealMemo({ source_note: "", industry: "", revenue_scale: "" }), "");
 });

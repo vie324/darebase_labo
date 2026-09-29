@@ -48,10 +48,14 @@ export function escapeCsv(value: string): string {
   return /[",\n\r]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
 }
 
-/** 行データを BOM 付き UTF-8 の CSV 文字列に変換（Excel でそのまま開ける） */
-export function toCsv(headers: string[], rows: string[][]): string {
+/**
+ * 行データを UTF-8 の CSV 文字列に変換する。
+ * 既定は BOM 付き（Excel でそのまま開ける）。Google スプレッドシートの
+ * IMPORTDATA などプログラムに読ませる出力は bom: false にする。
+ */
+export function toCsv(headers: string[], rows: string[][], { bom = true } = {}): string {
   const body = rows.map((r) => r.map(escapeCsv).join(","));
-  return "\uFEFF" + [headers.map(escapeCsv).join(","), ...body].join("\r\n");
+  return (bom ? "\uFEFF" : "") + [headers.map(escapeCsv).join(","), ...body].join("\r\n");
 }
 
 /** ブラウザでCSVをダウンロードさせる */

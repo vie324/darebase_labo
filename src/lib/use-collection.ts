@@ -85,6 +85,42 @@ function saveLocal<K extends TableName>(table: K, items: TableMap[K][]) {
   }
 }
 
+/**
+ * デモモードのテーブルを、ログインユーザーの可視範囲で絞らずに読み書きする。
+ * ログインの無い公開ページ（/share/[token]）が、本番の SECURITY DEFINER 関数
+ * （get_client_share）と同じく「トークンで許された範囲」を自分で選ぶためだけに使う。
+ * アプリ内の画面では useCollection を使うこと。
+ */
+export function readDemoTable<K extends TableName>(table: K): TableMap[K][] {
+  return loadLocal(table);
+}
+
+export function writeDemoTable<K extends TableName>(table: K, items: TableMap[K][]): void {
+  saveLocal(table, items);
+}
+
+/**
+ * 一覧を読み込まずに1行だけ追加する（その画面では書き込むだけのテーブル用）。
+ * useCollection で全件を読むほどではないとき（活動履歴・明細の追記など）に使う。
+ * デモモードでは同じタブで開いている一覧にも反映する。
+ */
+export async function insertRow<K extends TableName>(
+  table: K,
+  item: Omit<TableMap[K], "id" | "created_at"> & Partial<Pick<TableMap[K], "id" | "created_at">>
+): Promise<TableMap[K]> {
+  const row = { id: uid(), created_at: new Date().toISOString(), ...item } as TableMap[K];
+  const sb = getSupabase();
+  if (!sb) {
+    saveLocal(table, [...loadLocal(table), row]);
+    notify(table);
+    return row;
+  }
+  // 動的テーブル名のため supabase-js の厳密型とは合わない（useCollection の add と同じ扱い）
+  const { data, error } = await sb.from(table).insert(row as never).select().single();
+  if (error) throw error;
+  return (data ?? row) as TableMap[K];
+}
+
 // 同一テーブルを使う複数コンポーネント間で変更を同期するための軽量イベントバス
 const listeners = new Map<TableName, Set<() => void>>();
 function notify(table: TableName) {

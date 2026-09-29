@@ -8,17 +8,47 @@
 // =============================================================
 
 import {
+  DEAL_STAGES,
   FULFILLMENT_GROUPS,
   FULFILLMENT_STAGES,
   PIPELINE_COLUMNS,
   type FulfillmentGroup,
   type PipelineColumn,
 } from "./constants.ts";
-import type { Deal } from "./types";
+import type { Deal, DealStage } from "./types";
 
 /** 判定に必要な最小限のフィールドだけを受け取る（テストしやすさのため） */
 export type DealLike = Pick<Deal, "stage"> &
   Partial<Pick<Deal, "confidence_rank" | "probability" | "fulfillment_status">>;
+
+/**
+ * 商談の「終わり」のステージ。進行中のパイプライン・期限超過の判定から外す。
+ * 販売協力は売上にならないが、失注でもない（受注率の分母にも入れない）。
+ */
+const CLOSED_STAGES: ReadonlySet<string> = new Set<DealStage>(["won", "partnership", "lost"]);
+
+/** 進行中（受注・販売協力・失注のどれでもない）か */
+export function isOpenStage(stage: string): boolean {
+  return !CLOSED_STAGES.has(stage);
+}
+
+/** その事業部でこのステージを使うか（販売協力はアライアンス営業のみ） */
+export function stageUsedIn(stage: DealStage, unit: string): boolean {
+  const units = DEAL_STAGES[stage]?.units as readonly string[] | undefined;
+  return !units || units.includes(unit);
+}
+
+/** 事業部で使うステージを表示順に並べたもの（入力フォーム・レポートのファネル用） */
+export function stagesFor(unit: string): DealStage[] {
+  return (Object.keys(DEAL_STAGES) as DealStage[])
+    .filter((s) => stageUsedIn(s, unit))
+    .sort((a, b) => DEAL_STAGES[a].order - DEAL_STAGES[b].order);
+}
+
+/** 事業部の商談カンバンの列。銀行営業には販売協力の列を出さない */
+export function pipelineColumnsFor(unit: string): PipelineColumn[] {
+  return PIPELINE_COLUMNS.filter((c) => stageUsedIn(c.stage, unit));
+}
 
 export function columnByKey(key: string): PipelineColumn | undefined {
   return PIPELINE_COLUMNS.find((c) => c.key === key);
@@ -52,6 +82,7 @@ export function hasAutoProbability(deal: DealLike): boolean {
 /**
  * 商談カンバンで列を移動したときに保存するパッチ。
  * - 確度(%)は既定値のままだったときだけ新しい列の既定値に合わせる
+ *   （受注・販売協力・失注の「終わり」の列は必ずその列の値にする）
  * - 受注に入れたら受注後フェーズ（2階）を開始する
  */
 export function pipelineTransition(
@@ -68,7 +99,7 @@ export function pipelineTransition(
     updated_at: new Date().toISOString(),
   };
 
-  if (col.stage === "won" || col.stage === "lost" || hasAutoProbability(deal)) {
+  if (!isOpenStage(col.stage) || hasAutoProbability(deal)) {
     patch.probability = col.defaultProbability;
   }
 

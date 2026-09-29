@@ -82,6 +82,7 @@ export type Capability =
   | "recruiting" // 採用（履歴書・面接ログ＝応募者の個人情報）
   | "hr_self" // 自分の勤怠・経費・評価（本部社員のみ。代理店スタッフは対象外）
   | "hr_admin" // 全員分の勤怠・経費の承認と、評価の作成・確定
+  | "client_share" // クライアント共有リンクの発行・停止・削除（社外に何を見せるかの判断）
   | "all_sales_data"; // 本部の営業データを全件見られる
 
 // 本部ロール共通。content_edit は DB 側の shared_write_*（is_hq）と対応する
@@ -109,6 +110,7 @@ export const ROLE_CAPABILITIES: Record<RoleKey, Capability[]> = {
     "role_admin",
     "recruiting",
     "hr_admin",
+    "client_share",
   ],
   backoffice: [
     ...HQ_BASE,
@@ -117,8 +119,10 @@ export const ROLE_CAPABILITIES: Record<RoleKey, Capability[]> = {
     "settings_admin",
     "recruiting",
     "hr_admin",
+    "client_share",
   ],
-  manager: [...HQ_BASE, "master_edit"],
+  // client_share は DB 側の can_master()（経営・管理部・マネージャー）と対応する
+  manager: [...HQ_BASE, "master_edit", "client_share"],
   member: [...HQ_BASE],
   partner_admin: [],
   partner_member: [],

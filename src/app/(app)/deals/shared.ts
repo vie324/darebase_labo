@@ -1,18 +1,10 @@
 // 案件管理モジュール内で共有するヘルパー・型
 
-import { DEAL_STAGES } from "@/lib/constants";
 import { dateFromNow } from "@/lib/utils";
 import type { Deal, DealStage } from "@/lib/types";
 
-/** ステージを order 順（商談予定 → 失注）に並べた配列 */
-export const STAGE_KEYS: DealStage[] = (Object.keys(DEAL_STAGES) as DealStage[]).sort(
-  (a, b) => DEAL_STAGES[a].order - DEAL_STAGES[b].order
-);
-
-/** 進行中（won / lost 以外）かどうか */
-export function isOpenStage(stage: DealStage): boolean {
-  return stage !== "won" && stage !== "lost";
-}
+/** 進行中（受注・販売協力・失注以外）かどうか。判定は lib/pipeline.ts に1本化 */
+export { isOpenStage } from "@/lib/pipeline";
 
 /** 確度(%)に応じたバッジ色 */
 export function probabilityClass(p: number): string {

@@ -1,6 +1,9 @@
 "use client";
 
 // イベントの詳細 / 日別一覧 / 作成・編集モーダル
+//
+// 作成・編集モーダルには「案件」欄があり、予定の保存と同時に案件を登録できる
+// （deal-section.tsx）。案件の修正は案件管理で行うため、ここでは登録とリンクだけ。
 
 import { useMemo, useState, type FormEvent } from "react";
 import {
@@ -11,8 +14,10 @@ import {
   Pencil,
   Trash2,
 } from "lucide-react";
-import type { CalendarEvent, EventCategory } from "@/lib/types";
+import type { Appointment, CalendarEvent, Deal, EventCategory } from "@/lib/types";
 import { EVENT_CATEGORIES } from "@/lib/constants";
+import type { BusinessUnitSlug } from "@/lib/business-units";
+import { defaultExpectedClose, guessCompany } from "@/lib/schedule-deal";
 import { cn, formatTime } from "@/lib/utils";
 import {
   Avatar,
@@ -32,17 +37,28 @@ import {
   toLocalInput,
   WEEKDAYS,
 } from "./helpers";
+import {
+  LinkedDealCard,
+  ScheduleDealSection,
+  toScheduleDealInput,
+  type ScheduleDealContext,
+  type ScheduleDealDraft,
+  type ScheduleDealInput,
+} from "./deal-section";
 
 export type EventInput = Omit<CalendarEvent, "id" | "created_at">;
 
 // ---------- 詳細モーダル ----------
 export function EventDetailModal({
   event,
+  linkedDeal,
   onClose,
   onEdit,
   onDelete,
 }: {
   event: CalendarEvent;
+  /** この予定に紐づく案件（無ければ null）。案件管理へのリンクを出す */
+  linkedDeal: Deal | null;
   onClose: () => void;
   onEdit: () => void;
   onDelete: () => void;
@@ -87,6 +103,8 @@ export function EventDetailModal({
             </div>
           )}
         </div>
+
+        {linkedDeal && <LinkedDealCard deal={linkedDeal} />}
 
         <div className="flex justify-end gap-2 border-t border-slate-100 pt-4 dark:border-slate-800">
           <Button variant="danger" size="sm" onClick={onDelete}>
@@ -172,6 +190,10 @@ export function EventFormModal({
   defaultDate,
   defaultOwner,
   memberNames,
+  dealContext,
+  defaultUnit,
+  linkedDeal,
+  sourceAppointment,
   onClose,
   onSubmit,
 }: {
@@ -179,8 +201,17 @@ export function EventFormModal({
   defaultDate: Date | null;
   defaultOwner: string;
   memberNames: string[];
+  /** 案件欄に必要なデータ（事業部・紹介元・商材・既存の案件） */
+  dealContext: ScheduleDealContext;
+  /** 案件欄で最初に選んでおく事業部（いま開いている事業部） */
+  defaultUnit: BusinessUnitSlug;
+  /** この予定がすでに紐づいている案件 */
+  linkedDeal: Deal | null;
+  /** この予定を作った紹介アポ（未案件化のもの） */
+  sourceAppointment: Appointment | null;
   onClose: () => void;
-  onSubmit: (values: EventInput) => Promise<void>;
+  /** deal は「案件も登録する」にしたときだけ渡る */
+  onSubmit: (values: EventInput, deal: ScheduleDealInput | null) => Promise<void>;
 }) {
   const [title, setTitle] = useState(event?.title ?? "");
   const [description, setDescription] = useState(event?.description ?? "");
@@ -210,10 +241,59 @@ export function EventFormModal({
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
 
+  // 案件欄。アポから来た予定はアポの事業部・会社名・紹介元を引き継ぐ
+  const [deal, setDeal] = useState<ScheduleDealDraft>(() => {
+    const sourceUnit = sourceAppointment
+      ? dealContext.units.find(
+          (u) => u.id === (sourceAppointment.business_unit_id ?? dealContext.defaultUnitId)
+        )?.slug
+      : undefined;
+    // 選んでいる事業部の行が無ければ、ある方に寄せる（無い事業部で登録しないように）
+    const unit =
+      [sourceUnit, defaultUnit].find((u) => dealContext.units.some((x) => x.slug === u)) ??
+      dealContext.units[0]?.slug ??
+      defaultUnit;
+    return {
+      enabled: false,
+      unit: unit === "alliance" ? "alliance" : "banking",
+      company: sourceAppointment?.company_name ?? "",
+      name: "",
+      bank_id: sourceAppointment?.bank_id ?? "",
+      branch_id: sourceAppointment?.branch_id ?? "",
+      product_ids: [],
+      amount: "",
+      expected_close: "",
+    };
+  });
+
+  const changeDeal = (patch: Partial<ScheduleDealDraft>) => {
+    setDeal((prev) => {
+      const next = { ...prev, ...patch };
+      // チェックを入れた時点のタイトル・日付から初期値を入れる（入力済みの値は触らない）
+      if (patch.enabled && !prev.enabled) {
+        if (!next.company.trim()) next.company = guessCompany(title);
+        if (!next.expected_close) {
+          next.expected_close = defaultExpectedClose(
+            start ? new Date(start).toISOString() : new Date().toISOString()
+          );
+        }
+      }
+      return next;
+    });
+  };
+
   const submit = async (e?: FormEvent) => {
     e?.preventDefault();
     if (!title.trim()) {
       setError("タイトルを入力してください");
+      return;
+    }
+    if (deal.enabled && !deal.company.trim()) {
+      setError("案件の会社名を入力してください");
+      return;
+    }
+    if (deal.enabled && !deal.expected_close) {
+      setError("案件の完了予定日を入力してください");
       return;
     }
     if (!start) {
@@ -240,17 +320,22 @@ export function EventFormModal({
     }
     setSaving(true);
     try {
-      await onSubmit({
-        title: title.trim(),
-        description: description.trim(),
-        start_at: startIso,
-        end_at: endIso,
-        all_day: allDay,
-        category,
-        location: location.trim(),
-        owner_name: owner,
-      });
+      await onSubmit(
+        {
+          title: title.trim(),
+          description: description.trim(),
+          start_at: startIso,
+          end_at: endIso,
+          all_day: allDay,
+          category,
+          location: location.trim(),
+          owner_name: owner,
+        },
+        toScheduleDealInput(deal, dealContext)
+      );
       onClose();
+    } catch {
+      setError("保存できませんでした。時間をおいて再度お試しください。");
     } finally {
       setSaving(false);
     }
@@ -272,7 +357,15 @@ export function EventFormModal({
               キャンセル
             </Button>
             <Button type="submit" disabled={saving}>
-              {saving ? "保存中…" : event ? "更新する" : "作成する"}
+              {saving
+                ? "保存中…"
+                : deal.enabled && !linkedDeal
+                  ? event
+                    ? "更新して案件を登録"
+                    : "作成して案件を登録"
+                  : event
+                    ? "更新する"
+                    : "作成する"}
             </Button>
           </div>
         </div>
@@ -367,6 +460,14 @@ export function EventFormModal({
             placeholder="アジェンダや持ち物、参加者などのメモ"
           />
         </Field>
+
+        <ScheduleDealSection
+          draft={deal}
+          onChange={changeDeal}
+          context={dealContext}
+          linkedDeal={linkedDeal}
+          sourceAppointment={sourceAppointment}
+        />
       </div>
     </Modal>
   );

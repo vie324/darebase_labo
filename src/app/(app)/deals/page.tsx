@@ -8,13 +8,20 @@
 // 設置調整中 → 設置待ち → 開通済み で完工まで追う。
 // 列の定義と遷移ルールは lib/constants.ts と lib/pipeline.ts に集約。
 // ステージ移動は deal_activities に履歴を自動記録し、updated_at を更新する。
+//
+// アライアンス営業だけ「販売協力」の列がある。販売協力になった会社は原則
+// 2次代理店になるので、案件の詳細から2次代理店として登録できる（partnership.tsx）。
+//
+// /deals?deal=<案件id> で開くと、その案件の詳細を開く（スケジュールの予定など、
+// ほかの画面から「案件管理で開く」で飛んできたとき。案件の修正はここで行う）。
 // =============================================================
 
-import { useState } from "react";
+import { use, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Briefcase, Percent, Plus, Target, TrendingUp, Trophy } from "lucide-react";
 import { useCollection } from "@/lib/use-collection";
 import { useBusinessUnit } from "@/lib/use-business-unit";
-import { filterByUnit } from "@/lib/business-units";
+import { filterByUnit, normalizeUnitSlug } from "@/lib/business-units";
 import { dealHasProduct } from "@/lib/products";
 import { UnitSwitch } from "@/components/ui/unit-switch";
 import { UnitMissing } from "@/components/ui/unit-missing";
@@ -27,10 +34,17 @@ import {
   fulfillmentGroupOf,
   fulfillmentLabel,
   fulfillmentTransition,
+  pipelineColumnsFor,
   pipelineTransition,
+  stagesFor,
 } from "@/lib/pipeline";
+import {
+  partnerBranchDraft,
+  partnerBranchOf,
+  type PartnerBranchValues,
+} from "@/lib/partnership";
 import { formatYenShort, todayStr } from "@/lib/utils";
-import type { ActivityType, Deal } from "@/lib/types";
+import type { ActivityType, Branch, Deal } from "@/lib/types";
 import {
   Button,
   PageHeader,
@@ -47,15 +61,26 @@ import { DealList } from "./deal-list";
 import { DealReport } from "./deal-report";
 import { DealDetailModal, DealFormModal, type NewDealLine } from "./deal-modals";
 import { DealProductsPanel } from "./deal-products";
+import { PartnerBranchModal, PartnershipPanel } from "./partnership";
 import { DensityToggle } from "@/components/ui/density-toggle";
+import { useToast } from "@/components/ui/toast";
 
 type ViewKey = "board" | "fulfillment" | "list" | "report";
 
-export default function DealsPage() {
+export default function DealsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  // ほかの画面からのリンク（?deal=<案件id>）
+  const params = use(searchParams);
+  const linkedDealId = typeof params.deal === "string" && params.deal ? params.deal : null;
+  const router = useRouter();
   const { user } = useUser();
   // 代理店ユーザーが登録した案件は自社（organization）に紐づける。
   // これが無いと RLS のスコープ外になり保存できない（本部ユーザーは null）。
   const { organizationId, can, loading: accessLoading } = useAccess();
+  const { toast } = useToast();
   const deals = useCollection("deals");
   const activities = useCollection("deal_activities");
   const profiles = useCollection("profiles");
@@ -68,15 +93,45 @@ export default function DealsPage() {
   const banks = useCollection("banks");
   const branches = useCollection("branches");
   // 事業部で商談を出し分ける
-  const { slug, unitId, defaultUnitId, terms, missing, setSlug, createUnit } = useBusinessUnit();
+  const { slug, unitId, defaultUnitId, units, terms, missing, setSlug, createUnit } =
+    useBusinessUnit();
 
   const [view, setView] = useState<ViewKey>("board");
   const [query, setQuery] = useState("");
   const [ownerFilter, setOwnerFilter] = useState("all");
   const [productFilter, setProductFilter] = useState("all");
-  const [detailId, setDetailId] = useState<string | null>(null);
+  const [detailId, setDetailId] = useState<string | null>(linkedDealId);
   const [formOpen, setFormOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Deal | null>(null);
+  // 販売協力の案件を2次代理店として登録するフォームの対象
+  const [partnerTarget, setPartnerTarget] = useState<Deal | null>(null);
+
+  // ページを開いたままリンク先だけ変わったとき（別の案件へのリンク）も詳細を開き直す
+  const [openedLink, setOpenedLink] = useState(linkedDealId);
+  if (linkedDealId !== openedLink) {
+    setOpenedLink(linkedDealId);
+    if (linkedDealId) setDetailId(linkedDealId);
+  }
+
+  // リンク先の案件が別の事業部なら、その事業部に切り替える（背後の一覧を案件に揃える）。
+  // 切り替えるのはリンクごとに1回だけ（そのあと利用者が事業部を変えても戻さない）
+  const syncedLink = useRef<string | null>(null);
+  const linkedDeal = linkedDealId ? deals.items.find((d) => d.id === linkedDealId) : undefined;
+  useEffect(() => {
+    if (!linkedDeal || units.length === 0 || syncedLink.current === linkedDeal.id) return;
+    syncedLink.current = linkedDeal.id;
+    const unitOfDeal = units.find(
+      (u) => u.id === (linkedDeal.business_unit_id ?? defaultUnitId)
+    )?.slug;
+    if (unitOfDeal && normalizeUnitSlug(unitOfDeal) !== slug) {
+      setSlug(normalizeUnitSlug(unitOfDeal));
+    }
+  }, [linkedDeal, units, defaultUnitId, slug, setSlug]);
+
+  /** リンクで開いた詳細を閉じたら URL からも外す（再読み込みで開き直さないように） */
+  const clearLink = () => {
+    if (linkedDealId) router.replace("/deals", { scroll: false });
+  };
 
   if (
     !user ||
@@ -114,6 +169,11 @@ export default function DealsPage() {
     new Set([...profiles.items.map((p) => p.name), ...unitDeals.map((d) => d.owner_name)])
   ).filter(Boolean);
 
+  // 事業部ごとのステージ・カンバンの列（販売協力はアライアンス営業のみ）
+  const stages = stagesFor(slug);
+  const columns = pipelineColumnsFor(slug);
+  const usesPartnership = stages.includes("partnership");
+
   const q = query.trim().toLowerCase();
   const filtered = unitDeals.filter((d) => {
     if (ownerFilter !== "all" && d.owner_name !== ownerFilter) return false;
@@ -129,6 +189,8 @@ export default function DealsPage() {
   const openDeals = unitDeals.filter((d) => isOpenStage(d.stage));
   const wonDeals = unitDeals.filter((d) => d.stage === "won");
   const lostCount = unitDeals.filter((d) => d.stage === "lost").length;
+  // 販売協力は受注でも失注でもないので、受注率には入れず件数だけ添える
+  const partnershipCount = unitDeals.filter((d) => d.stage === "partnership").length;
   const pipelineTotal = sumAmount(openDeals);
   const weighted = Math.round(weightedAmount(openDeals));
   const wonAmount = sumAmount(wonDeals);
@@ -169,6 +231,71 @@ export default function DealsPage() {
       note: `${from?.label ?? DEAL_STAGES[deal.stage].label} → ${to.label} に変更`,
       author_name: user.name,
     });
+    if (to.stage === "partnership" && !partnerBranchOf(branches.items, deal.id)) {
+      toast(`販売協力に変更しました。案件の詳細から${terms.child}として登録できます`, "info");
+    }
+  };
+
+  // ---------- 販売協力 → 2次代理店 ----------
+
+  /** 登録フォームを開く。モーダルを重ねないよう、詳細はいったん閉じる */
+  const openPartnerForm = (deal: Deal) => {
+    setDetailId(null);
+    setPartnerTarget(deal);
+  };
+
+  /** 登録フォームを閉じて、元の案件の詳細に戻る */
+  const closePartnerForm = () => {
+    const back = partnerTarget?.id ?? null;
+    setPartnerTarget(null);
+    setDetailId(back);
+  };
+
+  const createPartnerBranch = async (deal: Deal, values: PartnerBranchValues) => {
+    const assignee = profiles.items.find((p) => p.id === values.assigned_to);
+    const parent = banks.items.find((b) => b.id === values.bank_id);
+    // 紹介してくれた窓口と同じ組織に持たせる（代理店に任せている系列ならそのまま引き継ぐ）
+    const sourceBranch = branches.items.find((b) => b.id === deal.branch_id);
+    const row = await branches.add({
+      bank_id: values.bank_id,
+      name: values.name,
+      code: values.code,
+      address: "",
+      prefecture: "",
+      assigned_to: values.assigned_to || null,
+      assigned_name: assignee?.name ?? "",
+      assigned_org_id: sourceBranch?.assigned_org_id ?? deal.organization_id ?? null,
+      status: "active",
+      last_contact_at: "",
+      note: values.note,
+      business_unit_id: parent?.business_unit_id ?? deal.business_unit_id ?? defaultBusinessUnitId,
+      source_deal_id: deal.id,
+      updated_at: new Date().toISOString(),
+    });
+    await activities.add({
+      deal_id: deal.id,
+      type: "note",
+      note: `${terms.child}「${row.name}」として登録しました（${terms.parent}: ${parent?.name ?? "—"}）`,
+      author_name: user.name,
+    });
+    toast(`${terms.child}「${row.name}」を登録しました`, "success");
+    closePartnerForm();
+  };
+
+  /** 紹介元マスタに先に登録してあった窓口を、この案件から生まれたものとして紐づける */
+  const linkPartnerBranch = async (deal: Deal, branch: Branch) => {
+    await branches.update(branch.id, {
+      source_deal_id: deal.id,
+      updated_at: new Date().toISOString(),
+    });
+    await activities.add({
+      deal_id: deal.id,
+      type: "note",
+      note: `既存の${terms.child}「${branch.name}」に紐づけました`,
+      author_name: user.name,
+    });
+    toast(`${terms.child}「${branch.name}」に紐づけました`, "success");
+    closePartnerForm();
   };
 
   /** 受注後カンバン（2階）の列移動。その列の先頭フェーズに設定する */
@@ -354,7 +481,10 @@ export default function DealsPage() {
         <StatCard
           label="受注率"
           value={winRate !== null ? `${winRate}%` : "—"}
-          sub={`受注 ${wonDeals.length}件 / 失注 ${lostCount}件`}
+          sub={
+            `受注 ${wonDeals.length}件 / 失注 ${lostCount}件` +
+            (usesPartnership ? ` / 販売協力 ${partnershipCount}件` : "")
+          }
           icon={<Percent className="h-5 w-5" />}
           accent="amber"
         />
@@ -416,6 +546,7 @@ export default function DealsPage() {
         {view === "board" && (
           <DealBoard
             deals={filtered}
+            columns={columns}
             today={today}
             colorOf={colorOf}
             onCardClick={(d) => setDetailId(d.id)}
@@ -441,7 +572,12 @@ export default function DealsPage() {
           />
         )}
         {view === "report" && (
-          <DealReport deals={unitDeals} logs={meetingLogs.items} colorOf={colorOf} />
+          <DealReport
+            deals={unitDeals}
+            stages={stages}
+            logs={meetingLogs.items}
+            colorOf={colorOf}
+          />
         )}
       </div>
         </>
@@ -453,13 +589,18 @@ export default function DealsPage() {
           key={detailDeal.id}
           deal={detailDeal}
           activities={detailActivities}
+          columns={columns}
           today={today}
           colorOf={colorOf}
-          onClose={() => setDetailId(null)}
+          onClose={() => {
+            setDetailId(null);
+            clearLink();
+          }}
           onEdit={(d) => {
             // 詳細を閉じてから編集を開く（開いたままだと同じ key の
             // モーダルが2つ並び、React が重複 key を警告する）
             setDetailId(null);
+            clearLink();
             setEditTarget(d);
             setFormOpen(true);
           }}
@@ -477,6 +618,41 @@ export default function DealsPage() {
               onRemove={(lineId) => removeDealProduct(detailDeal, lineId)}
             />
           }
+          partnershipPanel={
+            detailDeal.stage === "partnership" ? (
+              <PartnershipPanel
+                registered={partnerBranchOf(branches.items, detailDeal.id)}
+                parentName={
+                  banks.items.find(
+                    (b) => b.id === partnerBranchOf(branches.items, detailDeal.id)?.bank_id
+                  )?.name ?? ""
+                }
+                terms={terms}
+                canRegister={can("master_add")}
+                onRegister={() => openPartnerForm(detailDeal)}
+              />
+            ) : undefined
+          }
+        />
+      )}
+
+      {partnerTarget && (
+        <PartnerBranchModal
+          key={partnerTarget.id}
+          initial={partnerBranchDraft(
+            partnerTarget,
+            // 画面に出ている担当者（owner_name）を優先する。owner_id は登録した人の場合がある
+            profiles.items.find((p) => p.name === partnerTarget.owner_name)?.id ??
+              profiles.items.find((p) => p.id === partnerTarget.owner_id)?.id ??
+              null
+          )}
+          banks={unitBanks}
+          branches={unitBranches}
+          members={profiles.items}
+          terms={terms}
+          onClose={closePartnerForm}
+          onCreate={(values) => createPartnerBranch(partnerTarget, values)}
+          onLink={(branch) => linkPartnerBranch(partnerTarget, branch)}
         />
       )}
 
@@ -485,6 +661,7 @@ export default function DealsPage() {
           key={editTarget?.id ?? "new"}
           open
           initial={editTarget}
+          stages={stages}
           members={owners}
           defaultOwner={user.name}
           products={activeProducts}

@@ -77,6 +77,17 @@ test("社内向けテーブルは代理店ユーザーには1行も返さない"
   }
 });
 
+test("クライアント共有リンクは本部だけが見られる（URL が鍵なので代理店には出さない）", () => {
+  assert.ok(HQ_ONLY_TABLES.includes("client_shares"));
+  const rows = [{ id: "share-1", token: "x".repeat(43) }];
+  for (const role of ["executive", "backoffice", "manager", "member"] as RoleKey[]) {
+    assert.equal(scopeRows("client_shares", rows, ctx(role)).length, 1, role);
+  }
+  for (const role of ["partner_admin", "partner_member"] as RoleKey[]) {
+    assert.deepEqual(scopeRows("client_shares", rows, ctx(role)), [], role);
+  }
+});
+
 test("応募者データは経営・管理部にしか見えない（本部の営業メンバーも不可）", () => {
   assert.ok(BACKOFFICE_ONLY_TABLES.includes("candidates"));
   const rows = [{ id: "cand-1" }, { id: "cand-2" }];

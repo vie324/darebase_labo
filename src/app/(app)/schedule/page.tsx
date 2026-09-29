@@ -1,8 +1,12 @@
 "use client";
 
 // スケジュール — 営業チームの予定管理（月 / 週 / リスト表示）
+//
+// 予定の入力画面から、そのまま案件を登録できる（「案件も登録する」）。
+// 予定は events.deal_id で案件に紐づき、詳細から案件管理へ飛べる。
+// 案件の修正は案件管理に一本化し、この画面では登録とリンクだけを持つ。
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
   addDays,
   addMonths,
@@ -22,12 +26,17 @@ import {
   MapPin,
   Plus,
 } from "lucide-react";
-import type { CalendarEvent, EventCategory } from "@/lib/types";
+import type { Appointment, CalendarEvent, Deal, EventCategory } from "@/lib/types";
 import { EVENT_CATEGORIES } from "@/lib/constants";
-import { useCollection } from "@/lib/use-collection";
+import { insertRow, useCollection } from "@/lib/use-collection";
 import { useUser } from "@/lib/use-user";
+import { useAccess } from "@/lib/use-access";
+import { useBusinessUnit } from "@/lib/use-business-unit";
+import { columnByKey } from "@/lib/pipeline";
+import { linkedDealIdOf, sourceAppointmentOf } from "@/lib/schedule-deal";
+import { appointmentDealMemo } from "@/lib/appointments";
 import { cn, formatDate, formatTime, toDateStr } from "@/lib/utils";
-import { DEMO_TEAM } from "@/lib/demo/team";
+import { useToast } from "@/components/ui/toast";
 import {
   Avatar,
   Badge,
@@ -55,12 +64,24 @@ import {
   EventFormModal,
   type EventInput,
 } from "./event-modals";
+import type { ScheduleDealContext, ScheduleDealInput } from "./deal-section";
 
 type ViewTab = "month" | "week" | "list";
 
 export default function SchedulePage() {
   const { items: events, loading, add, update, remove } = useCollection("events");
   const { user } = useUser();
+  const { organizationId, isPartner } = useAccess();
+  const { toast } = useToast();
+  // 予定の入力画面から案件を登録するためのデータ
+  // （明細・活動履歴は書き込むだけなので一覧は読まない。insertRow で追記する）
+  const deals = useCollection("deals");
+  const products = useCollection("products");
+  const banks = useCollection("banks");
+  const branches = useCollection("branches");
+  const appointments = useCollection("appointments");
+  const profiles = useCollection("profiles");
+  const { slug, units, defaultUnitId, loading: unitsLoading } = useBusinessUnit();
 
   const [tab, setTab] = useState<ViewTab>("month");
   const [cursor, setCursor] = useState(() => new Date());
@@ -72,6 +93,8 @@ export default function SchedulePage() {
     event: CalendarEvent | null;
     date: Date | null;
   } | null>(null);
+  // 案件は作れたが予定の保存に失敗したとき、入力画面で保存し直しても案件を作り直さない
+  const pendingDeal = useRef<Deal | null>(null);
 
   const owners = useMemo(
     () =>
@@ -81,12 +104,15 @@ export default function SchedulePage() {
     [events]
   );
 
+  // 担当者の選択肢はチームのメンバー（案件の担当者にもなるため実在のメンバーから選ぶ）
   const memberNames = useMemo(() => {
-    const set = new Set<string>(DEMO_TEAM.map((m) => m.name));
+    const set = new Set<string>(
+      profiles.items.filter((m) => m.is_active !== false).map((m) => m.name)
+    );
     owners.forEach((o) => set.add(o));
     if (user?.name) set.add(user.name);
     return Array.from(set);
-  }, [owners, user]);
+  }, [profiles.items, owners, user]);
 
   const filtered = useMemo(
     () =>
@@ -98,7 +124,18 @@ export default function SchedulePage() {
     [events, catFilters, ownerFilter]
   );
 
-  if (loading) return <PageSkeleton />;
+  if (
+    loading ||
+    deals.loading ||
+    products.loading ||
+    banks.loading ||
+    branches.loading ||
+    appointments.loading ||
+    profiles.loading ||
+    unitsLoading
+  ) {
+    return <PageSkeleton />;
+  }
 
   // ---- 集計（loading 後にのみ描画されるためハイドレーション安全） ----
   const today = new Date();
@@ -126,12 +163,124 @@ export default function SchedulePage() {
     setDetail(null);
   };
 
-  const handleSubmit = async (values: EventInput) => {
-    if (form?.event) {
-      await update(form.event.id, values);
-    } else {
-      await add(values);
+  // ---- 予定と案件の紐づけ ----
+
+  /** 予定に紐づく案件（直接の紐づけ、または予定を作った紹介アポの案件） */
+  const linkedDealOf = (ev: CalendarEvent | null): Deal | null => {
+    if (!ev) return null;
+    const id = linkedDealIdOf(ev, appointments.items);
+    return id ? (deals.items.find((d) => d.id === id) ?? null) : null;
+  };
+
+  /** 予定を作った紹介アポのうち、まだ案件化していないもの */
+  const openSourceAppointmentOf = (ev: CalendarEvent | null): Appointment | null => {
+    if (!ev || linkedDealOf(ev)) return null;
+    return sourceAppointmentOf(ev, appointments.items);
+  };
+
+  const dealContext: ScheduleDealContext = {
+    units,
+    defaultUnitId,
+    banks: banks.items,
+    branches: branches.items,
+    products: products.items
+      .filter((p) => p.is_active)
+      .sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name, "ja")),
+    deals: deals.items,
+  };
+
+  /**
+   * 予定の入力内容から案件を1件登録する（商談予定・明細・活動履歴まで）。
+   * 紹介アポから来た予定なら、紹介元はアポに揃え、アポの側も案件化済みにする。
+   */
+  const createDealFromSchedule = async (
+    input: ScheduleDealInput,
+    ev: EventInput,
+    source: Appointment | null
+  ): Promise<Deal> => {
+    const now = new Date().toISOString();
+    const bankId = source ? source.bank_id : input.bank_id;
+    const branchId = source ? source.branch_id : input.branch_id;
+    const branch = branches.items.find((b) => b.id === branchId);
+    // 担当者は予定の担当者に揃える。代理店ユーザーは自分の案件しか作れない（RLS）ので自分
+    const ownerId = isPartner
+      ? (user?.id ?? null)
+      : (profiles.items.find((m) => m.name === ev.owner_name)?.id ?? user?.id ?? null);
+    const created = await deals.add({
+      name: input.name,
+      company: input.company,
+      contact_name: "",
+      stage: "appointment",
+      confidence_rank: "",
+      amount: input.amount,
+      // 列の既定値にしておくと、カンバンで動かしたときに確度が自動で追従する
+      probability: columnByKey("appointment")?.defaultProbability ?? 10,
+      expected_close: input.expected_close,
+      owner_name: ev.owner_name,
+      owner_id: ownerId,
+      next_action: "商談実施",
+      memo: source ? appointmentDealMemo(source) : "",
+      updated_at: now,
+      bank_id: bankId || null,
+      branch_id: branchId || null,
+      appointment_id: source?.id ?? null,
+      // 代理店ユーザーが登録した案件は自社に紐づける（RLS のスコープ条件）
+      organization_id: branch?.assigned_org_id ?? source?.organization_id ?? organizationId ?? null,
+      business_unit_id: source?.business_unit_id ?? input.business_unit_id,
+    });
+    await Promise.all(
+      input.products.map((p) =>
+        insertRow("deal_products", {
+          deal_id: created.id,
+          product_id: p.id,
+          // マスタを改名しても当時の名前が残るようスナップショットする
+          product_name: p.name,
+          amount: p.unit_price,
+          quantity: 1,
+          memo: "",
+        })
+      )
+    );
+    const productNote =
+      input.products.length > 0 ? `（${input.products.map((p) => p.name).join(" / ")}）` : "";
+    await insertRow("deal_activities", {
+      deal_id: created.id,
+      type: "note",
+      note: `スケジュールの予定「${ev.title}」（${formatDate(ev.start_at)}）から案件を登録しました${productNote}`,
+      author_name: user?.name ?? ev.owner_name,
+    });
+    if (source) {
+      await appointments.update(source.id, { deal_id: created.id, updated_at: now });
     }
+    return created;
+  };
+
+  const handleSubmit = async (values: EventInput, dealInput: ScheduleDealInput | null) => {
+    const target = form?.event ?? null;
+    // すでに案件に紐づいている予定では、案件欄は出していない（二重登録しない）
+    let created: Deal | null = null;
+    if (dealInput && !linkedDealOf(target)) {
+      pendingDeal.current ??= await createDealFromSchedule(
+        dealInput,
+        values,
+        openSourceAppointmentOf(target)
+      );
+      created = pendingDeal.current;
+    }
+    const body = created ? { ...values, deal_id: created.id } : values;
+    if (target) {
+      await update(target.id, body);
+    } else {
+      await add(body);
+    }
+    if (created) {
+      toast(`案件「${created.name}」を登録しました。修正は案件管理から行えます`, "success");
+    }
+  };
+
+  const closeForm = () => {
+    pendingDeal.current = null;
+    setForm(null);
   };
 
   const filterActive = catFilters.length > 0 || ownerFilter !== "";
@@ -325,6 +474,7 @@ export default function SchedulePage() {
       {detail && (
         <EventDetailModal
           event={detail}
+          linkedDeal={linkedDealOf(detail)}
           onClose={() => setDetail(null)}
           onEdit={() => {
             setForm({ event: detail, date: null });
@@ -340,7 +490,11 @@ export default function SchedulePage() {
           defaultDate={form.date}
           defaultOwner={user?.name ?? memberNames[0] ?? ""}
           memberNames={memberNames}
-          onClose={() => setForm(null)}
+          dealContext={dealContext}
+          defaultUnit={slug}
+          linkedDeal={linkedDealOf(form.event)}
+          sourceAppointment={openSourceAppointmentOf(form.event)}
+          onClose={closeForm}
           onSubmit={handleSubmit}
         />
       )}

@@ -31,6 +31,7 @@ import {
   Receipt,
   Search,
   Settings,
+  Share2,
   Sun,
   TrendingUp,
   UserRoundSearch,
@@ -130,6 +131,9 @@ export function CommandPalette() {
       { id: "n-bank", group: "移動", label: "紹介元マスタ（銀行・代理店）", icon: <Landmark className={IC} />, keywords: "banks branches 銀行 支店 代理店 アライアンス マスタ 取込 csv 担当 振り替え", run: () => go("/banks") },
       { id: "n-appt", group: "移動", label: "アポイント", icon: <Phone className={IC} />, keywords: "appointments アポ 商談 紹介 リード 登録", run: () => go("/appointments") },
       { id: "n-activity", group: "移動", label: "稼働ダッシュボード", icon: <Activity className={IC} />, keywords: "activity 稼働 休眠 支店 代理店 稼働率 カバレッジ ヒートマップ 紹介数", run: () => go("/banks/activity") },
+      ...(can("all_sales_data")
+        ? [{ id: "n-shares", group: "移動", label: "クライアント共有", icon: <Share2 className={IC} />, keywords: "share client クライアント 共有 公開 リンク スプレッドシート csv 紹介状況 進捗", run: () => go("/shares") } satisfies CmdItem]
+        : []),
       { id: "n-products", group: "移動", label: "商材マスタ", icon: <Package className={IC} />, keywords: "products 商材 DDS AI クロスセル マスタ", run: () => go("/products") },
       { id: "n-deal", group: "移動", label: "案件管理", icon: <Briefcase className={IC} />, keywords: "deals 案件 パイプライン", run: () => go("/deals") },
       { id: "n-meeting", group: "移動", label: "商談ログ", icon: <Bot className={IC} />, keywords: "meetings 商談 ログ 文字起こし 議事録 確度 AI 解析", run: () => go("/meetings") },

@@ -16,7 +16,7 @@ import {
   ACTIVITY_TYPES,
   DEAL_STAGES,
   FULFILLMENT_STAGES,
-  PIPELINE_COLUMNS,
+  type PipelineColumn,
 } from "@/lib/constants";
 import { columnKeyOf, fulfillmentLabel } from "@/lib/pipeline";
 import { useConfidenceCriteria } from "@/lib/settings";
@@ -45,7 +45,6 @@ import {
 } from "@/components/ui";
 import { DealProductsPanel } from "./deal-products";
 import {
-  STAGE_KEYS,
   emptyFormValues,
   isOpenStage,
   probabilityClass,
@@ -73,6 +72,7 @@ function Info({ label, children }: { label: string; children: ReactNode }) {
 export function DealDetailModal({
   deal,
   activities,
+  columns,
   today,
   colorOf,
   onClose,
@@ -81,9 +81,12 @@ export function DealDetailModal({
   onColumnChange,
   onAddActivity,
   productsPanel,
+  partnershipPanel,
 }: {
   deal: Deal | null;
   activities: DealActivity[];
+  /** この事業部の商談ステージの列（lib/pipeline.ts の pipelineColumnsFor） */
+  columns: PipelineColumn[];
   today: string;
   colorOf: (name: string) => string;
   onClose: () => void;
@@ -93,6 +96,8 @@ export function DealDetailModal({
   onAddActivity: (dealId: string, type: ActivityType, note: string) => Promise<void>;
   /** 案件に載せた商材（明細）。親から渡して、この画面は表示位置だけを決める */
   productsPanel?: React.ReactNode;
+  /** 販売協力の案件だけに出す、2次代理店への登録の案内（親が中身を決める） */
+  partnershipPanel?: React.ReactNode;
 }) {
   // 親側で key={deal.id} を付けて描画するため、案件が変わると状態はリセットされる
   const [actType, setActType] = useState<ActivityType>("call");
@@ -147,7 +152,7 @@ export function DealDetailModal({
             商談ステージ（クリックで変更）
           </p>
           <div className="flex flex-wrap items-center gap-1.5">
-            {PIPELINE_COLUMNS.map((col) => (
+            {columns.map((col) => (
               <button
                 key={col.key}
                 onClick={() => onColumnChange(deal, col.key)}
@@ -172,6 +177,9 @@ export function DealDetailModal({
             </p>
           )}
         </div>
+
+        {/* 販売協力 → 2次代理店 */}
+        {partnershipPanel}
 
         {/* 基本情報 */}
         <div className="grid gap-4 rounded-2xl bg-slate-50/80 p-4 sm:grid-cols-2 lg:grid-cols-3 dark:bg-slate-800/40">
@@ -328,6 +336,7 @@ export type NewDealLine = DealProduct;
 export function DealFormModal({
   open,
   initial,
+  stages,
   members,
   defaultOwner,
   products,
@@ -339,6 +348,8 @@ export function DealFormModal({
 }: {
   open: boolean;
   initial: Deal | null;
+  /** 選べるステージ（事業部で使うもの。lib/pipeline.ts の stagesFor） */
+  stages: DealStage[];
   members: string[];
   defaultOwner: string;
   /** 選べる商材（取扱中のもの）。新規登録のときだけ使う */
@@ -476,7 +487,7 @@ export function DealFormModal({
               value={values.stage}
               onChange={(e) => set("stage", e.target.value as DealStage)}
             >
-              {STAGE_KEYS.map((s) => (
+              {stages.map((s) => (
                 <option key={s} value={s}>
                   {DEAL_STAGES[s].label}
                 </option>

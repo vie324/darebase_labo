@@ -40,3 +40,19 @@ export function isUpcoming(a: Appointment, today: string): boolean {
   const scheduled = toDateOnly(a.scheduled_at);
   return scheduled !== "" && scheduled >= today;
 }
+
+/**
+ * アポから案件を起こすときのメモ（紹介の経緯・業種・売上規模）。
+ * アポ画面の「案件化する」と、スケジュールからの案件登録の両方がここを使う。
+ */
+export function appointmentDealMemo(
+  a: Pick<Appointment, "source_note" | "industry" | "revenue_scale">
+): string {
+  return [
+    a.source_note,
+    a.industry && `業種: ${a.industry}`,
+    a.revenue_scale && `売上規模: ${a.revenue_scale}`,
+  ]
+    .filter(Boolean)
+    .join("\n");
+}

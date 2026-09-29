@@ -31,6 +31,7 @@ import { useCollection } from "@/lib/use-collection";
 import { useBusinessUnit } from "@/lib/use-business-unit";
 import { UnitSwitch } from "@/components/ui/unit-switch";
 import { filterByUnit } from "@/lib/business-units";
+import { isOpenStage, stagesFor } from "@/lib/pipeline";
 import { useUser } from "@/lib/use-user";
 import {
   ACTIVITY_TYPES,
@@ -49,7 +50,7 @@ import {
   toDateStr,
   todayStr,
 } from "@/lib/utils";
-import type { DealStage, TaskPriority } from "@/lib/types";
+import type { TaskPriority } from "@/lib/types";
 import {
   Avatar,
   Badge,
@@ -180,7 +181,8 @@ export default function DashboardPage() {
   // 案件（いま選んでいる事業部のぶんだけ）
   const unitDeals = filterByUnit(deals.items, unitId, defaultUnitId);
   const unitDealIds = new Set(unitDeals.map((d) => d.id));
-  const activeDeals = unitDeals.filter((d) => d.stage !== "won" && d.stage !== "lost");
+  // 受注・販売協力・失注は「終わった」商談（判定は lib/pipeline.ts）
+  const activeDeals = unitDeals.filter((d) => isOpenStage(d.stage));
   const activeAmount = activeDeals.reduce((sum, d) => sum + d.amount, 0);
   const wonDeals = unitDeals.filter((d) => d.stage === "won");
   const wonAmount = wonDeals.reduce((sum, d) => sum + d.amount, 0);
@@ -205,17 +207,16 @@ export default function DashboardPage() {
   ).length;
 
   // パイプライン（ステージ順）
-  const stageRows = (Object.keys(DEAL_STAGES) as DealStage[])
-    .sort((a, b) => DEAL_STAGES[a].order - DEAL_STAGES[b].order)
-    .map((stage) => {
-      const rows = unitDeals.filter((d) => d.stage === stage);
-      return {
-        stage,
-        meta: DEAL_STAGES[stage],
-        count: rows.length,
-        amount: rows.reduce((sum, d) => sum + d.amount, 0),
-      };
-    });
+  // 事業部で使うステージだけ（販売協力はアライアンス営業のみ）
+  const stageRows = stagesFor(slug).map((stage) => {
+    const rows = unitDeals.filter((d) => d.stage === stage);
+    return {
+      stage,
+      meta: DEAL_STAGES[stage],
+      count: rows.length,
+      amount: rows.reduce((sum, d) => sum + d.amount, 0),
+    };
+  });
   const maxStageAmount = Math.max(...stageRows.map((r) => r.amount), 1);
 
   // 最近の活動（この事業部の案件に紐づくものだけ）

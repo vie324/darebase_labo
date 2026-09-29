@@ -179,11 +179,19 @@ const STAGE_OF: Record<string, Deal["stage"]> = {
   done: "follow_up",
 };
 
+/**
+ * 商談の結果が「販売協力」になった案件（買ってはもらえなかったが紹介側に回る）。
+ * 2次代理店としてはまだ登録していない状態にしてあり、案件の詳細から登録を試せる。
+ */
+const PARTNERSHIP_DEALS = new Set(["aldeal-8"]);
+
 export const DEMO_ALLIANCE_DEALS: Deal[] = DEMO_ALLIANCE_APPOINTMENTS.filter(
   (a) => a.deal_id !== null
 ).map((a) => {
   const referral = REFERRALS[DEMO_ALLIANCE_APPOINTMENTS.indexOf(a)];
-  const stage = STAGE_OF[referral.status] ?? "follow_up";
+  const stage: Deal["stage"] = PARTNERSHIP_DEALS.has(a.deal_id!)
+    ? "partnership"
+    : (STAGE_OF[referral.status] ?? "follow_up");
   return {
     id: a.deal_id!,
     name: `${a.company_name} DDS導入`,
@@ -192,11 +200,12 @@ export const DEMO_ALLIANCE_DEALS: Deal[] = DEMO_ALLIANCE_APPOINTMENTS.filter(
     stage,
     // 金額は明細の合計と一致させる（アプリ側も商材を足すたびに同期する）
     amount: 0, // ← 下の withAmounts で明細の合計に差し替える
-    probability: stage === "won" ? 100 : stage === "lost" ? 0 : 50,
+    probability: stage === "won" ? 100 : stage === "follow_up" ? 50 : 0,
     expected_close: dateFromNow(stage === "won" ? -referral.days + 20 : 25),
     owner_name: a.assigned_name,
     owner_id: a.assigned_to,
-    next_action: stage === "follow_up" ? "見積提示" : "",
+    next_action:
+      stage === "follow_up" ? "見積提示" : stage === "partnership" ? "代理店契約書の送付" : "",
     memo: a.source_note,
     updated_at: daysFromNow(-referral.days + 10),
     created_at: daysFromNow(-referral.days),
@@ -207,7 +216,8 @@ export const DEMO_ALLIANCE_DEALS: Deal[] = DEMO_ALLIANCE_APPOINTMENTS.filter(
     business_unit_id: BU_ALLIANCE,
     contract_amount: 0,
     gross_profit: 0,
-    confidence_rank: stage === "won" ? "A" : stage === "lost" ? "C" : "B",
+    confidence_rank:
+      stage === "won" ? "A" : stage === "lost" ? "C" : stage === "partnership" ? "" : "B",
     // 設置を伴わない商材が混ざるため、受注後フェーズは使わない
     fulfillment_status: "",
   } satisfies Deal;

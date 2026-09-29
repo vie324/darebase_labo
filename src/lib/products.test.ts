@@ -118,6 +118,21 @@ test("商材別に受注額と進行中の金額を分けて集計する", () =>
   assert.equal(dds.wonAmount + dds.openAmount, 3_000_000);
 });
 
+test("販売協力の案件の金額は、受注にも進行中にも入れない（売上にならない結果）", () => {
+  const deals = [
+    { id: "d-open", stage: "follow_up" },
+    { id: "d-partner", stage: "partnership" },
+  ];
+  const lines = [
+    line({ id: "l-1", deal_id: "d-open", amount: 1_000_000 }),
+    line({ id: "l-2", deal_id: "d-partner", amount: 3_000_000 }),
+  ];
+  const dds = buildProductStats([DDS], deals, lines)[0];
+  assert.equal(dds.openAmount, 1_000_000);
+  assert.equal(dds.wonAmount, 0);
+  assert.equal(dds.dealCount, 2);
+});
+
 test("受注額の多い商材が先に並ぶ", () => {
   const deals = [{ id: "d-1", stage: "won" }];
   const lines = [
