@@ -5,17 +5,20 @@
 import { BarChart3, Briefcase, Crown, Users } from "lucide-react";
 import { DEAL_STAGES } from "@/lib/constants";
 import { cn, formatYenShort } from "@/lib/utils";
-import type { Deal, MeetingLog } from "@/lib/types";
+import type { Deal, DealStage, MeetingLog } from "@/lib/types";
 import { Avatar, Card, EmptyState, ProgressBar } from "@/components/ui";
-import { STAGE_KEYS, isOpenStage, sumAmount, weightedAmount } from "./shared";
+import { isOpenStage, sumAmount, weightedAmount } from "./shared";
 import { LossReport } from "./loss-report";
 
 export function DealReport({
   deals,
+  stages,
   logs,
   colorOf,
 }: {
   deals: Deal[];
+  /** ファネルに並べるステージ（事業部で使うもの。lib/pipeline.ts の stagesFor） */
+  stages: DealStage[];
   /** 失注要因を拾うための商談ログ */
   logs: MeetingLog[];
   colorOf: (name: string) => string;
@@ -31,7 +34,7 @@ export function DealReport({
   }
 
   // ---------- ステージ別ファネル ----------
-  const stageRows = STAGE_KEYS.map((stage) => {
+  const stageRows = stages.map((stage) => {
     const rows = deals.filter((d) => d.stage === stage);
     return { stage, meta: DEAL_STAGES[stage], count: rows.length, amount: sumAmount(rows) };
   });

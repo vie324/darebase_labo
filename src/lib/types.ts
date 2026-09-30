@@ -46,6 +46,11 @@ export interface CalendarEvent extends BaseRow {
   owner_name: string;
   /** 作成者（0006）。DB 側で default auth.uid() が入るためアプリからは省略可 */
   owner_id?: string | null;
+  /**
+   * この予定から登録した（または紐づく）案件（0015）。null = 案件なし。
+   * 1案件に複数の予定がぶら下がる。案件の修正は案件管理で行う。
+   */
+  deal_id?: string | null;
 }
 
 // ---------- 案件管理 ----------
@@ -60,6 +65,7 @@ export type DealStage =
   | "follow_up" // 商談後追い（確度 A/B/C）
   | "po_wait" // 発注書待ち
   | "won" // 受注（発注書を受領）
+  | "partnership" // 販売協力（アライアンス営業のみ。原則ここから2次代理店が生まれる）
   | "lost"; // 失注
 
 export interface Deal extends BaseRow {
@@ -454,6 +460,11 @@ export interface Branch extends BaseRow {
   note: string;
   business_unit_id: string | null;
   updated_at: string;
+  /**
+   * 販売協力になった案件から登録した2次代理店のとき、その案件（0015）。
+   * 同じ案件から2つ登録しないための目印にもなる。
+   */
+  source_deal_id?: string | null;
 }
 
 // ---------- 銀行営業: アポイント ----------
@@ -659,6 +670,36 @@ export interface UserInvite extends BaseRow {
   expires_at: string; // ISO
 }
 
+// ---------- クライアント共有リンク（0015） ----------
+/**
+ * 紹介元（銀行 / 1次代理店・2次代理店）に、紹介いただいた顧客の進捗を
+ * ログインなしで見せる閲覧専用リンク。URL のトークンが鍵になる。
+ * 公開する項目と並べ方は lib/client-share.ts（DB 側は get_client_share 関数）。
+ */
+export interface ClientShare extends BaseRow {
+  /** URL に入る推測不能な文字列。再発行すると古い URL は開けなくなる */
+  token: string;
+  /** 公開ページの見出し（例: 株式会社ブリッジパートナーズ様 ご紹介案件の進捗） */
+  title: string;
+  /** 紹介元（banks）。この紹介元から来た紹介だけを公開する */
+  bank_id: string;
+  /** 窓口（branches）で絞る場合のみ。null = 紹介元の全窓口 */
+  branch_id: string | null;
+  business_unit_id: string | null;
+  /** 有効期限 ISO。null = 無期限 */
+  expires_at: string | null;
+  /** false = 停止中（URL を開いても何も出ない） */
+  is_active: boolean;
+  /** 社内向けメモ（送付先など）。公開ページには出さない */
+  note: string;
+  created_by: string;
+  owner_id?: string | null;
+  /** 最後に開かれた日時 ISO（null = 未閲覧）。スプレッドシートの自動取得も含む */
+  last_accessed_at: string | null;
+  access_count: number;
+  updated_at: string;
+}
+
 // ---------- アプリ設定（休眠判定日数など「先方未確定の値」の受け皿） ----------
 export interface AppSetting extends BaseRow {
   key: string; // 例: "branch_activity"
@@ -705,6 +746,7 @@ export interface TableMap {
   evaluations: Evaluation;
   products: Product;
   deal_products: DealProduct;
+  client_shares: ClientShare;
 }
 
 export type TableName = keyof TableMap;

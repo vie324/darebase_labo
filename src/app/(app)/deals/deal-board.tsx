@@ -3,10 +3,11 @@
 // 商談カンバン（1階）。列は PIPELINE_COLUMNS＝ステージ×確度ランク。
 // 後追いの列にドロップすると確度ランクもまとめて更新される
 // （判定は lib/pipeline.ts に集約。HTML5ドラッグ&ドロップ）。
+// 列は事業部で変わる（アライアンス営業だけ「販売協力」がある）ので、親から受け取る。
 
 import { useState, type DragEvent } from "react";
 import { AlertTriangle, Briefcase, CalendarDays, Flag, HelpCircle } from "lucide-react";
-import { PIPELINE_COLUMNS } from "@/lib/constants";
+import type { PipelineColumn } from "@/lib/constants";
 import { columnKeyOf, needsConfidenceRank } from "@/lib/pipeline";
 import { useConfidenceCriteria } from "@/lib/settings";
 import { cn, formatDate, formatYenShort } from "@/lib/utils";
@@ -17,12 +18,15 @@ import { isOpenStage, probabilityClass, sumAmount } from "./shared";
 
 export function DealBoard({
   deals,
+  columns,
   today,
   colorOf,
   onCardClick,
   onColumnChange,
 }: {
   deals: Deal[];
+  /** この事業部の列（lib/pipeline.ts の pipelineColumnsFor） */
+  columns: PipelineColumn[];
   today: string;
   colorOf: (name: string) => string;
   onCardClick: (deal: Deal) => void;
@@ -55,7 +59,7 @@ export function DealBoard({
 
   return (
     <HScroll className="flex items-start gap-3 pb-4" label="商談ステージ" step={276}>
-      {PIPELINE_COLUMNS.map((col) => {
+      {columns.map((col) => {
         const cards = deals
           .filter((d) => columnKeyOf(d) === col.key)
           .sort((a, b) => b.updated_at.localeCompare(a.updated_at));

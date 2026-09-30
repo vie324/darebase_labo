@@ -33,6 +33,7 @@ import { UnitMissing } from "@/components/ui/unit-missing";
 import { useUser } from "@/lib/use-user";
 import { useBranchSettings } from "@/lib/settings";
 import { monthlyAppointmentCounts, toMonth } from "@/lib/branch-metrics";
+import { appointmentDealMemo } from "@/lib/appointments";
 import { APPOINTMENT_STATUSES, CONTACT_ROLES } from "@/lib/constants";
 import { cn, formatDate, formatDateTime, todayStr } from "@/lib/utils";
 import type { Appointment, AppointmentStatus, Branch } from "@/lib/types";
@@ -295,9 +296,7 @@ export default function AppointmentsPage() {
       owner_name: a.assigned_name,
       owner_id: a.assigned_to,
       next_action: "商談実施",
-      memo: [a.source_note, a.industry && `業種: ${a.industry}`, a.revenue_scale && `売上規模: ${a.revenue_scale}`]
-        .filter(Boolean)
-        .join("\n"),
+      memo: appointmentDealMemo(a),
       updated_at: now,
       bank_id: a.bank_id,
       branch_id: a.branch_id,

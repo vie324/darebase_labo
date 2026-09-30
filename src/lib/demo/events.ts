@@ -12,6 +12,8 @@ export const DEMO_EVENTS: CalendarEvent[] = [
     category: "visit",
     location: "東京都港区 ミライテック本社",
     owner_name: "田中 美咲",
+    // 案件「基幹システム連携プロジェクト」の商談。詳細から案件管理へ飛べる
+    deal_id: "deal-1",
     created_at: daysFromNow(-7),
   },
   {

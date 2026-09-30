@@ -11,8 +11,11 @@ import {
   fulfillmentProgress,
   fulfillmentTransition,
   hasAutoProbability,
+  isOpenStage,
   needsConfidenceRank,
+  pipelineColumnsFor,
   pipelineTransition,
+  stagesFor,
   type DealLike,
 } from "./pipeline.ts";
 import { FULFILLMENT_GROUPS, FULFILLMENT_STAGES, PIPELINE_COLUMNS } from "./constants.ts";
@@ -37,13 +40,13 @@ test("確度未判定の後追いは C 列に置く（列が増えないよう�
 });
 
 test("後追い以外はステージ名がそのまま列キー", () => {
-  for (const stage of ["appointment", "po_wait", "won", "lost"] as const) {
+  for (const stage of ["appointment", "po_wait", "won", "partnership", "lost"] as const) {
     assert.equal(columnKeyOf({ stage }), stage);
   }
 });
 
-test("すべての列キーに対応する案件の並べ先がある", () => {
-  const keys = PIPELINE_COLUMNS.map((c) => c.key);
+test("銀行営業の商談カンバンの列（販売協力は出さない）", () => {
+  const keys = pipelineColumnsFor("banking").map((c) => c.key);
   assert.deepEqual(keys, [
     "appointment",
     "follow_up_c",
@@ -53,6 +56,47 @@ test("すべての列キーに対応する案件の並べ先がある", () => {
     "won",
     "lost",
   ]);
+});
+
+test("アライアンス営業だけ、受注と失注のあいだに販売協力の列がある", () => {
+  const keys = pipelineColumnsFor("alliance").map((c) => c.key);
+  assert.deepEqual(keys, [
+    "appointment",
+    "follow_up_c",
+    "follow_up_b",
+    "follow_up_a",
+    "po_wait",
+    "won",
+    "partnership",
+    "lost",
+  ]);
+});
+
+test("どの列も、案件のステージから並べ先が決まる（取りこぼしがない）", () => {
+  for (const col of PIPELINE_COLUMNS) {
+    assert.equal(columnKeyOf({ stage: col.stage, confidence_rank: col.rank ?? "" }), col.key);
+  }
+});
+
+test("入力フォームで選べるステージも事業部で変わる", () => {
+  assert.deepEqual(stagesFor("banking"), ["appointment", "follow_up", "po_wait", "won", "lost"]);
+  assert.deepEqual(stagesFor("alliance"), [
+    "appointment",
+    "follow_up",
+    "po_wait",
+    "won",
+    "partnership",
+    "lost",
+  ]);
+});
+
+test("販売協力は受注・失注と同じく「終わった」商談（進行中に数えない）", () => {
+  assert.equal(isOpenStage("appointment"), true);
+  assert.equal(isOpenStage("follow_up"), true);
+  assert.equal(isOpenStage("po_wait"), true);
+  assert.equal(isOpenStage("won"), false);
+  assert.equal(isOpenStage("partnership"), false);
+  assert.equal(isOpenStage("lost"), false);
 });
 
 // ---------- 列移動 ----------
@@ -77,6 +121,16 @@ test("受注・失注に移したときは確度を必ず 100 / 0 にする", ()
   const manual: DealLike = { stage: "follow_up", confidence_rank: "B", probability: 55 };
   assert.equal(pipelineTransition(manual, "won", TODAY).probability, 100);
   assert.equal(pipelineTransition(manual, "lost", TODAY).probability, 0);
+});
+
+test("販売協力に移すと、確度は 0 で受注後フェーズは始まらない（売上にはならない）", () => {
+  const manual: DealLike = { stage: "follow_up", confidence_rank: "A", probability: 75 };
+  const patch = pipelineTransition(manual, "partnership", TODAY);
+  assert.equal(patch.stage, "partnership");
+  assert.equal(patch.confidence_rank, "");
+  assert.equal(patch.probability, 0);
+  assert.equal(patch.fulfillment_status, undefined);
+  assert.equal(patch.contracted_at, undefined);
 });
 
 test("受注に移すと受注後フェーズ（2階）が先頭から始まる", () => {

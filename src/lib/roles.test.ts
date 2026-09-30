@@ -56,6 +56,11 @@ test("ロール付与ができるのは経営だけ", () => {
   assert.deepEqual(rolesWith("role_admin"), ["executive"]);
 });
 
+test("クライアント共有リンクの発行はマネージャー以上（DB の can_master と同じ線）", () => {
+  assert.deepEqual(rolesWith("client_share"), ["executive", "backoffice", "manager"]);
+  assert.equal(can("member", "client_share"), false);
+});
+
 test("勤怠・経費・評価の承認はマネージャーには無い（管理部の仕事）", () => {
   assert.deepEqual(rolesWith("hr_admin"), ["executive", "backoffice"]);
   // 自分の勤怠・経費は本部社員全員
@@ -78,6 +83,7 @@ test("代理店ユーザーには画面の権限を1つも与えない（見え�
       "recruiting",
       "hr_self",
       "hr_admin",
+      "client_share",
     ] as Capability[]) {
       assert.equal(can(role, cap), false, `${role}/${cap}`);
     }

@@ -22,6 +22,7 @@ import type {
   TaskPriority,
   TaskStatus,
 } from "./types";
+import type { BusinessUnitSlug } from "./business-units";
 
 export const APP_NAME = "DARE BASE LABO";
 export const APP_TAGLINE = "営業力を研究し、売上を上げる";
@@ -71,9 +72,21 @@ export const EVENT_CATEGORIES: Record<
 //
 // 受注（発注書を受領）した案件は 2階＝受注後フェーズ（FULFILLMENT_STAGES /
 // FULFILLMENT_GROUPS）へ引き継がれる。
+//
+// 「販売協力」はアライアンス営業だけのステージ（units で限定）。
+// 買ってはもらえなかったが、紹介側に回ってもらえた＝原則 2次代理店になる、という結果。
+// 受注・失注と同じく商談の「終わり」なので、進行中のパイプラインにも
+// 受注率（受注 ÷（受注＋失注））の分母にも入れない。
 export const DEAL_STAGES: Record<
   DealStage,
-  { label: string; color: string; bar: string; order: number }
+  {
+    label: string;
+    color: string;
+    bar: string;
+    order: number;
+    /** このステージを使う事業部。未指定 = 全事業部 */
+    units?: BusinessUnitSlug[];
+  }
 > = {
   appointment: {
     label: "商談予定",
@@ -99,17 +112,26 @@ export const DEAL_STAGES: Record<
     bar: "bg-emerald-500",
     order: 3,
   },
+  partnership: {
+    label: "販売協力",
+    color: "bg-teal-50 text-teal-700 dark:bg-teal-500/15 dark:text-teal-300",
+    bar: "bg-teal-500",
+    order: 4,
+    units: ["alliance"],
+  },
   lost: {
     label: "失注",
     color: "bg-rose-50 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300",
     bar: "bg-rose-400",
-    order: 4,
+    order: 5,
   },
 };
 
 /**
  * 商談カンバンの列。stage と confidence_rank の組み合わせで1列になる。
  * 表示順はこの配列の順。
+ * 事業部で使わないステージ（銀行営業の販売協力など）の列は、
+ * lib/pipeline.ts の pipelineColumnsFor が外す。画面は必ずそちらを通すこと。
  */
 export interface PipelineColumn {
   key: string;
@@ -174,6 +196,16 @@ export const PIPELINE_COLUMNS: PipelineColumn[] = [
     defaultProbability: 100,
     bar: "bg-emerald-500",
     color: "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300",
+  },
+  {
+    // アライアンス営業だけに出る（DEAL_STAGES.partnership.units）。
+    // 売上にはならない結果なので、確度は失注と同じく 0 にする
+    key: "partnership",
+    label: "販売協力",
+    stage: "partnership",
+    defaultProbability: 0,
+    bar: "bg-teal-500",
+    color: "bg-teal-50 text-teal-700 dark:bg-teal-500/15 dark:text-teal-300",
   },
   {
     key: "lost",

@@ -33,6 +33,8 @@ export function UnitSwitch({
       {([BANKING, ALLIANCE] as BusinessUnitSlug[]).map((key) => (
         <button
           key={key}
+          // フォームの中（予定の入力で案件を登録するときなど）でも送信ボタンにしない
+          type="button"
           role="tab"
           aria-selected={slug === key}
           onClick={() => onChange(key)}

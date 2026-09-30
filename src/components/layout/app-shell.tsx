@@ -29,6 +29,7 @@ import {
   Receipt,
   Search,
   Settings,
+  Share2,
   Sun,
   TrendingUp,
   UserRoundSearch,
@@ -84,6 +85,13 @@ const NAV_SECTIONS: {
       { href: "/banks", label: "紹介元マスタ", icon: <Landmark className="h-[18px] w-[18px]" />, exact: true },
       { href: "/appointments", label: "アポイント", icon: <Phone className="h-[18px] w-[18px]" /> },
       { href: "/banks/activity", label: "稼働ダッシュボード", icon: <Activity className="h-[18px] w-[18px]" /> },
+      {
+        // 紹介元に進捗を共有するリンク。URL が鍵になるので本部だけに出す
+        href: "/shares",
+        label: "クライアント共有",
+        icon: <Share2 className="h-[18px] w-[18px]" />,
+        cap: "all_sales_data",
+      },
     ],
   },
   {

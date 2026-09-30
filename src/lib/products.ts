@@ -9,9 +9,10 @@
 // 銀行営業の既存案件は明細を持たないので、そのまま動く。
 //
 // 【ランタイム依存なし】node の型ストリップでテストできるよう、
-// 値の import を持たない（型のみ）。
+// 値の import は pipeline.ts（同じく依存なし）だけに限定している。
 // =============================================================
 
+import { isOpenStage } from "./pipeline.ts";
 import type { DealProduct, Product } from "./types";
 
 /** 商材の初期値。運用開始時にここから足していく（画面で追加・改名できる） */
@@ -109,7 +110,8 @@ export function buildProductStats(
         if (stage === "won") {
           wonCount += 1;
           wonAmount += line.amount;
-        } else if (stage !== "lost") {
+        } else if (isOpenStage(stage)) {
+          // 失注・販売協力（売上にならない終わり方）は進行中の金額に入れない
           openAmount += line.amount;
         }
       }

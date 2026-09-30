@@ -42,6 +42,8 @@ export const HQ_ONLY_TABLES: readonly TableName[] = [
   "line_groups",
   "user_invites",
   "candidates",
+  // 共有リンクの URL は鍵そのもの。代理店ユーザーには1行も見せない（0015 の client_shares_select）
+  "client_shares",
 ];
 
 /**

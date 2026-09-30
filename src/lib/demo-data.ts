@@ -17,6 +17,7 @@ import { DEMO_POLLS } from "./demo/polls";
 import { DEMO_MEETING_LOGS } from "./demo/meetings";
 import { DEMO_CANDIDATES } from "./demo/recruiting";
 import { DEMO_ATTENDANCE, DEMO_EVALUATIONS, DEMO_EXPENSES } from "./demo/backoffice";
+import { DEMO_CLIENT_SHARES } from "./demo/shares";
 import {
   DEMO_ALLIANCE_APPOINTMENTS,
   DEMO_ALLIANCE_BANKS,
@@ -84,6 +85,7 @@ export const DEMO_DATA: { [K in TableName]: TableMap[K][] } = {
   evaluations: DEMO_EVALUATIONS,
   products: DEMO_PRODUCTS,
   deal_products: DEMO_DEAL_PRODUCTS,
+  client_shares: DEMO_CLIENT_SHARES,
 };
 
 export { DEMO_TEAM };
