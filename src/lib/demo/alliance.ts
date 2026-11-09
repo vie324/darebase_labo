@@ -8,6 +8,11 @@
 //
 // 入口は DDS で、そこに AI を乗せられているか（クロスセル）が
 // 画面で分かるように、商材明細を散らしてある。
+//
+// アライアンス数値管理（/alliance）で計画対比が見えるよう、案件には
+// ★案件管理表★の項目（紹介日・商談種別・セールスフェーズ・販売協力フェーズ・対応）と、
+// プラン単価表（事業計画※確定版『前提条件』）のプラン・機器を載せてある。
+// 1次代理店・顧客の名前はすべて架空。
 
 import type {
   Appointment,
@@ -20,6 +25,7 @@ import type {
   Product,
 } from "../types";
 import { daysFromNow, dateFromNow } from "../utils";
+import { applySalesPhase, lineMoney } from "../alliance";
 
 export const BU_ALLIANCE = "bu-alliance";
 
@@ -54,10 +60,42 @@ export const DEMO_PRODUCTS: Product[] = [
     sort_order: 20,
     is_active: true,
     memo: "クロスセル商材",
+    // クロスセルは DDHBOX の契約数には入れない（金額だけ集計する）
+    count_unit: "none",
     business_unit_id: null,
     updated_at: daysFromNow(-90),
     created_at: daysFromNow(-90),
   },
+  // プラン単価表（事業計画※確定版『前提条件』のプラン単価マスター。0016 の初期値と同じ）
+  ...(
+    [
+      ["plan10", "プラン10", 811_200, 311_200, 500_000, "contract", 110, "共有プラン"],
+      ["plan20", "プラン20", 1_012_800, 312_800, 700_000, "contract", 120, "共有プラン（事業計画の平均プラン）"],
+      ["plan30", "プラン30", 1_432_800, 532_800, 900_000, "contract", 130, "共有プラン"],
+      ["plan50", "プラン50", 1_852_800, 652_800, 1_200_000, "contract", 140, "共有プラン"],
+      ["plan100", "プラン100", 2_692_800, 992_800, 1_700_000, "contract", 150, "共有プラン"],
+      ["plan300", "プラン300", 6_209_040, 3_409_040, 2_800_000, "contract", 160, "共有プラン"],
+      ["device", "機器", 282_400, 162_400, 0, "device", 170, "1台あたり。契約数とは別に台数で数える"],
+      ["direct_other", "直販・その他", 0, 0, 0, "contract", 180, "単価手入力。売上＝利益で入力すれば代理店報酬はゼロ"],
+    ] as const
+  ).map(
+    ([slug, name, price, profit, fee, unit, order, memo]): Product => ({
+      id: `prod-${slug}`,
+      name,
+      slug,
+      color: slug === "device" ? "amber" : slug === "direct_other" ? "slate" : "cyan",
+      unit_price: price,
+      unit_profit: profit,
+      agency_fee: fee,
+      count_unit: unit,
+      sort_order: order,
+      is_active: true,
+      memo,
+      business_unit_id: BU_ALLIANCE,
+      updated_at: daysFromNow(-70),
+      created_at: daysFromNow(-70),
+    })
+  ),
 ];
 
 /** 1次代理店（＝銀行営業でいう銀行） */
@@ -172,100 +210,159 @@ export const DEMO_ALLIANCE_APPOINTMENTS: Appointment[] = REFERRALS.map((r, i) =>
   };
 });
 
-/** アポから起こした案件。stage はアポの結果に合わせる */
-const STAGE_OF: Record<string, Deal["stage"]> = {
-  won: "won",
-  lost: "lost",
-  done: "follow_up",
-};
-
 /**
- * 商談の結果が「販売協力」になった案件（買ってはもらえなかったが紹介側に回る）。
- * 2次代理店としてはまだ登録していない状態にしてあり、案件の詳細から登録を試せる。
+ * 案件の中身（★案件管理表★の1行）。紹介アポから起こした案件は appointment に
+ * アポの番号（REFERRALS の並び）を、アポを経ずに登録した案件は branch を入れる。
+ * 日付はすべて「今日から何日前か」。
  */
-const PARTNERSHIP_DEALS = new Set(["aldeal-8"]);
+interface AllianceDealSpec {
+  id: string;
+  appointment?: number;
+  /** アポを経ない案件の窓口（null = 直販） */
+  branch?: string | null;
+  company?: string;
+  owner?: [string, string];
+  kind: "sales" | "partnership" | "sales_partnership";
+  /** セールスフェーズ（"" = 販売協力のみ） */
+  phase: string;
+  partnership?: string;
+  /** 代理店契約の締結日（何日前） */
+  partnerContracted?: number;
+  referred?: number;
+  met?: number;
+  /** 成約日・ロスト日（何日前） */
+  closed?: number;
+  plan?: string;
+  planQty?: number;
+  devices?: number;
+  /** AI をクロスセルで載せる */
+  ai?: boolean;
+  ball?: string;
+  loss?: string;
+  memo?: string;
+}
 
-export const DEMO_ALLIANCE_DEALS: Deal[] = DEMO_ALLIANCE_APPOINTMENTS.filter(
-  (a) => a.deal_id !== null
-).map((a) => {
-  const referral = REFERRALS[DEMO_ALLIANCE_APPOINTMENTS.indexOf(a)];
-  const stage: Deal["stage"] = PARTNERSHIP_DEALS.has(a.deal_id!)
-    ? "partnership"
-    : (STAGE_OF[referral.status] ?? "follow_up");
+const DEAL_SPECS: AllianceDealSpec[] = [
+  // ---- 紹介アポから起こした案件 ----
+  { id: "aldeal-1", appointment: 1, kind: "sales", phase: "lease_url", closed: 12, plan: "plan20", devices: 1, ai: true, ball: "ours", memo: "リース審査の結果待ち" },
+  { id: "aldeal-2", appointment: 2, kind: "sales", phase: "prospect_b", plan: "plan10", ball: "client", memo: "概算見積もり提出済み　先方プラン選定中" },
+  { id: "aldeal-3", appointment: 3, kind: "sales", phase: "installed", closed: 25, plan: "plan50", devices: 2, ball: "ours" },
+  { id: "aldeal-4", appointment: 4, kind: "sales", phase: "lost", closed: 44, ball: "", loss: "他社で導入済み" },
+  { id: "aldeal-5", appointment: 5, kind: "sales_partnership", phase: "paid_in", closed: 30, plan: "plan30", partnership: "first_referral", partnerContracted: 33, ball: "ours" },
+  { id: "aldeal-7", appointment: 7, kind: "sales", phase: "won", closed: 3, plan: "plan100", devices: 3, ai: true, ball: "ours", memo: "サインバック回収待ち" },
+  { id: "aldeal-8", appointment: 8, kind: "partnership", phase: "", partnership: "contracting", ball: "alliance", memo: "代理店契約書の送付" },
+  { id: "aldeal-9", appointment: 9, kind: "sales", phase: "lost", closed: 60, loss: "予算の都合で見送り" },
+  { id: "aldeal-10", appointment: 10, kind: "sales", phase: "signback", closed: 9, plan: "plan20", planQty: 2, ai: true, ball: "client", memo: "関連会社2社まとめて契約" },
+  // ---- アポを経ずに登録した案件（予定・案件管理から） ----
+  { id: "aldeal-11", branch: null, company: "株式会社ミナト精工", owner: ["member-tanaka", "田中 美咲"], kind: "sales", phase: "won", referred: 45, met: 40, closed: 12, plan: "plan50", devices: 2, ball: "ours", memo: "直販。見積もり書連携" },
+  { id: "aldeal-12", branch: null, company: "グリーンフーズ株式会社", owner: ["member-tanaka", "田中 美咲"], kind: "sales", phase: "prospect_b", referred: 15, met: 9, plan: "plan100", ball: "client", memo: "候補日程待ち" },
+  { id: "aldeal-13", branch: "albr-al-2-000", company: "株式会社リンクス", owner: ["member-ito", "伊藤 翔"], kind: "partnership", phase: "", partnership: "first_referral", partnerContracted: 30, referred: 50, met: 46, ball: "alliance" },
+  { id: "aldeal-14", branch: "albr-al-3-301", company: "中部ロジテック株式会社", owner: ["member-suzuki", "鈴木 大輔"], kind: "sales_partnership", phase: "prospect_a", partnership: "group_created", referred: 12, met: 6, plan: "plan20", ball: "ours", memo: "NDA送付→ネットワーク構成図回収の上、必要台数見積もり" },
+  { id: "aldeal-15", branch: "albr-al-1-103", company: "ベイサイド商事株式会社", owner: ["member-suzuki", "鈴木 大輔"], kind: "sales", phase: "prospect_c", referred: 8, met: 3, ball: "client" },
+  { id: "aldeal-16", branch: "albr-al-1-000", company: "株式会社アオバ", owner: ["member-tanaka", "田中 美咲"], kind: "sales", phase: "scheduling", referred: 1, ball: "alliance" },
+  { id: "aldeal-17", branch: "albr-al-2-000", company: "株式会社ナニワ工務店", owner: ["member-ito", "伊藤 翔"], kind: "sales_partnership", phase: "waiting", partnership: "waiting", referred: 3, ball: "ours" },
+  { id: "aldeal-18", branch: "albr-al-3-000", company: "株式会社オワリ電装", owner: ["member-suzuki", "鈴木 大輔"], kind: "sales", phase: "agency_paid", referred: 66, met: 62, closed: 55, plan: "plan10", devices: 1, ball: "" },
+];
+
+const TODAY = dateFromNow(0);
+
+export const DEMO_ALLIANCE_DEALS: Deal[] = DEAL_SPECS.map((spec) => {
+  const appt = spec.appointment !== undefined ? DEMO_ALLIANCE_APPOINTMENTS[spec.appointment] : null;
+  const branch = appt
+    ? DEMO_ALLIANCE_BRANCHES.find((b) => b.id === appt.branch_id)!
+    : spec.branch
+      ? DEMO_ALLIANCE_BRANCHES.find((b) => b.id === spec.branch)!
+      : null;
+  const company = appt?.company_name ?? spec.company ?? "";
+  const referredDays = spec.referred ?? REFERRALS[spec.appointment ?? 0].days;
+  const closedOn = spec.closed !== undefined ? dateFromNow(-spec.closed) : "";
+  const phase = spec.phase
+    ? applySalesPhase({ contracted_at: closedOn, lost_at: closedOn }, spec.phase, closedOn || TODAY)
+    : { stage: "partnership" as const, confidence_rank: "", probability: 0, sales_phase: "" };
   return {
-    id: a.deal_id!,
-    name: `${a.company_name} DDS導入`,
-    company: a.company_name,
+    id: spec.id,
+    name: spec.plan ? `${company} DDS導入` : company,
+    company,
     contact_name: "",
-    stage,
-    // 金額は明細の合計と一致させる（アプリ側も商材を足すたびに同期する）
-    amount: 0, // ← 下の withAmounts で明細の合計に差し替える
-    probability: stage === "won" ? 100 : stage === "follow_up" ? 50 : 0,
-    expected_close: dateFromNow(stage === "won" ? -referral.days + 20 : 25),
-    owner_name: a.assigned_name,
-    owner_id: a.assigned_to,
-    next_action:
-      stage === "follow_up" ? "見積提示" : stage === "partnership" ? "代理店契約書の送付" : "",
-    memo: a.source_note,
-    updated_at: daysFromNow(-referral.days + 10),
-    created_at: daysFromNow(-referral.days),
-    bank_id: a.bank_id,
-    branch_id: a.branch_id,
-    appointment_id: a.id,
+    stage: phase.stage!,
+    amount: 0, // ← 下で明細の合計に差し替える
+    probability: phase.probability ?? 0,
+    expected_close: closedOn || dateFromNow(25),
+    owner_name: appt?.assigned_name ?? spec.owner?.[1] ?? "",
+    owner_id: appt?.assigned_to ?? spec.owner?.[0] ?? null,
+    next_action: spec.memo ?? "",
+    memo: appt?.source_note ?? "",
+    updated_at: daysFromNow(-Math.max(0, (spec.closed ?? referredDays) - 1)),
+    created_at: daysFromNow(-referredDays),
+    bank_id: branch?.bank_id ?? null,
+    branch_id: branch?.id ?? null,
+    appointment_id: appt?.id ?? null,
     organization_id: null,
     business_unit_id: BU_ALLIANCE,
     contract_amount: 0,
     gross_profit: 0,
-    confidence_rank:
-      stage === "won" ? "A" : stage === "lost" ? "C" : stage === "partnership" ? "" : "B",
-    // 設置を伴わない商材が混ざるため、受注後フェーズは使わない
-    fulfillment_status: "",
+    agency_fee: 0,
+    confidence_rank: phase.confidence_rank ?? "",
+    fulfillment_status: phase.fulfillment_status ?? "",
+    fulfillment_updated_at: phase.fulfillment_status ? closedOn : "",
+    contracted_at: phase.stage === "won" ? closedOn : "",
+    lost_at: phase.stage === "lost" ? closedOn : "",
+    loss_reason: spec.loss ?? "",
+    referred_at: dateFromNow(-referredDays),
+    visited_at:
+      spec.met !== undefined
+        ? dateFromNow(-spec.met)
+        : appt && appt.status !== "scheduled"
+          ? dateFromNow(-referredDays + 3)
+          : "",
+    deal_kind: spec.kind,
+    sales_phase: phase.sales_phase ?? "",
+    partnership_phase: spec.partnership ?? "",
+    partnership_contracted_at:
+      spec.partnerContracted !== undefined ? dateFromNow(-spec.partnerContracted) : "",
+    ball: spec.ball ?? "",
   } satisfies Deal;
 });
 
-/**
- * 案件ごとの商材明細。
- * 入口はすべて DDS で、そのうち3件に AI を乗せてある（クロスセル率が出る）。
- */
-const CROSS_SELL_DEALS = new Set(["aldeal-1", "aldeal-7", "aldeal-10"]);
+const productBySlug = (slug: string) => DEMO_PRODUCTS.find((p) => p.slug === slug)!;
 
-export const DEMO_DEAL_PRODUCTS: DealProduct[] = DEMO_ALLIANCE_DEALS.flatMap((deal, i) => {
-  const dds: DealProduct = {
-    id: `dp-${deal.id}-dds`,
-    deal_id: deal.id,
-    product_id: "prod-dds",
-    product_name: "DDS",
-    amount: 1_200_000 + (i % 3) * 400_000,
-    quantity: 1,
-    memo: "",
-    created_at: deal.created_at,
-  };
-  if (!CROSS_SELL_DEALS.has(deal.id)) return [dds];
-  return [
-    dds,
-    {
-      id: `dp-${deal.id}-ai`,
+/**
+ * 案件ごとの商材明細（プラン・機器、ときどき AI のクロスセル）。
+ * 金額は単価表 × 数量（lib/alliance.ts の lineMoney）。
+ */
+export const DEMO_DEAL_PRODUCTS: DealProduct[] = DEAL_SPECS.flatMap((spec) => {
+  const deal = DEMO_ALLIANCE_DEALS.find((d) => d.id === spec.id)!;
+  const out: DealProduct[] = [];
+  const push = (slug: string, quantity: number, memo = "") => {
+    const p = productBySlug(slug);
+    out.push({
+      id: `dp-${deal.id}-${slug}`,
       deal_id: deal.id,
-      product_id: "prod-ai",
-      product_name: "AI",
-      amount: 600_000,
-      quantity: 1,
-      memo: "商談中にクロスセル",
+      product_id: p.id,
+      product_name: p.name,
+      quantity,
+      memo,
       created_at: deal.created_at,
-    },
-  ];
+      ...lineMoney(p, quantity),
+    });
+  };
+  if (spec.plan) push(spec.plan, spec.planQty ?? 1);
+  if (spec.devices) push("device", spec.devices);
+  if (spec.ai) push("ai", 1, "商談中にクロスセル");
+  return out;
 });
 
-// 案件の金額を明細の合計に揃える。
-// 画面は deals.amount を見て集計するので、ここがずれると数字が合わなくなる。
+// 案件の金額を明細の合計に揃える（画面は deals.amount も読むので、ここがずれると数字が合わない）。
+// 直販（1次代理店なし）は代理店報酬を払わないので、報酬ぶんを自社利益に寄せる。
 for (const deal of DEMO_ALLIANCE_DEALS) {
-  const total = DEMO_DEAL_PRODUCTS.filter((l) => l.deal_id === deal.id).reduce(
-    (sum, l) => sum + l.amount,
-    0
-  );
-  deal.amount = total;
-  deal.contract_amount = deal.stage === "won" ? total : 0;
-  deal.gross_profit = deal.stage === "won" ? Math.round(total * 0.35) : 0;
+  const own = DEMO_DEAL_PRODUCTS.filter((l) => l.deal_id === deal.id);
+  const sales = own.reduce((sum, l) => sum + l.amount, 0);
+  const profit = own.reduce((sum, l) => sum + (l.profit ?? 0), 0);
+  const fee = own.reduce((sum, l) => sum + (l.agency_fee ?? 0), 0);
+  deal.amount = sales;
+  deal.contract_amount = deal.stage === "won" ? sales : 0;
+  deal.gross_profit = deal.bank_id ? profit : profit + fee;
+  deal.agency_fee = deal.bank_id ? fee : 0;
 }
 
 /** アライアンス事業部の営業組織。代理店ユーザーは今のところ置かない */

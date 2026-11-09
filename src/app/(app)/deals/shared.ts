@@ -43,6 +43,33 @@ export interface DealFormValues {
   bank_id: string;
   /** 紹介の窓口（支店 / 2次代理店）。"" = 紐づけなし */
   branch_id: string;
+
+  // ---- アライアンス営業（★案件管理表★の列。値の一覧は lib/alliance.ts） ----
+  /** 紹介日 */
+  referred_at: string;
+  /** 商談実施日 */
+  visited_at: string;
+  /** 商談種別 */
+  deal_kind: string;
+  /** セールスフェーズ（stage・確度ランク・受注後フェーズはここから決める） */
+  sales_phase: string;
+  /** 販売協力フェーズ */
+  partnership_phase: string;
+  /** 契約締結日（代理店契約） */
+  partnership_contracted_at: string;
+  /** 成約日 */
+  contracted_at: string;
+  /** ロスト日 */
+  lost_at: string;
+  loss_reason: string;
+  /** 対応（ボール） */
+  ball: string;
+  installed_at: string;
+  agency_paid_at: string;
+  contract_note: string;
+  monthly_fee: number;
+  construction_fee: number;
+  stock_amount: number;
 }
 
 export function toFormValues(d: Deal): DealFormValues {
@@ -61,6 +88,22 @@ export function toFormValues(d: Deal): DealFormValues {
     fulfillment_status: d.fulfillment_status ?? "",
     bank_id: d.bank_id ?? "",
     branch_id: d.branch_id ?? "",
+    referred_at: d.referred_at ?? "",
+    visited_at: d.visited_at ?? "",
+    deal_kind: d.deal_kind ?? "",
+    sales_phase: d.sales_phase ?? "",
+    partnership_phase: d.partnership_phase ?? "",
+    partnership_contracted_at: d.partnership_contracted_at ?? "",
+    contracted_at: d.contracted_at ?? "",
+    lost_at: d.lost_at ?? "",
+    loss_reason: d.loss_reason ?? "",
+    ball: d.ball ?? "",
+    installed_at: d.installed_at ?? "",
+    agency_paid_at: d.agency_paid_at ?? "",
+    contract_note: d.contract_note ?? "",
+    monthly_fee: d.monthly_fee ?? 0,
+    construction_fee: d.construction_fee ?? 0,
+    stock_amount: d.stock_amount ?? 0,
   };
 }
 
@@ -80,5 +123,34 @@ export function emptyFormValues(owner: string): DealFormValues {
     fulfillment_status: "",
     bank_id: "",
     branch_id: "",
+    referred_at: "",
+    visited_at: "",
+    deal_kind: "",
+    sales_phase: "",
+    partnership_phase: "",
+    partnership_contracted_at: "",
+    contracted_at: "",
+    lost_at: "",
+    loss_reason: "",
+    ball: "",
+    installed_at: "",
+    agency_paid_at: "",
+    contract_note: "",
+    monthly_fee: 0,
+    construction_fee: 0,
+    stock_amount: 0,
+  };
+}
+
+/**
+ * アライアンス営業の新規案件の初期値。紹介日は今日、商談種別はセールス、
+ * セールスフェーズは「日程調整中」から始める（★案件管理表★に1行足すときと同じ）。
+ */
+export function emptyAllianceFormValues(owner: string, today: string): DealFormValues {
+  return {
+    ...emptyFormValues(owner),
+    referred_at: today,
+    deal_kind: "sales",
+    sales_phase: "scheduling",
   };
 }

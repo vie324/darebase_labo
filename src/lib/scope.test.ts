@@ -9,6 +9,7 @@ import assert from "node:assert/strict";
 
 import {
   BACKOFFICE_ONLY_TABLES,
+  HQ_ONLY_SETTING_KEYS,
   HQ_ONLY_TABLES,
   SELF_OR_BACKOFFICE_TABLES,
   OWN_SCOPE_TABLES,
@@ -287,5 +288,23 @@ test("明細行は自社取り分の行だけ", () => {
 test("営業資料・ナレッジ・スクリプト・勉強会は代理店にも見せる", () => {
   for (const table of ["documents", "knowledge", "scripts", "trainings"] as const) {
     assert.equal(scopeRows(table, [{ id: "x" }], ctx("partner_member")).length, 1, table);
+  }
+});
+
+test("事業計画（app_settings の alliance_plan）は本部だけ。ほかの設定は代理店にも見せる（0016）", () => {
+  const settings = [
+    { id: "s-1", key: "branch_activity" },
+    { id: "s-2", key: "alliance_plan" },
+    { id: "s-3", key: "confidence_ranks" },
+  ];
+  assert.deepEqual(HQ_ONLY_SETTING_KEYS, ["alliance_plan"]);
+  for (const role of ["executive", "backoffice", "manager", "member"] as RoleKey[]) {
+    assert.equal(scopeRows("app_settings", settings, ctx(role)).length, 3);
+  }
+  for (const role of ["partner_admin", "partner_member"] as RoleKey[]) {
+    assert.deepEqual(
+      scopeRows("app_settings", settings, ctx(role)).map((s) => s.key),
+      ["branch_activity", "confidence_ranks"]
+    );
   }
 });

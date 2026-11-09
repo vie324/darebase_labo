@@ -16,6 +16,7 @@ import {
   Contact,
   FolderOpen,
   GraduationCap,
+  Handshake,
   Landmark,
   LayoutDashboard,
   LogOut,
@@ -98,6 +99,13 @@ const NAV_SECTIONS: {
     heading: "営業活動",
     items: [
       { href: "/deals", label: "案件管理", icon: <Briefcase className="h-[18px] w-[18px]" /> },
+      {
+        // 事業計画・案件管理表に準拠した数値管理（売上・代理店報酬が載るので本部のみ）
+        href: "/alliance",
+        label: "アライアンス数値",
+        icon: <Handshake className="h-[18px] w-[18px]" />,
+        cap: "all_sales_data",
+      },
       {
         href: "/products",
         label: "商材マスタ",

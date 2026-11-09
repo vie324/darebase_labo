@@ -8,11 +8,17 @@
 //
 // 案件の明細には登録時点の商材名を控えているので、ここで改名しても
 // 過去の案件の表示は変わらない（lib/products.ts）。
+//
+// アライアンス営業のプラン単価表（事業計画※確定版『前提条件』／案件管理表『シートの餌』）もここで持つ。
+// 1単位あたりの 売上・自社利益・代理店報酬 と「数え方（契約数 / 機器台数）」を入れておくと、
+// 案件に載せたときに 単価 × 数量 で入り、数値管理（KGI＝代理店報酬）に集計される。
+// 単価を直しても、すでに載せた案件の明細は当時の値のまま（明細に控えている）。
 // =============================================================
 
 import { useMemo, useState, type FormEvent } from "react";
 import { AlertTriangle, Package, Pencil, Plus, ShieldAlert, Trash2 } from "lucide-react";
 import { useCollection } from "@/lib/use-collection";
+import { COUNT_UNITS, countUnitOf, type CountUnit } from "@/lib/alliance";
 import { useAccess } from "@/lib/use-access";
 import {
   PRODUCT_COLOR_KEYS,
@@ -38,13 +44,25 @@ import {
 } from "@/components/ui";
 import { useToast } from "@/components/ui/toast";
 
-const EMPTY = { name: "", slug: "", color: "cyan", unit_price: "", sort_order: "", memo: "" };
+const EMPTY = {
+  name: "",
+  slug: "",
+  color: "cyan",
+  unit_price: "",
+  unit_profit: "",
+  agency_fee: "",
+  count_unit: "contract",
+  business_unit_id: "",
+  sort_order: "",
+  memo: "",
+};
 
 export default function ProductsPage() {
   const { can, loading: accessLoading } = useAccess();
   const products = useCollection("products");
   const deals = useCollection("deals");
   const lines = useCollection("deal_products");
+  const units = useCollection("business_units");
   const { toast } = useToast();
 
   const [formOpen, setFormOpen] = useState(false);
@@ -62,7 +80,7 @@ export default function ProductsPage() {
     [products.items]
   );
 
-  if (accessLoading || products.loading || deals.loading || lines.loading) {
+  if (accessLoading || products.loading || deals.loading || lines.loading || units.loading) {
     return <PageSkeleton />;
   }
 
@@ -93,6 +111,10 @@ export default function ProductsPage() {
       slug: product.slug,
       color: product.color,
       unit_price: String(product.unit_price),
+      unit_profit: product.unit_profit ? String(product.unit_profit) : "",
+      agency_fee: product.agency_fee ? String(product.agency_fee) : "",
+      count_unit: countUnitOf(product),
+      business_unit_id: product.business_unit_id ?? "",
       sort_order: String(product.sort_order),
       memo: product.memo,
     });
@@ -108,9 +130,13 @@ export default function ProductsPage() {
       slug: draft.slug.trim(),
       color: draft.color,
       unit_price: Number(draft.unit_price) || 0,
+      unit_profit: Number(draft.unit_profit) || 0,
+      agency_fee: Number(draft.agency_fee) || 0,
+      count_unit: countUnitOf({ count_unit: draft.count_unit }),
       sort_order: Number(draft.sort_order) || 0,
       memo: draft.memo.trim(),
-      business_unit_id: null,
+      // 編集で事業部を外さない（以前は常に null で保存していた）
+      business_unit_id: draft.business_unit_id || null,
       updated_at: new Date().toISOString(),
     };
     setSaving(true);
@@ -219,11 +245,13 @@ export default function ProductsPage() {
       ) : (
         <Card className="mt-6 overflow-hidden">
           <div className="scrollbar-thin overflow-x-auto">
-            <table className="w-full min-w-[760px] text-left text-sm">
+            <table className="w-full min-w-[960px] text-left text-sm">
               <thead className="border-b border-slate-100 bg-slate-50/70 text-xs font-bold text-slate-500 dark:border-slate-800 dark:bg-slate-800/40 dark:text-slate-400">
                 <tr>
                   <th className="px-5 py-3 sm:px-6">商材</th>
                   <th className="px-4 py-3 text-right">標準単価</th>
+                  <th className="px-4 py-3 text-right">自社利益</th>
+                  <th className="px-4 py-3 text-right">代理店報酬</th>
                   <th className="px-4 py-3 text-right">案件数</th>
                   <th className="px-4 py-3 text-right">受注</th>
                   <th className="px-4 py-3 text-right">受注額</th>
@@ -247,6 +275,11 @@ export default function ProductsPage() {
                             取扱終了
                           </Badge>
                         )}
+                        {product.business_unit_id && (
+                          <Badge className="bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400">
+                            {units.items.find((u) => u.id === product.business_unit_id)?.name ?? "事業部"}
+                          </Badge>
+                        )}
                         {product.memo && (
                           <span className="text-xs text-slate-400">{product.memo}</span>
                         )}
@@ -254,6 +287,15 @@ export default function ProductsPage() {
                     </td>
                     <td className="px-4 py-3 text-right whitespace-nowrap tabular-nums">
                       {product.unit_price > 0 ? formatYen(product.unit_price) : "都度見積"}
+                      {countUnitOf(product) === "device" && (
+                        <span className="ml-1 text-[11px] text-slate-400">/台</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-right whitespace-nowrap text-slate-500 tabular-nums dark:text-slate-400">
+                      {product.unit_profit ? formatYen(product.unit_profit) : "—"}
+                    </td>
+                    <td className="px-4 py-3 text-right whitespace-nowrap text-amber-600 tabular-nums dark:text-amber-400">
+                      {product.agency_fee ? formatYen(product.agency_fee) : "—"}
                     </td>
                     <td className="px-4 py-3 text-right tabular-nums">{dealCount}件</td>
                     <td className="px-4 py-3 text-right tabular-nums">{wonCount}件</td>
@@ -362,8 +404,70 @@ export default function ProductsPage() {
                 placeholder="0 = 都度見積"
               />
               <span className="mt-1 block text-[11px] text-slate-400">
-                案件に載せるときの初期値になります
+                案件に載せるときの初期値になります（売上／顧客への請求額）
               </span>
+            </Field>
+            <Field label="数え方">
+              <Select
+                value={draft.count_unit}
+                onChange={(e) => setDraft({ ...draft, count_unit: e.target.value })}
+              >
+                {(Object.keys(COUNT_UNITS) as CountUnit[]).map((u) => (
+                  <option key={u} value={u}>
+                    {COUNT_UNITS[u]}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+            <Field label="自社利益（円／1単位）">
+              <Input
+                type="number"
+                value={draft.unit_profit}
+                onChange={(e) => setDraft({ ...draft, unit_profit: e.target.value })}
+                placeholder="例: 312800"
+              />
+            </Field>
+            <Field label="代理店報酬（円／1単位）">
+              <Input
+                type="number"
+                value={draft.agency_fee}
+                onChange={(e) => setDraft({ ...draft, agency_fee: e.target.value })}
+                placeholder="例: 700000"
+              />
+              <span className="mt-1 flex flex-wrap items-center gap-x-2 text-[11px] text-slate-400">
+                1次代理店に支払う額（KGI）。プランは 売上 − 自社利益
+                {Number(draft.unit_price) > 0 && Number(draft.unit_profit) > 0 && (
+                  <button
+                    type="button"
+                    className="cursor-pointer font-semibold text-cyan-600 hover:underline dark:text-cyan-400"
+                    onClick={() =>
+                      setDraft({
+                        ...draft,
+                        agency_fee: String(
+                          Math.max(0, Number(draft.unit_price) - Number(draft.unit_profit))
+                        ),
+                      })
+                    }
+                  >
+                    {formatYen(Math.max(0, Number(draft.unit_price) - Number(draft.unit_profit)))} を入れる
+                  </button>
+                )}
+              </span>
+            </Field>
+            <Field label="使う事業部">
+              <Select
+                value={draft.business_unit_id}
+                onChange={(e) => setDraft({ ...draft, business_unit_id: e.target.value })}
+              >
+                <option value="">すべての事業部</option>
+                {units.items
+                  .filter((u) => u.is_active)
+                  .map((u) => (
+                    <option key={u.id} value={u.id}>
+                      {u.name}
+                    </option>
+                  ))}
+              </Select>
             </Field>
             <Field label="表示順">
               <Input
