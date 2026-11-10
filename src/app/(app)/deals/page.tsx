@@ -21,7 +21,18 @@ import { useRouter } from "next/navigation";
 import { Briefcase, Percent, Plus, Target, TrendingUp, Trophy } from "lucide-react";
 import { useCollection } from "@/lib/use-collection";
 import { useBusinessUnit } from "@/lib/use-business-unit";
-import { filterByUnit, normalizeUnitSlug } from "@/lib/business-units";
+import { ALLIANCE, filterByUnit, normalizeUnitSlug } from "@/lib/business-units";
+import {
+  applySalesPhase,
+  dealMoneyPatch,
+  hasSalesTrack,
+  kindOf,
+  partnershipPhaseByKey,
+  phaseForColumn,
+  phaseForFulfillmentGroup,
+  salesPhaseByKey,
+  type DealKind,
+} from "@/lib/alliance";
 import { dealHasProduct } from "@/lib/products";
 import { UnitSwitch } from "@/components/ui/unit-switch";
 import { UnitMissing } from "@/components/ui/unit-missing";
@@ -44,7 +55,7 @@ import {
   type PartnerBranchValues,
 } from "@/lib/partnership";
 import { formatYenShort, todayStr } from "@/lib/utils";
-import type { ActivityType, Branch, Deal } from "@/lib/types";
+import type { ActivityType, Branch, Deal, DealProduct } from "@/lib/types";
 import {
   Button,
   PageHeader,
@@ -60,12 +71,33 @@ import { FulfillmentBoard } from "./fulfillment-board";
 import { DealList } from "./deal-list";
 import { DealReport } from "./deal-report";
 import { DealDetailModal, DealFormModal, type NewDealLine } from "./deal-modals";
-import { DealProductsPanel } from "./deal-products";
+import { DealProductsPanel, type NewLineInput } from "./deal-products";
+import { AllianceDealPanel } from "./alliance-fields";
 import { PartnerBranchModal, PartnershipPanel } from "./partnership";
 import { DensityToggle } from "@/components/ui/density-toggle";
 import { useToast } from "@/components/ui/toast";
 
 type ViewKey = "board" | "fulfillment" | "list" | "report";
+
+/** アライアンス営業だけが使う入力項目（銀行営業の案件の保存では送らない） */
+const ALLIANCE_FORM_KEYS = [
+  "referred_at",
+  "visited_at",
+  "deal_kind",
+  "sales_phase",
+  "partnership_phase",
+  "partnership_contracted_at",
+  "contracted_at",
+  "lost_at",
+  "loss_reason",
+  "ball",
+  "installed_at",
+  "agency_paid_at",
+  "contract_note",
+  "monthly_fee",
+  "construction_fee",
+  "stock_amount",
+] as const satisfies readonly (keyof DealFormValues)[];
 
 export default function DealsPage({
   searchParams,
@@ -206,9 +238,16 @@ export default function DealsPage({
     (d) => fulfillmentGroupOf(d.fulfillment_status) !== activatedKey
   ).length;
 
+  // 商材は事業部で絞る（銀行営業にアライアンスのプランを出さない。null = 全事業部で使える）
   const activeProducts = products.items
-    .filter((p) => p.is_active)
+    .filter(
+      (p) =>
+        p.is_active && (!p.business_unit_id || p.business_unit_id === defaultBusinessUnitId)
+    )
     .sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name, "ja"));
+  const productById = new Map(products.items.map((p) => [p.id, p]));
+  // アライアンス営業は★案件管理表★の項目（セールスフェーズなど）で動かす
+  const isAlliance = slug === ALLIANCE;
 
   const detailDeal = detailId ? (deals.items.find((d) => d.id === detailId) ?? null) : null;
   const detailActivities = detailDeal
@@ -219,12 +258,53 @@ export default function DealsPage({
 
   // ---------- 操作 ----------
 
+  /**
+   * 案件に控えている金額（売上・自社利益・代理店報酬）を明細に揃える。
+   * 明細を変えたとき・1次代理店を変えたとき（直販かどうかで報酬が変わる）に呼ぶ。
+   */
+  const syncDealMoney = async (deal: Deal, nextLines: DealProduct[]) => {
+    const patch = dealMoneyPatch(deal, nextLines, productById);
+    if (patch) await deals.update(deal.id, { ...patch, updated_at: new Date().toISOString() });
+  };
+
+  /** アライアンス：セールスフェーズを変える（ステージ・確度・受注後フェーズも揃える） */
+  const changeSalesPhase = async (deal: Deal, phaseKey: string) => {
+    if ((deal.sales_phase ?? "") === phaseKey) return;
+    const patch = applySalesPhase(deal, phaseKey, today);
+    await deals.update(deal.id, { ...patch, updated_at: new Date().toISOString() });
+    if (patch.stage === "won" && deal.stage !== "won") {
+      await syncDealMoney({ ...deal, stage: "won" }, dealProducts.items);
+    }
+    await activities.add({
+      deal_id: deal.id,
+      type: "stage_change",
+      note: `セールスフェーズを「${salesPhaseByKey(phaseKey)?.label ?? "‐"}」に変更`,
+      author_name: user.name,
+    });
+  };
+
+  /** アライアンス：販売協力フェーズ・対応など、そのまま保存してよい項目 */
+  const patchDeal = async (deal: Deal, patch: Partial<Deal>, note: string) => {
+    await deals.update(deal.id, { ...patch, updated_at: new Date().toISOString() });
+    await activities.add({ deal_id: deal.id, type: "note", note, author_name: user.name });
+  };
+
   /** 商談カンバン（1階）の列移動。確度ランクと確度(%)もまとめて更新される */
   const changeColumn = async (deal: Deal, toColumnKey: string) => {
     const from = columnByKey(columnKeyOf(deal));
     const to = columnByKey(toColumnKey);
     if (!to || from?.key === to.key) return;
-    await deals.update(deal.id, pipelineTransition(deal, toColumnKey, today));
+    const patch = pipelineTransition(deal, toColumnKey, today);
+    if (isAlliance) {
+      // 列に合うセールスフェーズへ寄せる（例: 後追い B に入れたら「見込みB」）
+      patch.sales_phase = phaseForColumn(toColumnKey, deal.sales_phase);
+      // 成約日は入っていれば動かさない（月次の成約数はこの日で数える）
+      if (to.stage === "won" && deal.contracted_at) delete patch.contracted_at;
+      if (to.stage === "lost" && !deal.lost_at) patch.lost_at = today;
+      if (to.stage === "partnership" && !deal.deal_kind) patch.deal_kind = "partnership";
+    }
+    await deals.update(deal.id, patch);
+    if (to.stage === "won") await syncDealMoney({ ...deal, stage: "won" }, dealProducts.items);
     await activities.add({
       deal_id: deal.id,
       type: "stage_change",
@@ -300,6 +380,13 @@ export default function DealsPage({
 
   /** 受注後カンバン（2階）の列移動。その列の先頭フェーズに設定する */
   const changeFulfillmentGroup = async (deal: Deal, toGroupKey: string) => {
+    if (isAlliance) {
+      // アライアンスはセールスフェーズ（成約後の8段）で持つ。列に入るフェーズへ寄せる
+      const group = FULFILLMENT_GROUPS.find((g) => g.key === toGroupKey);
+      const phase = group ? phaseForFulfillmentGroup(group.stages, deal.sales_phase) : "";
+      if (phase) await changeSalesPhase(deal, phase);
+      return;
+    }
     const patch = fulfillmentTransition(toGroupKey, today);
     if (!patch.fulfillment_status) return;
     await deals.update(deal.id, patch);
@@ -332,35 +419,31 @@ export default function DealsPage({
    * 案件の金額は明細の合計を正とするので、追加のたびに deals.amount も揃えておく
    * （明細を読まない既存の集計・CSV出力とも数字がずれないようにするため）。
    */
-  const addDealProduct = async (deal: Deal, productId: string, amount: number) => {
-    const master = activeProducts.find((p) => p.id === productId);
+  const addDealProduct = async (deal: Deal, input: NewLineInput) => {
+    const master = activeProducts.find((p) => p.id === input.product_id);
     if (!master) return;
-    await dealProducts.add({
+    const row = await dealProducts.add({
       deal_id: deal.id,
       product_id: master.id,
       // マスタを改名しても当時の名前が残るようスナップショットする
       product_name: master.name,
-      amount,
-      quantity: 1,
+      amount: input.amount,
+      quantity: input.quantity,
+      // 単価表を直しても過去の案件が変わらないよう、自社利益・代理店報酬も控える
+      profit: input.profit,
+      agency_fee: input.agency_fee,
       memo: "",
     });
-    const nextTotal =
-      dealProducts.items
-        .filter((l) => l.deal_id === deal.id)
-        .reduce((sum, l) => sum + l.amount, 0) + amount;
-    await deals.update(deal.id, { amount: nextTotal, updated_at: new Date().toISOString() });
+    await syncDealMoney(deal, [...dealProducts.items.filter((l) => l.id !== row.id), row]);
   };
 
   const removeDealProduct = async (deal: Deal, lineId: string) => {
     await dealProducts.remove(lineId);
-    const rest = dealProducts.items.filter((l) => l.deal_id === deal.id && l.id !== lineId);
     // 明細が全部無くなったら案件の金額は触らない（元の金額をそのまま残す）
-    if (rest.length > 0) {
-      await deals.update(deal.id, {
-        amount: rest.reduce((sum, l) => sum + l.amount, 0),
-        updated_at: new Date().toISOString(),
-      });
-    }
+    await syncDealMoney(
+      deal,
+      dealProducts.items.filter((l) => l.id !== lineId)
+    );
   };
 
   const addActivity = async (dealId: string, type: ActivityType, note: string) => {
@@ -385,14 +468,47 @@ export default function DealsPage({
     const now = new Date().toISOString();
     // 紹介元は未選択なら null にする（uuid の列に "" は入れられない）
     const branch = branches.items.find((b) => b.id === values.branch_id);
-    const body = {
+    const body: Omit<Deal, "id" | "created_at"> = {
       ...values,
       bank_id: values.bank_id || null,
       branch_id: values.branch_id || null,
       updated_at: now,
     };
+    if (isAlliance) {
+      // ステージ・確度ランク・受注後フェーズはセールスフェーズから決める
+      const kind = (values.deal_kind || "sales") as DealKind;
+      body.deal_kind = kind;
+      if (!hasSalesTrack(kind)) {
+        Object.assign(body, { sales_phase: "", stage: "partnership", confidence_rank: "", probability: 0 });
+      } else if (values.sales_phase) {
+        const patch = applySalesPhase(
+          {
+            stage: editTarget?.stage,
+            fulfillment_status: editTarget?.fulfillment_status,
+            contracted_at: values.contracted_at,
+            lost_at: values.lost_at,
+          },
+          values.sales_phase,
+          today
+        );
+        // フェーズを変えていなければ、手で動かした確度(%)はそのまま
+        if (editTarget && (editTarget.sales_phase ?? "") === values.sales_phase) {
+          delete patch.probability;
+        }
+        Object.assign(body, patch);
+      }
+      // 販売協力で契約締結に進めたのに日付が空なら当日（月次の新規契約はこの日で数える）
+      if (partnershipPhaseByKey(values.partnership_phase)?.contracted && !values.partnership_contracted_at) {
+        body.partnership_contracted_at = today;
+      }
+    } else {
+      // 銀行営業の案件にはアライアンスの列を書かない（既存の値をそのまま残す）
+      for (const key of ALLIANCE_FORM_KEYS) delete (body as Partial<Deal>)[key];
+    }
     if (editTarget) {
       await deals.update(editTarget.id, body);
+      // 1次代理店を付け替えたら直販かどうかが変わるので、報酬を明細から揃え直す
+      if (isAlliance) await syncDealMoney({ ...editTarget, ...body }, dealProducts.items);
     } else {
       // いま開いている事業部の案件として登録する。
       // これを入れ忘れると business_unit_id が空のまま入り、既定の事業部
@@ -404,16 +520,22 @@ export default function DealsPage({
         owner_id: user.id,
       });
       // 登録フォームで選んだ商材を明細として入れる
+      const added: DealProduct[] = [];
       for (const line of lines) {
-        await dealProducts.add({
-          deal_id: row.id,
-          product_id: line.product_id,
-          product_name: line.product_name,
-          amount: line.amount,
-          quantity: 1,
-          memo: "",
-        });
+        added.push(
+          await dealProducts.add({
+            deal_id: row.id,
+            product_id: line.product_id,
+            product_name: line.product_name,
+            amount: line.amount,
+            quantity: line.quantity,
+            profit: line.profit ?? 0,
+            agency_fee: line.agency_fee ?? 0,
+            memo: "",
+          })
+        );
       }
+      if (isAlliance) await syncDealMoney(row, added);
       const productNote =
         lines.length > 0 ? `（${lines.map((l) => l.product_name).join(" / ")}）` : "";
       await activities.add({
@@ -561,6 +683,8 @@ export default function DealsPage({
             onCardClick={(d) => setDetailId(d.id)}
             onGroupChange={changeFulfillmentGroup}
             onStageChange={changeFulfillmentStage}
+            // アライアンスはシートの成約後フェーズ（サインバック回収〜支払い済み）で動かす
+            alliancePhases={isAlliance ? { onChange: changeSalesPhase } : undefined}
           />
         )}
         {view === "list" && (
@@ -614,12 +738,27 @@ export default function DealsPage({
               products={activeProducts}
               lines={dealProducts.items}
               canEdit
-              onAdd={(productId, amount) => addDealProduct(detailDeal, productId, amount)}
+              showMoney={isAlliance}
+              direct={isAlliance && !detailDeal.bank_id}
+              onAdd={(input) => addDealProduct(detailDeal, input)}
               onRemove={(lineId) => removeDealProduct(detailDeal, lineId)}
             />
           }
+          alliancePanel={
+            isAlliance ? (
+              <AllianceDealPanel
+                deal={detailDeal}
+                primaryName={banks.items.find((b) => b.id === detailDeal.bank_id)?.name ?? ""}
+                secondaryName={
+                  branches.items.find((b) => b.id === detailDeal.branch_id)?.name ?? ""
+                }
+                onSalesPhase={changeSalesPhase}
+                onPatch={patchDeal}
+              />
+            ) : undefined
+          }
           partnershipPanel={
-            detailDeal.stage === "partnership" ? (
+            detailDeal.stage === "partnership" || (isAlliance && kindOf(detailDeal) !== "sales") ? (
               <PartnershipPanel
                 registered={partnerBranchOf(branches.items, detailDeal.id)}
                 parentName={
@@ -668,6 +807,11 @@ export default function DealsPage({
           banks={unitBanks}
           branches={unitBranches}
           terms={terms}
+          alliance={isAlliance}
+          amountLocked={
+            !!editTarget && dealProducts.items.some((l) => l.deal_id === editTarget.id)
+          }
+          today={today}
           onClose={() => {
             setFormOpen(false);
             setEditTarget(null);

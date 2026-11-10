@@ -64,6 +64,13 @@ export const SELF_OR_BACKOFFICE_TABLES: readonly TableName[] = [
   "expenses",
 ];
 
+/**
+ * 代理店ユーザーには見せない設定（app_settings の key）。
+ * 0016 の app_settings_select（key <> 'alliance_plan' or is_hq()）と対応する。
+ * 事業計画には売上・自社利益の目標が入っているため。
+ */
+export const HQ_ONLY_SETTING_KEYS: readonly string[] = ["alliance_plan"];
+
 /** 本人の行だけが見えるテーブル（RLS の own_scope_* と対応） */
 export const OWN_SCOPE_TABLES: readonly TableName[] = [
   "events",
@@ -194,6 +201,9 @@ export function scopeRows<T>(
           str(r, "direction") === "payable" &&
           str(r, "partner_id") === ctx.partnerId
       );
+
+    case "app_settings":
+      return rows.filter((r) => !HQ_ONLY_SETTING_KEYS.includes(str(r, "key") ?? ""));
 
     case "statement_lines":
       return rows.filter(

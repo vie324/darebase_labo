@@ -14,6 +14,7 @@
 import { useMemo } from "react";
 import { useCollection } from "./use-collection";
 import type { BranchActivityThresholds } from "./branch-metrics";
+import { ALLIANCE_PLAN_KEY, coercePlan, type AlliancePlanSettings } from "./alliance-plan";
 
 /** 支店稼働・アポイントまわりの設定 */
 export interface BranchSettings extends BranchActivityThresholds {
@@ -218,4 +219,42 @@ export function useWorkSettings(): WorkSettingsHandle {
   };
 
   return { settings, loading: rows.loading, isDefault: !row, save };
+}
+
+// =============================================================
+// アライアンス事業計画（月次の目標）
+//
+// 正は『アライアンス事業計画※確定版』の『前提条件』。未保存のあいだは確定版の値で動き、
+// 計画を見直したら「アライアンス数値管理 > 計画」から上書きする。
+// 計算は lib/alliance-plan.ts（シートの数式と1対1・テスト付き）。
+// 0016 で、この行は本部ユーザーにしか返らない（代理店には売上目標を見せない）。
+// =============================================================
+
+export interface AlliancePlanHandle {
+  plan: AlliancePlanSettings;
+  loading: boolean;
+  /** 未保存（確定版の値のまま）かどうか */
+  isDefault: boolean;
+  save: (next: AlliancePlanSettings) => Promise<void>;
+}
+
+export function useAlliancePlan(): AlliancePlanHandle {
+  const rows = useCollection("app_settings");
+  const row = rows.items.find((r) => r.key === ALLIANCE_PLAN_KEY);
+  const raw = row?.value;
+
+  const plan = useMemo(() => coercePlan(raw), [raw]);
+
+  const save = async (next: AlliancePlanSettings) => {
+    const value = { ...next } as unknown as Record<string, unknown>;
+    const updated_at = new Date().toISOString();
+    const existing = rows.items.find((r) => r.key === ALLIANCE_PLAN_KEY);
+    if (existing) {
+      await rows.update(existing.id, { value, updated_at });
+    } else {
+      await rows.add({ key: ALLIANCE_PLAN_KEY, value, updated_at });
+    }
+  };
+
+  return { plan, loading: rows.loading, isDefault: !row, save };
 }

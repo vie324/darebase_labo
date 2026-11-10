@@ -9,6 +9,7 @@
 import { useState, type DragEvent } from "react";
 import { CheckCircle2, Clock, PackageCheck } from "lucide-react";
 import { FULFILLMENT_GROUPS, FULFILLMENT_STAGES } from "@/lib/constants";
+import { WON_PHASES, salesPhaseOf } from "@/lib/alliance";
 import { fulfillmentGroupOf, stagnantDays } from "@/lib/pipeline";
 import { cn, formatYenShort } from "@/lib/utils";
 import type { Deal } from "@/lib/types";
@@ -26,6 +27,7 @@ export function FulfillmentBoard({
   onCardClick,
   onGroupChange,
   onStageChange,
+  alliancePhases,
 }: {
   /** 受注済み（stage="won"）の案件のみ */
   deals: Deal[];
@@ -34,6 +36,11 @@ export function FulfillmentBoard({
   onCardClick: (deal: Deal) => void;
   onGroupChange: (deal: Deal, toGroupKey: string) => void;
   onStageChange: (deal: Deal, toStageKey: string) => void;
+  /**
+   * アライアンス営業。カードのセレクトを成約後のセールスフェーズ（サインバック回収〜支払い済み）にし、
+   * 対応するフェーズの無い列（設置待ち）は出さない。
+   */
+  alliancePhases?: { onChange: (deal: Deal, phaseKey: string) => void };
 }) {
   const [dragId, setDragId] = useState<string | null>(null);
   const [dropKey, setDropKey] = useState<string | null>(null);
@@ -61,7 +68,11 @@ export function FulfillmentBoard({
 
   return (
     <HScroll className="flex items-start gap-3 pb-4" label="受注後フェーズ" step={276}>
-      {FULFILLMENT_GROUPS.map((group) => {
+      {FULFILLMENT_GROUPS.filter(
+        (group) =>
+          !alliancePhases ||
+          WON_PHASES.some((p) => p.fulfillment && group.stages.includes(p.fulfillment))
+      ).map((group) => {
         const cards = deals
           .filter((d) => fulfillmentGroupOf(d.fulfillment_status) === group.key)
           .sort((a, b) => b.updated_at.localeCompare(a.updated_at));
@@ -141,19 +152,35 @@ export function FulfillmentBoard({
                       </button>
 
                       {/* 詳細フェーズ（11段）。列は大分類なので、細かい進捗はここで指定する */}
-                      <Select
-                        value={d.fulfillment_status ?? ""}
-                        onChange={(e) => onStageChange(d, e.target.value)}
-                        onClick={(e) => e.stopPropagation()}
-                        className="mt-2.5 h-8 py-0 text-xs"
-                        aria-label="受注後フェーズ"
-                      >
-                        {FULFILLMENT_STAGES.map((s) => (
-                          <option key={s.key} value={s.key}>
-                            {s.label}
-                          </option>
-                        ))}
-                      </Select>
+                      {alliancePhases ? (
+                        <Select
+                          value={salesPhaseOf(d)?.key ?? "won"}
+                          onChange={(e) => alliancePhases.onChange(d, e.target.value)}
+                          onClick={(e) => e.stopPropagation()}
+                          className="mt-2.5 h-8 py-0 text-xs"
+                          aria-label="セールスフェーズ"
+                        >
+                          {WON_PHASES.map((p) => (
+                            <option key={p.key} value={p.key}>
+                              {p.label}
+                            </option>
+                          ))}
+                        </Select>
+                      ) : (
+                        <Select
+                          value={d.fulfillment_status ?? ""}
+                          onChange={(e) => onStageChange(d, e.target.value)}
+                          onClick={(e) => e.stopPropagation()}
+                          className="mt-2.5 h-8 py-0 text-xs"
+                          aria-label="受注後フェーズ"
+                        >
+                          {FULFILLMENT_STAGES.map((s) => (
+                            <option key={s.key} value={s.key}>
+                              {s.label}
+                            </option>
+                          ))}
+                        </Select>
+                      )}
 
                       <div className="mt-2.5 flex items-center justify-between gap-2 border-t border-slate-100 pt-2 dark:border-slate-800">
                         <span

@@ -43,8 +43,10 @@ import {
   Select,
   Textarea,
 } from "@/components/ui";
-import { DealProductsPanel } from "./deal-products";
+import { DealProductsPanel, type NewLineInput } from "./deal-products";
+import { AllianceFormFields } from "./alliance-fields";
 import {
+  emptyAllianceFormValues,
   emptyFormValues,
   isOpenStage,
   probabilityClass,
@@ -82,6 +84,7 @@ export function DealDetailModal({
   onAddActivity,
   productsPanel,
   partnershipPanel,
+  alliancePanel,
 }: {
   deal: Deal | null;
   activities: DealActivity[];
@@ -98,6 +101,8 @@ export function DealDetailModal({
   productsPanel?: React.ReactNode;
   /** 販売協力の案件だけに出す、2次代理店への登録の案内（親が中身を決める） */
   partnershipPanel?: React.ReactNode;
+  /** アライアンス営業の案件だけに出す、案件管理表の項目（親が中身を決める） */
+  alliancePanel?: React.ReactNode;
 }) {
   // 親側で key={deal.id} を付けて描画するため、案件が変わると状態はリセットされる
   const [actType, setActType] = useState<ActivityType>("call");
@@ -177,6 +182,9 @@ export function DealDetailModal({
             </p>
           )}
         </div>
+
+        {/* アライアンス営業：案件管理表の項目（セールスフェーズ・販売協力フェーズ・対応など） */}
+        {alliancePanel}
 
         {/* 販売協力 → 2次代理店 */}
         {partnershipPanel}
@@ -343,6 +351,9 @@ export function DealFormModal({
   banks,
   branches,
   terms,
+  alliance = false,
+  amountLocked = false,
+  today,
   onClose,
   onSubmit,
 }: {
@@ -359,6 +370,12 @@ export function DealFormModal({
   /** 紹介の窓口（支店 / 2次代理店）。この事業部のものだけ渡す */
   branches: Branch[];
   terms: UnitTerms;
+  /** アライアンス営業の案件（★案件管理表★の項目を出し、ステージはセールスフェーズから決める） */
+  alliance?: boolean;
+  /** 商材明細がある案件の編集。金額は明細の合計なので手で変えさせない */
+  amountLocked?: boolean;
+  /** 新規のときの紹介日の初期値 */
+  today: string;
   onClose: () => void;
   onSubmit: (values: DealFormValues, lines: NewDealLine[]) => Promise<void>;
 }) {
@@ -366,7 +383,11 @@ export function DealFormModal({
   const { criteria } = useConfidenceCriteria();
   // 親側で open のときだけマウントされるため、初期値は useState の初期化子で確定する
   const [values, setValues] = useState<DealFormValues>(() =>
-    initial ? toFormValues(initial) : emptyFormValues(defaultOwner)
+    initial
+      ? toFormValues(initial)
+      : alliance
+        ? emptyAllianceFormValues(defaultOwner, today)
+        : emptyFormValues(defaultOwner)
   );
   const [saving, setSaving] = useState(false);
   // 登録と同時に載せる商材。保存できるまで DB には入れないので、画面の中だけで持つ。
@@ -377,21 +398,23 @@ export function DealFormModal({
     setValues((prev) => ({ ...prev, [key]: v }));
 
   /** 商材を1行足す。案件の金額は明細の合計に合わせる（lib/products.ts の考え方と揃える） */
-  const addLine = async (productId: string, amount: number) => {
-    const master = products.find((p) => p.id === productId);
+  const addLine = async (input: NewLineInput) => {
+    const master = products.find((p) => p.id === input.product_id);
     if (!master) return;
     const next: NewDealLine[] = [
       ...lines,
       {
         // 保存前の並びを保つためだけの id。DB には渡さない
-        id: `tmp-${productId}`,
+        id: `tmp-${master.id}`,
         created_at: new Date().toISOString(),
         deal_id: NEW_DEAL,
         product_id: master.id,
         // マスタを改名しても当時の名前が残るようスナップショットする
         product_name: master.name,
-        amount,
-        quantity: 1,
+        amount: input.amount,
+        quantity: input.quantity,
+        profit: input.profit,
+        agency_fee: input.agency_fee,
         memo: "",
       },
     ];
@@ -482,53 +505,60 @@ export function DealFormModal({
               placeholder="例: 山田 太郎"
             />
           </Field>
-          <Field label="ステージ">
-            <Select
-              value={values.stage}
-              onChange={(e) => set("stage", e.target.value as DealStage)}
-            >
-              {stages.map((s) => (
-                <option key={s} value={s}>
-                  {DEAL_STAGES[s].label}
-                </option>
-              ))}
-            </Select>
-          </Field>
-          {/* 後追い中のみ確度ランク。カンバンの列はこの値で決まる */}
-          {values.stage === "follow_up" && (
-            <Field label="確度ランク">
-              <Select
-                value={values.confidence_rank}
-                onChange={(e) => set("confidence_rank", e.target.value)}
-              >
-                <option value="">未判定（C 扱い）</option>
-                <option value="C">C</option>
-                <option value="B">B</option>
-                <option value="A">A</option>
-              </Select>
-              {/* 判定基準は設定画面で編集できる（app_settings） */}
-              <span className="mt-1 block text-[11px] leading-relaxed text-slate-400">
-                {values.confidence_rank === "A" || values.confidence_rank === "B"
-                  ? criteria[values.confidence_rank]
-                  : criteria.C}
-              </span>
-            </Field>
-          )}
-          {/* 受注後のみ完工フェーズ */}
-          {values.stage === "won" && (
-            <Field label="受注後フェーズ">
-              <Select
-                value={values.fulfillment_status}
-                onChange={(e) => set("fulfillment_status", e.target.value)}
-              >
-                <option value="">未設定</option>
-                {FULFILLMENT_STAGES.map((f) => (
-                  <option key={f.key} value={f.key}>
-                    {f.label}
-                  </option>
-                ))}
-              </Select>
-            </Field>
+          {alliance ? (
+            // アライアンス営業は★案件管理表★の項目で入れる（ステージはセールスフェーズから決まる）
+            <AllianceFormFields values={values} set={set} />
+          ) : (
+            <>
+              <Field label="ステージ">
+                <Select
+                  value={values.stage}
+                  onChange={(e) => set("stage", e.target.value as DealStage)}
+                >
+                  {stages.map((s) => (
+                    <option key={s} value={s}>
+                      {DEAL_STAGES[s].label}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+              {/* 後追い中のみ確度ランク。カンバンの列はこの値で決まる */}
+              {values.stage === "follow_up" && (
+                <Field label="確度ランク">
+                  <Select
+                    value={values.confidence_rank}
+                    onChange={(e) => set("confidence_rank", e.target.value)}
+                  >
+                    <option value="">未判定（C 扱い）</option>
+                    <option value="C">C</option>
+                    <option value="B">B</option>
+                    <option value="A">A</option>
+                  </Select>
+                  {/* 判定基準は設定画面で編集できる（app_settings） */}
+                  <span className="mt-1 block text-[11px] leading-relaxed text-slate-400">
+                    {values.confidence_rank === "A" || values.confidence_rank === "B"
+                      ? criteria[values.confidence_rank]
+                      : criteria.C}
+                  </span>
+                </Field>
+              )}
+              {/* 受注後のみ完工フェーズ */}
+              {values.stage === "won" && (
+                <Field label="受注後フェーズ">
+                  <Select
+                    value={values.fulfillment_status}
+                    onChange={(e) => set("fulfillment_status", e.target.value)}
+                  >
+                    <option value="">未設定</option>
+                    {FULFILLMENT_STAGES.map((f) => (
+                      <option key={f.key} value={f.key}>
+                        {f.label}
+                      </option>
+                    ))}
+                  </Select>
+                </Field>
+              )}
+            </>
           )}
           <Field label="担当者">
             <Select
@@ -542,14 +572,20 @@ export function DealFormModal({
               ))}
             </Select>
           </Field>
-          <Field label="金額（円）" required>
+          <Field label={alliance ? "売上（円）" : "金額（円）"} required>
             <Input
               type="number"
               min={0}
               step={10000}
               value={values.amount}
               onChange={(e) => set("amount", Math.max(0, Number(e.target.value) || 0))}
+              disabled={amountLocked}
             />
+            {amountLocked && (
+              <span className="mt-1 block text-[11px] text-slate-400">
+                商材明細（プラン・機器）の合計です。案件の詳細から明細を直してください
+              </span>
+            )}
             <p className="mt-1 text-right text-xs font-semibold text-cyan-500 dark:text-cyan-400">
               {formatYenShort(values.amount)}
             </p>
@@ -563,12 +599,12 @@ export function DealFormModal({
             />
           </Field>
           {/* 紹介元 → 窓口。どちらも任意（自社開拓の案件もあるため） */}
-          <Field label={`${terms.parent}（任意）`}>
+          <Field label={alliance ? terms.parent : `${terms.parent}（任意）`}>
             <Select
               value={values.bank_id}
               onChange={(e) => setValues((prev) => ({ ...prev, bank_id: e.target.value, branch_id: "" }))}
             >
-              <option value="">紐づけない</option>
+              <option value="">{alliance ? "直販（1次代理店なし）" : "紐づけない"}</option>
               {banks.map((b) => (
                 <option key={b.id} value={b.id}>
                   {b.name}
@@ -605,7 +641,13 @@ export function DealFormModal({
                 products={products}
                 lines={lines}
                 canEdit
-                emptyText="商材はあとからでも足せます。ここで選ぶと、金額は商材の合計になります。"
+                showMoney={alliance}
+                direct={alliance && !values.bank_id}
+                emptyText={
+                  alliance
+                    ? "プラン・機器台数はあとからでも足せます。ここで選ぶと、売上・自社利益・代理店報酬が単価表から入ります。"
+                    : "商材はあとからでも足せます。ここで選ぶと、金額は商材の合計になります。"
+                }
                 onAdd={addLine}
                 onRemove={removeLine}
               />

@@ -100,6 +100,36 @@ export interface Deal extends BaseRow {
   fulfillment_updated_at?: string; // 現フェーズに入った日 YYYY-MM-DD（停滞日数の計算に使用）
   confidence_rank?: string; // "A" | "B" | "C" | ""
   confidence_score?: number | null; // 0-100
+
+  // ---- アライアンス営業（0016。★案件管理表★『全体管理』の列。値の一覧は lib/alliance.ts） ----
+  /** 紹介日 YYYY-MM-DD（"" = 未入力。月次の紹介数はこの日で数える） */
+  referred_at?: string;
+  /** 商談種別 sales | partnership | sales_partnership（"" = 未設定） */
+  deal_kind?: string;
+  /** セールスフェーズ（SALES_PHASES のキー）。アライアンスは stage などをここから決める */
+  sales_phase?: string;
+  /** 販売協力フェーズ（PARTNERSHIP_PHASES のキー） */
+  partnership_phase?: string;
+  /** 契約締結日（販売協力で代理店契約を結んだ日） YYYY-MM-DD */
+  partnership_contracted_at?: string;
+  /** ロスト日 YYYY-MM-DD（成約日は contracted_at） */
+  lost_at?: string;
+  /** 失注理由 */
+  loss_reason?: string;
+  /** 対応（いま誰のボールか）ours | alliance | client */
+  ball?: string;
+  /** 設置日 YYYY-MM-DD */
+  installed_at?: string;
+  /** 代理店支払日 YYYY-MM-DD */
+  agency_paid_at?: string;
+  /** 契約備考 */
+  contract_note?: string;
+  /** 代理店支払い分（円）。商材明細から揃える。直販は 0 */
+  agency_fee?: number;
+  /** 月額・工事費・ストック分（円。記録のみ） */
+  monthly_fee?: number;
+  construction_fee?: number;
+  stock_amount?: number;
 }
 
 /** 案件の活動履歴（訪問・架電・メールなどの進捗ログ） */
@@ -556,6 +586,12 @@ export interface Product extends BaseRow {
   /** null = 全事業部で使える商材 */
   business_unit_id: string | null;
   updated_at: string;
+  /** 1単位あたりの自社利益（円・0016） */
+  unit_profit?: number;
+  /** 1単位あたりの代理店報酬（円・0016）。1次代理店に支払う額 */
+  agency_fee?: number;
+  /** 件数の数え方（0016）: contract（契約数） | device（機器台数） */
+  count_unit?: string;
 }
 
 /**
@@ -569,6 +605,10 @@ export interface DealProduct extends BaseRow {
   amount: number; // 円
   quantity: number;
   memo: string;
+  /** この明細の自社利益（円・0016）。単価 × 数量を控える */
+  profit?: number;
+  /** この明細の代理店報酬（円・0016） */
+  agency_fee?: number;
 }
 
 // ---------- 採用（0011） ----------

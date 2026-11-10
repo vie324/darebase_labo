@@ -33,6 +33,7 @@ import { useUser } from "@/lib/use-user";
 import { useAccess } from "@/lib/use-access";
 import { useBusinessUnit } from "@/lib/use-business-unit";
 import { columnByKey } from "@/lib/pipeline";
+import { lineMoney } from "@/lib/alliance";
 import { linkedDealIdOf, sourceAppointmentOf } from "@/lib/schedule-deal";
 import { appointmentDealMemo } from "@/lib/appointments";
 import { cn, formatDate, formatTime, toDateStr } from "@/lib/utils";
@@ -206,6 +207,10 @@ export default function SchedulePage() {
     const ownerId = isPartner
       ? (user?.id ?? null)
       : (profiles.items.find((m) => m.name === ev.owner_name)?.id ?? user?.id ?? null);
+    // 商材の自社利益・代理店報酬（アライアンスのプラン単価表）。直販は報酬を自社利益に寄せる
+    const money = input.products.map((p) => lineMoney(p, 1));
+    const feeTotal = money.reduce((sum, m) => sum + m.agency_fee, 0);
+    const profitTotal = money.reduce((sum, m) => sum + m.profit, 0) + (bankId ? 0 : feeTotal);
     const created = await deals.add({
       name: input.name,
       company: input.company,
@@ -227,17 +232,19 @@ export default function SchedulePage() {
       // 代理店ユーザーが登録した案件は自社に紐づける（RLS のスコープ条件）
       organization_id: branch?.assigned_org_id ?? source?.organization_id ?? organizationId ?? null,
       business_unit_id: source?.business_unit_id ?? input.business_unit_id,
+      gross_profit: profitTotal,
+      ...(feeTotal > 0 ? { agency_fee: bankId ? feeTotal : 0 } : {}),
     });
     await Promise.all(
-      input.products.map((p) =>
+      input.products.map((p, i) =>
         insertRow("deal_products", {
           deal_id: created.id,
           product_id: p.id,
           // マスタを改名しても当時の名前が残るようスナップショットする
           product_name: p.name,
-          amount: p.unit_price,
           quantity: 1,
           memo: "",
+          ...money[i],
         })
       )
     );
